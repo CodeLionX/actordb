@@ -35,7 +35,7 @@ You are more than welcome to contribute any PR regardless if it's listed or not.
   ```
 
 
-# Use IDE, eg. Intellij IDEA
+### Use IDE, eg. Intellij IDEA
 
 - Install JDK, eg. JDK-1.8:
 
