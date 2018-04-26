@@ -4,8 +4,8 @@ object Dependencies {
   val akkaVersion = "2.5.12"
 
   val akkaTestDependencies = Seq(
-    "org.scalatest" %% "scalatest" % "3.0.5" % "test",
-    "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test
+    "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+    "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test"
   )
 
   val akkaActorDependencies =
