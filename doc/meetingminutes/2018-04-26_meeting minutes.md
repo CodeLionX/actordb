@@ -2,7 +2,7 @@
 
 26.04.2018
 
-Teilnehmer:
+Participants:
 
 - Sebastian Schmidl
 - Frederic Schneider
