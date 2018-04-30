@@ -1,4 +1,4 @@
-package de.up.hpi.informationsystems.adbms
+package de.up.hpi.informationsystems.sampleapp
 
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props}
 
