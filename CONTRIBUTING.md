@@ -45,3 +45,4 @@ You are more than welcome to contribute any PR regardless if it's listed or not.
 
 - [Download](https://www.jetbrains.com/idea/download/#section=linux) and install Intellij IDEA
 - Install _Scala_ and _SBT_ plugins
+- Import project _as an SBT project_ (only available after installing the _SBT_ plugin)
