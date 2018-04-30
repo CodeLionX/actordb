@@ -11,6 +11,16 @@ lazy val adbms = (project in file("adbms"))
     libraryDependencies ++= Dependencies.akkaActorDependencies
   )
 
+lazy val sampleapp = (project in file("sampleapp"))
+  .settings(
+    Common.commonSettings,
+    // I don't know why they are not accepted at the commonSettings key
+    organization := Common.organization,
+    scalaVersion := Common.scalaVersion,
+    libraryDependencies ++= Dependencies.akkaActorDependencies
+  )
+  .dependsOn(adbms)
+
 lazy val root = (project in file("."))
   .aggregate(adbms)
   .settings(
