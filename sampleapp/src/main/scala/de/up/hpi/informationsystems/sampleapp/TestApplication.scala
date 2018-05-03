@@ -16,4 +16,9 @@ object TestApplication extends App {
   relation.insert(colFirstname, "Marcel Weisgut")
 
   println(relation)
+
+  assert(ColumnDef[String]("Firstname") == colFirstname)
+  // fails, but should hold:
+  // FIXME: change TypedColumnDef from case class to class and implement equals on our own
+  assert(ColumnDef[Int]("Firstname").asInstanceOf[ColumnDef] != colFirstname.asInstanceOf[ColumnDef])
 }
