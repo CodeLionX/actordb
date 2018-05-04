@@ -13,8 +13,15 @@ You are more than welcome to contribute any PR regardless if it's listed or not.
 - each branch must have one of the following prefixes:
   - `fix/` for bug fixes and small, urgent changes
   - `feature/` for new feature proposals
-  - `doc/` for changes that only affect documentational files and **no source code**
+  - `doc/` for changes that only affect documentation files and **no source code**
   - `refactor/` for refactorings that do not introduce new features or just few
+- when starting work on this project please use the [labels](https://github.com/CodeLionX/actordb/labels) to mark the state of your PR
+  - start with label `WIP` (work in progress)
+  - when you are finished with the PR, mark it ready for review with `Needs Review`
+  - if the reviewer approves your PR, he/she can mark it with `Merge` or merge it into master directly
+  - when your PR is marked with `Merge`, any contributer is allowed to merge the PR into master
+  
+  
 
 ## Set up development environment (Linux)
 
