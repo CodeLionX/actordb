@@ -1,6 +1,8 @@
 package de.up.hpi.informationsystems.adbms
 package definition
 
+import java.util.Objects
+
 import scala.reflect.ClassTag
 
 object ColumnDef {
@@ -14,6 +16,9 @@ object ColumnDef {
   * @see [[de.up.hpi.informationsystems.adbms.definition.ColumnRelation]]
   */
 sealed trait ColumnDef {
+  /**
+    * Holds the type of the contained values.
+    */
   type value
 
   /**
@@ -36,10 +41,30 @@ sealed trait ColumnDef {
   protected[definition] def build(): ColumnStore
 }
 
-case class TypedColumnDef[T](name: String)(implicit ct: ClassTag[T]) extends ColumnDef {
+final class TypedColumnDef[T](override val name: String)(implicit ct: ClassTag[T]) extends ColumnDef {
   override type value = T
+
   override def tpe: ClassTag[T] = ct
+
   override protected[definition] def build(): TypedColumnStore[T] = ColumnStore[T](this)
 
+  // overrides of [[java.lang.Object]]
+
   override def toString: String = s"""TypedColumnDef[$tpe](name="$name")"""
+
+  override def hashCode(): Int = Objects.hash(name, ct)
+
+  override def equals(o: scala.Any): Boolean =
+    if (o == null || getClass != o.getClass)
+      false
+    else {
+      // cast other object
+      val otherTypedColumnDef: TypedColumnDef[T] = o.asInstanceOf[TypedColumnDef[T]]
+      if (this.name.equals(otherTypedColumnDef.name) && this.tpe.equals(otherTypedColumnDef.tpe))
+        true
+      else
+        false
+    }
+
+  override def clone(): AnyRef = new TypedColumnDef[T](this.name)(this.tpe)
 }

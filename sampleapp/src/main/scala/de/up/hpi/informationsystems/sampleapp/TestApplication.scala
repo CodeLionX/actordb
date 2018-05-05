@@ -1,12 +1,19 @@
 package de.up.hpi.informationsystems.sampleapp
 
-import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, ColumnRelation}
+import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, ColumnRelation, TypedColumnDef}
 
 object TestApplication extends App {
-  val colFirstname  = ColumnDef[String]("Firstname")
-  val colAge        = ColumnDef[Int]("Age")
 
-  val relation = ColumnRelation(Seq(colAge, colFirstname))
+  /**
+    * Definition of Columns and Relations
+    */
+  object Definition {
+    val colFirstname: TypedColumnDef[String] = ColumnDef[String]("Firstname")
+    val colAge: TypedColumnDef[Int] = ColumnDef[Int]("Age")
+
+    val relation: ColumnRelation = ColumnRelation(Seq(colAge, colFirstname))
+  }
+  import Definition._
 
   println(relation.columns.mkString(", "))
   relation.insert(colFirstname, "Sebastian Schmidl")
@@ -18,7 +25,5 @@ object TestApplication extends App {
   println(relation)
 
   assert(ColumnDef[String]("Firstname") == colFirstname)
-  // fails, but should hold:
-  // FIXME: change TypedColumnDef from case class to class and implement equals on our own
   assert(ColumnDef[Int]("Firstname").asInstanceOf[ColumnDef] != colFirstname.asInstanceOf[ColumnDef])
 }
