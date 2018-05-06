@@ -91,7 +91,6 @@ object TestApplication extends App {
   println(
     R2.whereAll(
         Map(colCustomerName.untyped -> isBMW)
-//          ++ Map(colCustomerId.untyped -> { value: Any => value.asInstanceOf[Int] == 1 })
           ++ Map(colCustomerDiscount.untyped -> discountGreaterThan(0.01))
       )
       .map{ _.values.mkString(", ") }

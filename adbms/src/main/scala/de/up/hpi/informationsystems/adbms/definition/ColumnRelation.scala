@@ -22,10 +22,6 @@ sealed trait ColumnRelation extends Relation {
   */
 object ColumnRelation {
 
-  //def apply(columnDef: ColumnDef): ColumnRelationDef = new ColumnRelationDef(Seq(columnDef))
-
-  //def apply(columnDef: ColumnDef, columnDefs: ColumnDef*): ColumnRelationDef = new ColumnRelationDef(Seq(columnDef) ++ columnDefs.toSeq)
-
   /**
     * Defines a column-oriented relation schema, which gets automatically generated.
     *

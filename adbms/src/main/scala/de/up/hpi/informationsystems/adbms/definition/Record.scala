@@ -4,12 +4,25 @@ import java.util.Objects
 
 import scala.collection.{MapLike, mutable}
 
-class Record private (cells: Map[ColumnDef, Any]) extends MapLike[ColumnDef, Any, Record] with Map[ColumnDef, Any] {
+class Record private (cells: Map[ColumnDef, Any])
+  extends MapLike[ColumnDef, Any, Record]
+    with Map[ColumnDef, Any] {
 
   private val data = cells
 
+  /**
+    * Returns column definitions in this record.
+    * Alias to `keys`
+    */
   val columns: Seq[ColumnDef] = cells.keys.toSeq
 
+  /**
+    * Optionally returns the cell's value of a specified column.
+    * @note This call is typesafe!
+    * @param columnDef typed column definition specifying the column
+    * @tparam T type of the cell's value
+    * @return the value of the column's cell wrapped in an `Option`
+    */
   def get[T](columnDef: TypedColumnDef[T]): Option[T] =
     if(data.contains(columnDef))
       Some(data(columnDef).asInstanceOf[T])
@@ -54,6 +67,7 @@ class Record private (cells: Map[ColumnDef, Any]) extends MapLike[ColumnDef, Any
     }
 
   // FIXME: I don't know what to do here.
+  // removing this line leads to a compiler error
   override protected[this] def newBuilder: mutable.Builder[(ColumnDef, Any), Record] = ???
 }
 
