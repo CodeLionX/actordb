@@ -4,6 +4,12 @@ import de.up.hpi.informationsystems.adbms.definition._
 
 object TestApplication extends App {
 
+  implicit class RecordSeqToString(a: Seq[Record]) {
+    def pretty: String =
+      a.map{ _.values.mkString(", ") }
+        .mkString("\n")
+  }
+
   /**
     * Definition of Columns and Relations for relation "User"
     */
@@ -12,7 +18,7 @@ object TestApplication extends App {
     val colLastname: TypedColumnDef[String] = ColumnDef("Lastname")
     val colAge: TypedColumnDef[Int] = ColumnDef("Age")
 
-    val R: ColumnRelation = ColumnRelation(Seq(colAge, colFirstname))
+    val R: ColumnRelation = ColumnRelation(Seq(colFirstname, colLastname, colAge))
   }
 
   /**
@@ -29,20 +35,57 @@ object TestApplication extends App {
   import UserRelationDefinition._
   import CustomerRelationDefinition.{R => R2, colCustomerDiscount, colCustomerId, colCustomerName}
 
-  println(R.columns.mkString(", "))
-  R.insert(colFirstname, "Sebastian Schmidl")
-  R.insert(colFirstname, "Frederic Schneider")
-  R.insert(colAge, 23)
-  R.insert(colAge, 24)
-  R.insert(colFirstname, "Marcel Weisgut")
+  /**
+    * Testing User relation => ColumnStore
+    */
 
+  println(R.columns.mkString(", "))
+  R.insert(
+    Record(R.columns)
+      .withCellContent(colLastname -> "Maier")
+      .withCellContent(colFirstname -> "Hans")
+      .withCellContent(colAge -> 33)
+      .build()
+  )
+  R.insert(
+    Record(R.columns)
+      .withCellContent(colFirstname -> "Hans")
+      .withCellContent(colLastname -> "Schneider")
+      .withCellContent(colAge -> 12)
+      .build()
+  )
+  R.insert(
+    Record(R.columns)
+      .withCellContent(colFirstname -> "Justus")
+      .withCellContent(colLastname -> "Jonas")
+      .build()
+  )
   println()
   println(R)
+
+  println()
+  println("where:")
+  println(
+    R.where[String](colFirstname -> { _ == "Hans" }).pretty
+  )
+  println("whereAll:")
+  println(
+    R.whereAll(
+      Map(colFirstname.untyped -> { name: Any => name.asInstanceOf[String] == "Hans" })
+      ++ Map(colAge.untyped -> { age: Any => age.asInstanceOf[Int] == 33 })
+    ).pretty
+  )
 
   assert(ColumnDef[String]("Firstname") == colFirstname)
   assert(ColumnDef[Int]("Firstname").asInstanceOf[ColumnDef] != colFirstname.asInstanceOf[ColumnDef])
 
 
+  /**
+    * Testing Customer relation => RowStore
+    */
+
+  println()
+  println()
   val record = Record(R.columns)
     .withCellContent(colFirstname -> "Hans")
     .withCellContent(colAge -> 45)
@@ -76,9 +119,7 @@ object TestApplication extends App {
   println(R2)
   println("where:")
   println(
-    R2.where[String](colCustomerName -> { _.contains("BMW") })
-      .map{ _.values.mkString(", ") }
-      .mkString("\n")
+    R2.where[String](colCustomerName -> { _.contains("BMW") }).pretty
   )
 
   val isBMW: Any => Boolean = value =>
@@ -93,7 +134,6 @@ object TestApplication extends App {
         Map(colCustomerName.untyped -> isBMW)
           ++ Map(colCustomerDiscount.untyped -> discountGreaterThan(0.01))
       )
-      .map{ _.values.mkString(", ") }
-      .mkString("\n")
+      .pretty
   )
 }

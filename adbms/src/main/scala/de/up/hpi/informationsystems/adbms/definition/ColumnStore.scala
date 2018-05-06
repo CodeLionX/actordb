@@ -1,6 +1,8 @@
 package de.up.hpi.informationsystems.adbms
 package definition
 
+import scala.collection.mutable
+
 private[definition] object ColumnStore {
   def apply[T](columnDef: TypedColumnDef[T]): TypedColumnStore[T] = new TypedColumnStore[T](columnDef)
 }
@@ -27,6 +29,14 @@ private[definition] sealed trait ColumnStore {
     */
   def append(value: valueType): Unit
 
+
+  /**
+    * Returns the value at the specified index
+    * @param idx position of value
+    * @return value at position idx
+    */
+  def apply(idx: Int): valueType
+
   /**
     * Returns the value at position (row) <code>idx</code>.
     * @param idx index / row number beginning from 0
@@ -38,7 +48,19 @@ private[definition] sealed trait ColumnStore {
     * Returns the number of cells.
     * @return number of cells
     */
-  def length: Int
+  def size: Int
+
+  def update(idx: Int, elem: valueType): Unit
+
+  def isEmpty: Boolean
+
+  def indexOf[B >: valueType](elem: B): Int
+
+  def indicesWhere(p: valueType => Boolean): Seq[Int]
+
+  def contains[A1 >: valueType](elem: A1): Boolean
+
+  def indices: Range
 }
 
 /**
@@ -49,10 +71,11 @@ private[definition] sealed trait ColumnStore {
 private[definition] class TypedColumnStore[T](columnDefInt: TypedColumnDef[T]) extends ColumnStore {
   override type valueType = T
   override def columnDef: ColumnDef = columnDefInt
-  private var data: Seq[T] = Seq.empty
+  private val data: mutable.Buffer[T] = mutable.Buffer.empty
 
-  override def append(value: T): Unit =
-    data = data :+ value
+  override def append(value: T): Unit = data.append(value)
+
+  override def apply(idx: Int): T = data(idx)
 
   override def get(idx: Int): Option[T] =
     if(idx < data.length && idx >= 0)
@@ -60,7 +83,20 @@ private[definition] class TypedColumnStore[T](columnDefInt: TypedColumnDef[T]) e
     else
       None
 
-  override def length: Int = data.length
+  override def size: Int = data.size
+
+  override def update(idx: Int, elem: T): Unit = data.update(idx, elem)
+
+  override def indexOf[B >: T](elem: B): Int = data.indexOf(elem)
+
+  override def indicesWhere(p: T => Boolean): Seq[Int] =
+    data.zipWithIndex.collect{ case (value, index) if p(value) => index }
+
+  override def isEmpty: Boolean = data.isEmpty
+
+  override def contains[A1 >: T](elem: A1): Boolean = data.contains(elem)
+
+  override def indices: Range = data.indices
 
   override def toString: String = s"TypedColumn[${columnDef.tpe}]($data)"
 }

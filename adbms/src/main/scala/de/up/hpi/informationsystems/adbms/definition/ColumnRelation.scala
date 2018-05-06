@@ -1,21 +1,7 @@
 package de.up.hpi.informationsystems.adbms.definition
 
 
-sealed trait ColumnRelation extends Relation {
-  protected val colMap: Map[String, ColumnDef]
-
-  /**
-    * Insert new values into the relation
-    * @param column
-    * @param value
-    * @tparam T
-    */
-  // FIXME: not single values, but whole lines
-  def insert[T](column: TypedColumnDef[T], value: T): Unit
-
-  // FIXME: why should we need this?
-  def getCol[T](column: TypedColumnDef[T]): Option[TypedColumnStore[T]]
-}
+sealed trait ColumnRelation extends Relation
 
 /**
   * Defines a column-oriented relation schema, which's store gets automatically generated.
@@ -65,31 +51,37 @@ object ColumnRelation {
     override def columns: Seq[ColumnDef] = colDefs
 
     /** @inheritdoc */
-    override def insert(record: Record): Unit = ???
+    override def insert(record: Record): Unit = {
+      n += 1
+      columns.foreach(column => {
+        val columnStore = data(column)
+        columnStore.append(record(column).asInstanceOf[columnStore.valueType])
+      })
+    }
 
     /** @inheritdoc */
-    override def where[T](f: (TypedColumnDef[T], T => Boolean)): Seq[Record] = ???
+    override def where[T](f: (TypedColumnDef[T], T => Boolean)): Seq[Record] = {
+      val columnStore = data(f._1.untyped) // needed to get the right type 2 lines below
+      columnStore
+        .indicesWhere(f._2.asInstanceOf[columnStore.valueType => Boolean])
+        .map(idx =>
+          columns.foldLeft(Record(columns))((builder, column) =>
+            builder.withCellContent(column.asInstanceOf[TypedColumnDef[T]] -> data(column)(idx).asInstanceOf[T])
+          ).build()
+        )
+    }
 
     /** @inheritdoc */
-    override def whereAll(fs: Map[ColumnDef, Any => Boolean]): Seq[Record] = ???
-
-    override protected val colMap: Map[String, ColumnDef] =
-      colDefs.map(c => Map(c.name -> c)).reduce(_ ++ _)
-
-    @throws[ColumnNotFoundException]
-    override def insert[T](column: TypedColumnDef[T], value: T): Unit =
-      if (data.contains(column)) {
-        val col = data(column).asInstanceOf[TypedColumnStore[T]]
-        col.append(value)
-        if (col.length - 1 > n) n = col.length - 1
-      } else
-        throw new ColumnNotFoundException(s"Column $column is not part of this relation")
-
-    override def getCol[T](column: TypedColumnDef[T]): Option[TypedColumnStore[T]] =
-      if (data.contains(column))
-        Some(data(column).asInstanceOf[TypedColumnStore[T]])
-      else
-        None
+    override def whereAll(fs: Map[ColumnDef, Any => Boolean]): Seq[Record] =
+      fs.keys.map(column =>
+          data(column).indicesWhere(fs(column)).map(idx =>
+            columns.foldLeft(Record(columns))((builder, column) => {
+              val columnStore = data(column) // needed to get the right type here 🡫
+              builder.withCellContent(column.asInstanceOf[TypedColumnDef[columnStore.valueType]] -> columnStore(idx))
+            }).build()
+          ).toSet
+        ).reduce( (a1, a2) => a1.intersect(a2) )
+        .toSeq
 
     override def toString: String = {
       val header = columns.map { c => s"${c.name}[${c.tpe}]" }.mkString(" | ")

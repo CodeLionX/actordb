@@ -1,7 +1,5 @@
 package de.up.hpi.informationsystems.adbms.definition
 
-import scala.reflect.ClassTag
-
 sealed trait RowRelation extends Relation
 
 

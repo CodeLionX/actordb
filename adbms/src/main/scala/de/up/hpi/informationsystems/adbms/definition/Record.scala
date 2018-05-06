@@ -33,6 +33,8 @@ class Record private (cells: Map[ColumnDef, Any])
   // from MapLike
   override def empty: Record = new Record(Map.empty)
 
+  override def default(key: ColumnDef): Any = null
+
   /**
     * Use [[de.up.hpi.informationsystems.adbms.definition.Record#get]] instead!
     * It takes care of types!
