@@ -38,15 +38,17 @@ sealed trait ColumnDef {
     *
     * @return corresponding Column
     */
-  protected[definition] def build(): ColumnStore
+  protected[definition] def buildColumnStore(): ColumnStore
 }
 
-final class TypedColumnDef[T](override val name: String)(implicit ct: ClassTag[T]) extends ColumnDef {
+final class TypedColumnDef[T](pName: String)(implicit ct: ClassTag[T]) extends ColumnDef {
   override type value = T
 
-  override def tpe: ClassTag[T] = ct
+  override val name: String = pName
 
-  override protected[definition] def build(): TypedColumnStore[T] = ColumnStore[T](this)
+  override val tpe: ClassTag[T] = ct
+
+  override protected[definition] def buildColumnStore(): TypedColumnStore[T] = ColumnStore[T](this)
 
   // overrides of [[java.lang.Object]]
 
