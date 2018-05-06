@@ -109,7 +109,7 @@ object Record {
 
     def build(): Record = {
       val data: Map[ColumnDef, Any] = columnDefs
-        .map{ colDef => Map(colDef -> recordData.getOrElse(colDef, None)) }
+        .map{ colDef => Map(colDef -> recordData.getOrElse(colDef, null)) }
         .reduce( _ ++ _)
       new Record(data)
     }
