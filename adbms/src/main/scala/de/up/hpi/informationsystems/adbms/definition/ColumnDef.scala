@@ -34,6 +34,12 @@ sealed trait ColumnDef {
   def tpe: ClassTag[value]
 
   /**
+    * Returns an untyped version of this column definition
+    * @return untyped version of this column definition
+    */
+  def untyped: ColumnDef
+
+  /**
     * Creates the corresponding [[de.up.hpi.informationsystems.adbms.definition.ColumnStore]]
     *
     * @return corresponding Column
@@ -47,6 +53,8 @@ final class TypedColumnDef[T](pName: String)(implicit ct: ClassTag[T]) extends C
   override val name: String = pName
 
   override val tpe: ClassTag[T] = ct
+
+  override def untyped: ColumnDef = this.asInstanceOf[ColumnDef]
 
   override protected[definition] def buildColumnStore(): TypedColumnStore[T] = ColumnStore[T](this)
 
