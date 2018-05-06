@@ -1,13 +1,8 @@
 package de.up.hpi.informationsystems.adbms.definition
 
-sealed trait ColumnRelation {
-  protected val colMap: Map[String, ColumnDef]
 
-  /**
-    * Returns the column definitions of this relation.
-    * @return a sequence of column definitions
-    */
-  def columns: Seq[ColumnDef] = colMap.values.toSeq
+sealed trait ColumnRelation extends Relation {
+  protected val colMap: Map[String, ColumnDef]
 
   /**
     * Insert new values into the relation
@@ -62,14 +57,28 @@ object ColumnRelation {
     */
   private final class ColumnRelationStore(private val colDefs: Seq[ColumnDef]) extends ColumnRelation {
 
-    protected override val colMap: Map[String, ColumnDef] =
-      colDefs.map(c => Map(c.name -> c)).reduce(_ ++ _)
-
     private val data: Map[ColumnDef, ColumnStore] =
       colDefs.map { colDef: ColumnDef =>
         Map(colDef -> colDef.buildColumnStore())
       }.reduce(_ ++ _)
+
     private var n: Int = 0
+
+
+    /** @inheritdoc */
+    override def columns: Seq[ColumnDef] = colDefs
+
+    /** @inheritdoc */
+    override def insert(record: Record): Unit = ???
+
+    /** @inheritdoc */
+    override def where[T](f: (TypedColumnDef[T], T => Boolean)): Seq[Record] = ???
+
+    /** @inheritdoc */
+    override def whereAll(fs: Map[ColumnDef, Any => Boolean]): Seq[Record] = ???
+
+    override protected val colMap: Map[String, ColumnDef] =
+      colDefs.map(c => Map(c.name -> c)).reduce(_ ++ _)
 
     @throws[ColumnNotFoundException]
     override def insert[T](column: TypedColumnDef[T], value: T): Unit =
