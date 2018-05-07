@@ -107,22 +107,33 @@ object Record {
   def apply(columnDefs: Seq[ColumnDef]): RecordBuilder = new RecordBuilder(columnDefs, Map.empty)
 
   /**
-    * Builder for a [[de.up.hpi.informationsystems.adbms.definition.Record]]
+    * Builder for a [[de.up.hpi.informationsystems.adbms.definition.Record]].
+    * Initiates the record builder with the column definition list the record should comply with.
     * @param columnDefs all columns of the corresponding relational schema
     */
   class RecordBuilder(columnDefs: Seq[ColumnDef], recordData: Map[ColumnDef, Any]) {
 
     /**
-      *
+      * Sets the selected cell's value.
       * @param in mapping from column to cell content
       * @tparam T value type, same as for the column definition
-      * @return the [[RecordBuilder]] itself for
+      * @return the updated [[RecordBuilder]]
       */
     def apply[T](in: (TypedColumnDef[T], T)): RecordBuilder =
       new RecordBuilder(columnDefs, recordData ++ Map(in))
 
+    /**
+      * Sets the selected cell's value.
+      * @param in mapping from column to cell content
+      * @tparam T value type, same as for the column definition
+      * @return the updated [[RecordBuilder]]
+      */
     def withCellContent[T](in: (TypedColumnDef[T], T)): RecordBuilder = apply(in)
 
+    /**
+      * Builds the [[de.up.hpi.informationsystems.adbms.definition.Record]] instance.
+      * @return a new record
+      */
     def build(): Record = {
       val data: Map[ColumnDef, Any] = columnDefs
         .map{ colDef => Map(colDef -> recordData.getOrElse(colDef, null)) }
