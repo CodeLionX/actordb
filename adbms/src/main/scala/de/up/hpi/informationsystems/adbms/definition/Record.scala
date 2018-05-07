@@ -25,7 +25,7 @@ class Record private (cells: Map[ColumnDef, Any])
     */
   def get[T](columnDef: TypedColumnDef[T]): Option[T] =
     if(data.contains(columnDef))
-      Some(data(columnDef).asInstanceOf[T])
+      Option(data(columnDef).asInstanceOf[T])
     else
       None
 
