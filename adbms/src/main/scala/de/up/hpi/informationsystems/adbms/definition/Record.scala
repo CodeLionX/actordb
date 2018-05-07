@@ -29,6 +29,11 @@ class Record private (cells: Map[ColumnDef, Any])
     else
       None
 
+  def project(columnDefs: Seq[ColumnDef]): Either[String, Record] =
+    if(columnDefs.toSet subsetOf columns.toSet)
+      Right(new Record(data.filterKeys(columnDefs.contains)))
+    else
+      Left(s"this record does not contain all specified columns {$columnDefs}")
 
   // from MapLike
   override def empty: Record = new Record(Map.empty)
@@ -110,6 +115,7 @@ object Record {
     * Builder for a [[de.up.hpi.informationsystems.adbms.definition.Record]].
     * Initiates the record builder with the column definition list the record should comply with.
     * @param columnDefs all columns of the corresponding relational schema
+    * @param recordData initial cell contents, usually: `Map.empty`
     */
   class RecordBuilder(columnDefs: Seq[ColumnDef], recordData: Map[ColumnDef, Any]) {
 
@@ -134,11 +140,14 @@ object Record {
       * Builds the [[de.up.hpi.informationsystems.adbms.definition.Record]] instance.
       * @return a new record
       */
-    def build(): Record = {
-      val data: Map[ColumnDef, Any] = columnDefs
-        .map{ colDef => Map(colDef -> recordData.getOrElse(colDef, null)) }
-        .reduce( _ ++ _)
-      new Record(data)
-    }
+    def build(): Record =
+      if(columnDefs.isEmpty)
+        new Record(Map.empty)
+      else {
+        val data: Map[ColumnDef, Any] = columnDefs
+          .map{ colDef => Map(colDef -> recordData.getOrElse(colDef, null)) }
+          .reduce( _ ++ _)
+        new Record(data)
+      }
   }
 }

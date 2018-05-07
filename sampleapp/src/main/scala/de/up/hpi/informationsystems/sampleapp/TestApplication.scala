@@ -92,6 +92,8 @@ object TestApplication extends App {
     .withCellContent(colLastname -> "")
     .build()
   println(record)
+  assert(record.project(Seq(colAge)) == Right(Record(Seq(colAge))(colAge -> 45).build()))
+  assert(record.project(Seq(colAge, colCustomerDiscount)).isLeft)
 
   println(R2.columns.mkString(", "))
   println()
