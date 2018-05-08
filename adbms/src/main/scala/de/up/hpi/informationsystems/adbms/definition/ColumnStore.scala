@@ -79,7 +79,7 @@ private[definition] class TypedColumnStore[T](columnDefInt: ColumnDef[T]) extend
 
   override def get(idx: Int): Option[T] =
     if(idx < data.length && idx >= 0)
-      Some(data(idx))
+      Option(data(idx))
     else
       None
 
