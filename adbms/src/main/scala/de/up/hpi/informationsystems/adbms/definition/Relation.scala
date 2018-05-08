@@ -8,7 +8,7 @@ trait Relation {
     * Returns the column definitions of this relation.
     * @return a sequence of column definitions
     */
-  def columns: Seq[ColumnDef]
+  def columns: Seq[UntypedColumnDef]
 
   /**
     * Inserts a [[de.up.hpi.informationsystems.adbms.definition.Record]] into the relation
@@ -22,7 +22,7 @@ trait Relation {
     * @tparam T value type of the column
     * @return all records for which the function is true
     */
-  def where[T](f: (TypedColumnDef[T], T => Boolean)): Seq[Record]
+  def where[T](f: (ColumnDef[T], T => Boolean)): Seq[Record]
 
   /**
     * Returns all records satisfying all provided conditions.
@@ -30,7 +30,7 @@ trait Relation {
     * @param fs map of column definitions and functions on the respective column
     * @return all records for which all functions are true
     */
-  def whereAll(fs: Map[ColumnDef, Any => Boolean]): Seq[Record]
+  def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Seq[Record]
 
 
   // this trait comes with this for nothing :)

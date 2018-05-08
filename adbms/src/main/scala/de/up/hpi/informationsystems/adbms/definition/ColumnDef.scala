@@ -6,7 +6,7 @@ import java.util.Objects
 import scala.reflect.ClassTag
 
 object ColumnDef {
-  def apply[T](name: String)(implicit ct: ClassTag[T]): TypedColumnDef[T] = new TypedColumnDef[T](name)(ct)
+  def apply[T](name: String)(implicit ct: ClassTag[T]): ColumnDef[T] = new ColumnDef[T](name)(ct)
 }
 
 /**
@@ -15,7 +15,7 @@ object ColumnDef {
   *
   * @see [[de.up.hpi.informationsystems.adbms.definition.ColumnRelation]]
   */
-sealed trait ColumnDef {
+sealed trait UntypedColumnDef {
   /**
     * Holds the type of the contained values.
     */
@@ -37,7 +37,7 @@ sealed trait ColumnDef {
     * Returns an untyped version of this column definition
     * @return untyped version of this column definition
     */
-  def untyped: ColumnDef
+  def untyped: UntypedColumnDef
 
   /**
     * Creates the corresponding [[de.up.hpi.informationsystems.adbms.definition.ColumnStore]]
@@ -47,20 +47,20 @@ sealed trait ColumnDef {
   protected[definition] def buildColumnStore(): ColumnStore
 }
 
-final class TypedColumnDef[T](pName: String)(implicit ct: ClassTag[T]) extends ColumnDef {
+final class ColumnDef[T](pName: String)(implicit ct: ClassTag[T]) extends UntypedColumnDef {
   override type value = T
 
   override val name: String = pName
 
   override val tpe: ClassTag[T] = ct
 
-  override def untyped: ColumnDef = this.asInstanceOf[ColumnDef]
+  override def untyped: UntypedColumnDef = this.asInstanceOf[UntypedColumnDef]
 
   override protected[definition] def buildColumnStore(): TypedColumnStore[T] = ColumnStore[T](this)
 
   // overrides of [[java.lang.Object]]
 
-  override def toString: String = s"""TypedColumnDef[$tpe](name="$name")"""
+  override def toString: String = s"""${this.getClass.getSimpleName}[$tpe](name="$name")"""
 
   override def hashCode(): Int = Objects.hash(name, ct)
 
@@ -69,12 +69,12 @@ final class TypedColumnDef[T](pName: String)(implicit ct: ClassTag[T]) extends C
       false
     else {
       // cast other object
-      val otherTypedColumnDef: TypedColumnDef[T] = o.asInstanceOf[TypedColumnDef[T]]
+      val otherTypedColumnDef: ColumnDef[T] = o.asInstanceOf[ColumnDef[T]]
       if (this.name.equals(otherTypedColumnDef.name) && this.tpe.equals(otherTypedColumnDef.tpe))
         true
       else
         false
     }
 
-  override def clone(): AnyRef = new TypedColumnDef[T](this.name)(this.tpe)
+  override def clone(): AnyRef = new ColumnDef[T](this.name)(this.tpe)
 }
