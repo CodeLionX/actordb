@@ -2,6 +2,8 @@ package de.up.hpi.informationsystems.adbms.definition
 
 import org.scalatest.{Matchers, WordSpec}
 
+import scala.util.{Success, Failure}
+
 class RecordTest extends WordSpec with Matchers {
 
   "A record" when {
@@ -17,12 +19,12 @@ class RecordTest extends WordSpec with Matchers {
       }
 
       "project to itself, when projected by an empty list" in {
-        emptyRecord.project(Seq.empty) should equal(Right(emptyRecord))
+        emptyRecord.project(Seq.empty) should equal(Success(emptyRecord))
       }
 
       "not allow projection, when projecting by any column definition" in {
-        emptyRecord.project(Seq(ColumnDef[Any](""))).isLeft shouldBe true
-        emptyRecord.project(RowRelation(Seq(ColumnDef[Any]("")))).isLeft shouldBe true
+        emptyRecord.project(Seq(ColumnDef[Any](""))).isFailure shouldBe true
+        emptyRecord.project(RowRelation(Seq(ColumnDef[Any]("")))).isFailure shouldBe true
       }
     }
 
@@ -46,7 +48,7 @@ class RecordTest extends WordSpec with Matchers {
       }
 
       "project to empty record, when projected by an empty list" in {
-        record.project(Seq.empty) should equal(Right(Record(Seq.empty).build()))
+        record.project(Seq.empty) should equal(Success(Record(Seq.empty).build()))
       }
 
       "not allow projection, when projecting by any column definition" in {
@@ -54,10 +56,10 @@ class RecordTest extends WordSpec with Matchers {
       }
 
       "project to correct column subset, when projecting by contained columns" in {
-        record.project(Seq(col1)) should equal(Right(Record(Seq(col1)).build()))
-        record.project(Seq(col2)) should equal(Right(Record(Seq(col2)).build()))
-        record.project(Seq(col1, col3)) should equal(Right(Record(Seq(col1, col3)).build()))
-        record.project(R) should equal(Right(Record(Seq(col1, col2)).build()))
+        record.project(Seq(col1)) should equal(Success(Record(Seq(col1)).build()))
+        record.project(Seq(col2)) should equal(Success(Record(Seq(col2)).build()))
+        record.project(Seq(col1, col3)) should equal(Success(Record(Seq(col1, col3)).build()))
+        record.project(R) should equal(Success(Record(Seq(col1, col2)).build()))
       }
     }
 
@@ -84,18 +86,18 @@ class RecordTest extends WordSpec with Matchers {
 
       "retain values of projected columns and drop others" in {
         record.project(Seq(col1)) match {
-          case Right(r) =>
+          case Success(r) =>
             r.get(col1) shouldBe Some(val1)
             r.get(col2) shouldBe None
             r.get(col3) shouldBe None
-          case Left(_) => fail("Projection by column sequence failed, but it should succeed")
+          case Failure(_) => fail("Projection by column sequence failed, but it should succeed")
         }
         record.project(R) match {
-          case Right(r) =>
+          case Success(r) =>
             r.get(col1) shouldBe Some(val1)
             r.get(col2) shouldBe Some(val2)
             r.get(col3) shouldBe None
-          case Left(_) => fail("Projection by Relation failed, but it should succeed")
+          case Failure(_) => fail("Projection by Relation failed, but it should succeed")
         }
       }
     }

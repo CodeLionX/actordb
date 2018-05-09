@@ -3,6 +3,7 @@ package de.up.hpi.informationsystems.adbms.definition
 import java.util.Objects
 
 import scala.collection.{MapLike, mutable}
+import scala.util.Try
 
 class Record private (cells: Map[ColumnDef, Any])
   extends MapLike[ColumnDef, Any, Record]
@@ -36,11 +37,7 @@ class Record private (cells: Map[ColumnDef, Any])
     * @param columnDefs columns to project to
     * @return Either a new record containing only the specified columns or an error message
     */
-  def project(columnDefs: Seq[ColumnDef]): Either[String, Record] =
-    if(columnDefs.toSet subsetOf columns.toSet)
-      Right(new Record(data.filterKeys(columnDefs.contains)))
-    else
-      Left(s"this record does not contain all specified columns {$columnDefs}")
+  def project(columnDefs: Seq[ColumnDef]): Try[Record] = Try(internal_project(columnDefs))
 
   /**
     * Iff all columns of the relation are a subset of this Record,
@@ -49,8 +46,14 @@ class Record private (cells: Map[ColumnDef, Any])
     * @param r Relation to project this Record to
     * @return Either a new record containing only the specified columns or an error message
     */
-  def project(r: Relation): Either[String, Record] =
-    project(r.columns)
+  def project(r: Relation): Try[Record] = Try(internal_project(r.columns))
+
+  @throws[IncompatibleColumnDefinitionException]
+  private def internal_project(columnDefs: Seq[ColumnDef]): Record =
+    if(columnDefs.toSet subsetOf columns.toSet)
+      new Record(data.filterKeys(columnDefs.contains))
+    else
+      throw IncompatibleColumnDefinitionException(s"this record does not contain all specified columns {$columnDefs}")
 
   // from MapLike
   override def empty: Record = new Record(Map.empty)
@@ -167,4 +170,5 @@ object Record {
         new Record(data)
       }
   }
+
 }
