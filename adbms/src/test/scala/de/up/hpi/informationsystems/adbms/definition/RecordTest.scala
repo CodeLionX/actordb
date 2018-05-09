@@ -21,8 +21,8 @@ class RecordTest extends WordSpec with Matchers {
       }
 
       "not allow projection, when projecting by any column definition" in {
-        emptyRecord.project(Seq(ColumnDef[Any](""))) should be.leftSideValue
-        emptyRecord.project(RowRelation(Seq(ColumnDef[Any]("")))) should be.leftSideValue
+        emptyRecord.project(Seq(ColumnDef[Any](""))).isLeft shouldBe true
+        emptyRecord.project(RowRelation(Seq(ColumnDef[Any]("")))).isLeft shouldBe true
       }
     }
 
@@ -58,6 +58,45 @@ class RecordTest extends WordSpec with Matchers {
         record.project(Seq(col2)) should equal(Right(Record(Seq(col2)).build()))
         record.project(Seq(col1, col3)) should equal(Right(Record(Seq(col1, col3)).build()))
         record.project(R) should equal(Right(Record(Seq(col1, col2)).build()))
+      }
+    }
+
+    "full" should {
+      val col1 = ColumnDef[String]("col1")
+      val col2 = ColumnDef[Int]("col2")
+      val col3 = ColumnDef[Double]("col3")
+      val val1 = "val1"
+      val val2 = 2
+      val val3 = 3.0
+      val record = Record(Seq(col1, col2, col3))
+        .withCellContent(col1 -> val1)
+        .withCellContent(col2 -> val2)
+        .withCellContent(col3 -> val3)
+        .build()
+      val R = RowRelation(Seq(col1, col2))
+
+      "return the column's cell value" in {
+        record.get(ColumnDef[Any]("")) shouldBe None
+        record.get(col1) shouldBe Some(val1)
+        record.get(col2) shouldBe Some(val2)
+        record.get(col3) shouldBe Some(val3)
+      }
+
+      "retain values of projected columns and drop others" in {
+        record.project(Seq(col1)) match {
+          case Right(r) =>
+            r.get(col1) shouldBe Some(val1)
+            r.get(col2) shouldBe None
+            r.get(col3) shouldBe None
+          case Left(_) => fail("Projection by column sequence failed, but it should succeed")
+        }
+        record.project(R) match {
+          case Right(r) =>
+            r.get(col1) shouldBe Some(val1)
+            r.get(col2) shouldBe Some(val2)
+            r.get(col3) shouldBe None
+          case Left(_) => fail("Projection by Relation failed, but it should succeed")
+        }
       }
     }
   }
