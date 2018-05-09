@@ -6,6 +6,47 @@ import scala.util.{Success, Failure}
 
 class RecordTest extends WordSpec with Matchers {
 
+  "A record builder" should {
+    val col1 = ColumnDef[String]("col1")
+    val col2 = ColumnDef[Int]("col2")
+    val col3 = ColumnDef[Double]("col3")
+    val val1 = "val1"
+    val val2 = 2
+    val val3 = 3.0
+
+    "build a record correctly with and without implicit" in {
+      val builder = Record(Seq(col1, col2, col3))
+      val r1 = builder
+        .withCellContent(col1)(val1)
+        .withCellContent(col2)(val2)
+        .withCellContent(col3)(val3)
+        .build()
+
+      import Record.implicits._
+      val r2 = builder(
+        col1 ~> val1 &
+        col2 ~> val2 and
+        col3 ~> val3 +
+        col3 ~> val3
+      ).build()
+
+      r1 shouldEqual r2
+    }
+
+    "fail to compile if types of column and value do not match in withCellContent" in {
+      assertTypeError("val r = Record(Seq(col1, col2, col3)).withCellContent(col1)(val2).build()")
+      assertTypeError("val r = Record(Seq(col1, col2, col3)).withCellContent(col2)(val3).build()")
+      assertTypeError("val r = Record(Seq(col1, col2, col3)).withCellContent(col3)(val1).build()")
+    }
+
+    "fail to compile if types of column and value do not match with apply and RecordBuilderPart" in {
+      import Record.implicits._
+      assertTypeError("val r = Record(Seq(col1, col2, col3))(col1 ~> val2).build()")
+      assertTypeError("val r = Record(Seq(col1, col2, col3))(col2 ~> val3).build()")
+      assertTypeError("val r = Record(Seq(col1, col2, col3))(col3 ~> val1).build()")
+    }
+  }
+
   "A record" when {
     "empty" should {
       val emptyRecord = Record(Seq.empty).build()
