@@ -1,4 +1,4 @@
-# actordb
+# actordb [![Build Status](https://travis-ci.com/CodeLionX/actordb.svg?branch=master)](https://travis-ci.com/CodeLionX/actordb)
 Actor Database System
 
 
