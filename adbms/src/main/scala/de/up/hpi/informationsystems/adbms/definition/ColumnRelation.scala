@@ -1,12 +1,18 @@
 package de.up.hpi.informationsystems.adbms.definition
 import scala.util.Try
 
-
+/**
+  * @deprecated in favor of RowRelation since 09/05/2018
+  */
+@deprecated("Was deprecated in favor of RowRelation", "09/05/2018")
 sealed trait ColumnRelation extends Relation
 
 /**
   * Defines a column-oriented relation schema, which's store gets automatically generated.
+  *
+  * @deprecated in favor of RowRelation since 09/05/2018
   */
+@deprecated("Was deprecated in favor of RowRelation", "09/05/2018")
 object ColumnRelation {
 
   /**
