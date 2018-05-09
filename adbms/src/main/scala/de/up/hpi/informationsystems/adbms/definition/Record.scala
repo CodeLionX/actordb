@@ -31,20 +31,20 @@ class Record private (cells: Map[ColumnDef, Any])
       None
 
   /**
-    * Iff `columnDefs` is a subset of this Record,
-    * performs a projection of this relation to the specified columns,
+    * Iff `columnDefs` is a subset of this record,
+    * performs a projection of this record to the specified columns,
     * or returns an error message.
     * @param columnDefs columns to project to
-    * @return Either a new record containing only the specified columns or an error message
+    * @return A new record containing only the specified columns
     */
   def project(columnDefs: Seq[ColumnDef]): Try[Record] = Try(internal_project(columnDefs))
 
   /**
-    * Iff all columns of the relation are a subset of this Record,
-    * returns a new Record with only the columns of the Relation,
+    * Iff all columns of the relation are a subset of this record,
+    * returns a new record with only the columns of the relation,
     * otherwise returns an error message.
     * @param r Relation to project this Record to
-    * @return Either a new record containing only the specified columns or an error message
+    * @return A new record containing only the specified columns
     */
   def project(r: Relation): Try[Record] = Try(internal_project(r.columns))
 
