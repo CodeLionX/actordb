@@ -57,10 +57,16 @@ class MyUserActor(userId: Int) extends TRActor(userId) {
 ```
   - change `Relation` and subclasses to be used as `RowRelationDef` from the above example and get rid of the `R` val
 
+3. Foxus and Topics
+
+   - we will not provide an SQL-like interface
+   - more details postponed to later this day
+
 4. TODOs:
 
    - Sebi: Finish `project()` functionality and tests for `Record`
    - Sebi: implement better `RecordBuilder`
+   - Sebi: refactor `Relation` classes (see point 2)
    - Fred: Write all test without those for `Record`
    - Fred: Check in `Relation` inserted `Record`s for correct columns (issue #10)
 
