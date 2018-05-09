@@ -141,20 +141,13 @@ object Record {
 
     /**
       * Sets the selected cell's value.
-      * @param in mapping from column to cell content
+      * @param colDef cell to set indicated by column definition
+      * @param value value of the cell
       * @tparam T value type, same as for the column definition
       * @return the updated [[RecordBuilder]]
       */
-    def apply[T](in: (ColumnDef[T], T)): RecordBuilder =
-      new RecordBuilder(columnDefs, recordData ++ Map(in))
-
-    /**
-      * Sets the selected cell's value.
-      * @param in mapping from column to cell content
-      * @tparam T value type, same as for the column definition
-      * @return the updated [[RecordBuilder]]
-      */
-    def withCellContent[T](in: (ColumnDef[T], T)): RecordBuilder = apply(in)
+    def withCellContent[T](colDef: ColumnDef[T])(value: T): RecordBuilder =
+      new RecordBuilder(columnDefs, recordData ++ Map(colDef -> value))
 
     /**
       * Builds the [[de.up.hpi.informationsystems.adbms.definition.Record]] instance.

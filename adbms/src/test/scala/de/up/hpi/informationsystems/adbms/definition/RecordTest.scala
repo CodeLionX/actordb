@@ -71,9 +71,9 @@ class RecordTest extends WordSpec with Matchers {
       val val2 = 2
       val val3 = 3.0
       val record = Record(Seq(col1, col2, col3))
-        .withCellContent(col1 -> val1)
-        .withCellContent(col2 -> val2)
-        .withCellContent(col3 -> val3)
+        .withCellContent(col1)(val1)
+        .withCellContent(col2)(val2)
+        .withCellContent(col3)(val3)
         .build()
       val R = RowRelation(Seq(col1, col2))
 
