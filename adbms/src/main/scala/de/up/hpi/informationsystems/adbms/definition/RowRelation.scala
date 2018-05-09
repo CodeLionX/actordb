@@ -15,10 +15,10 @@ object RowRelation {
     * @param columnDefs sequence of column definitions
     * @return the generated row-oriented relational store
     */
-  def apply(columnDefs: Seq[ColumnDef]): RowRelation = new RowRelationStore(columnDefs)
+  def apply(columnDefs: Seq[UntypedColumnDef]): RowRelation = new RowRelationStore(columnDefs)
 
   /**
-    * Indicates that a [[de.up.hpi.informationsystems.adbms.definition.ColumnDef]] was not found in
+    * Indicates that a [[de.up.hpi.informationsystems.adbms.definition.UntypedColumnDef]] was not found in
     * the row relation.
     *
     * @param message gives details
@@ -38,39 +38,39 @@ object RowRelation {
     * Private (hidden) implementation of the [[de.up.hpi.informationsystems.adbms.definition.RowRelation]] trait.
     * @param colDefs column definitions used to construct the underlying data store
     */
-  private final class RowRelationStore(private val colDefs: Seq[ColumnDef]) extends RowRelation {
+  private final class RowRelationStore(private val colDefs: Seq[UntypedColumnDef]) extends RowRelation {
 
     private var data: Seq[Record] = Seq.empty
 
     /** @inheritdoc */
-    override def columns: Seq[ColumnDef] = colDefs
+    override def columns: Seq[UntypedColumnDef] = colDefs
 
     /** @inheritdoc */
     override def insert(record: Record): Unit = data = data :+ record
 
     /** @inheritdoc */
-    override def where[T](f: (TypedColumnDef[T], T => Boolean)): Seq[Record] =
+    override def where[T](f: (ColumnDef[T], T => Boolean)): Seq[Record] =
       data.filter{ record => record.get[T](f._1).exists(f._2) }
 
     /** @inheritdoc */
-    override def whereAll(fs: Map[ColumnDef, Any => Boolean]): Seq[Record] =
+    override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Seq[Record] =
       // filter all records
       data.filter{ record =>
         fs.keys
           // map over all supplied filters (key = column)
-          .map { col: ColumnDef =>
+          .map { col: UntypedColumnDef =>
             /* `val rVal = record(col)` returns the value in the record for the column `col`
              * `val filterF = fs(col)` returns the filter for column `col`
              * `val res = filterF(rVal)` applies the filter to the value of the record and corresponding column,
              * returning `true` or `false`
              */
-          fs(col)(record(col))
+            fs(col)(record(col))
           }
           // test if all filters for this record are true
           .forall(_ == true)
       }
 
-    override def project(columnDefs: Seq[ColumnDef]): Try[Seq[Record]] = Try(
+    override def project(columnDefs: Seq[UntypedColumnDef]): Try[Seq[Record]] = Try(
       if(columnDefs.toSet subsetOf columns.toSet)
         data.map(_.project(columnDefs).get)
       else

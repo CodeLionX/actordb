@@ -15,10 +15,10 @@ object ColumnRelation {
     * @param columnDefs sequence of column definitions
     * @return the generated column-oriented relational store
     */
-  def apply(columnDefs: Seq[ColumnDef]): ColumnRelation = new ColumnRelationStore(columnDefs)
+  def apply(columnDefs: Seq[UntypedColumnDef]): ColumnRelation = new ColumnRelationStore(columnDefs)
 
   /**
-    * Indicates that a [[de.up.hpi.informationsystems.adbms.definition.ColumnDef]] was not found in
+    * Indicates that a [[de.up.hpi.informationsystems.adbms.definition.UntypedColumnDef]] was not found in
     * the column relation.
     *
     * @param message gives details
@@ -38,27 +38,27 @@ object ColumnRelation {
     * Private (hidden) implementation of the [[de.up.hpi.informationsystems.adbms.definition.ColumnRelation]] trait.
     * @param colDefs column definitions used to construct the underlying data store
     */
-  private final class ColumnRelationStore(private val colDefs: Seq[ColumnDef]) extends ColumnRelation {
+  private final class ColumnRelationStore(private val colDefs: Seq[UntypedColumnDef]) extends ColumnRelation {
 
-    private val data: Map[ColumnDef, ColumnStore] =
-      colDefs.map { colDef: ColumnDef =>
+    private val data: Map[UntypedColumnDef, ColumnStore] =
+      colDefs.map { colDef: UntypedColumnDef =>
         Map(colDef -> colDef.buildColumnStore())
       }.reduce(_ ++ _)
 
     private var n: Int = 0
 
-    private def getRecord(selectedColumns: Seq[ColumnDef])(idx: Int): Record = {
+    private def getRecord(selectedColumns: Seq[UntypedColumnDef])(idx: Int): Record = {
       selectedColumns
         .foldLeft( Record(selectedColumns) )( (builder, column) => {
           val columnStore = data(column) // needed to get the right type here 🡫
-          builder.withCellContent(column.asInstanceOf[TypedColumnDef[columnStore.valueType]] -> columnStore(idx))
+          builder.withCellContent(column.asInstanceOf[ColumnDef[columnStore.valueType]] -> columnStore(idx))
         })
         .build()
     }
 
 
     /** @inheritdoc */
-    override def columns: Seq[ColumnDef] = colDefs
+    override def columns: Seq[UntypedColumnDef] = colDefs
 
     /** @inheritdoc */
     override def insert(record: Record): Unit = {
@@ -70,7 +70,7 @@ object ColumnRelation {
     }
 
     /** @inheritdoc */
-    override def where[T](f: (TypedColumnDef[T], T => Boolean)): Seq[Record] = {
+    override def where[T](f: (ColumnDef[T], T => Boolean)): Seq[Record] = {
       val columnStore = data(f._1.untyped) // needed to get the right type 2 lines below
       columnStore
         .indicesWhere(f._2.asInstanceOf[columnStore.valueType => Boolean])
@@ -78,7 +78,7 @@ object ColumnRelation {
     }
 
     /** @inheritdoc */
-    override def whereAll(fs: Map[ColumnDef, Any => Boolean]): Seq[Record] =
+    override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Seq[Record] =
       fs.keys
         .map(column =>
           data(column)
@@ -89,7 +89,7 @@ object ColumnRelation {
         .toSeq
 
     /** @inheritdoc */
-    override def project(columnDefs: Seq[ColumnDef]): Try[Seq[Record]] = Try(
+    override def project(columnDefs: Seq[UntypedColumnDef]): Try[Seq[Record]] = Try(
       if(columnDefs.toSet subsetOf columns.toSet)
         (0 until data.size).map(getRecord(columnDefs)(_))
       else

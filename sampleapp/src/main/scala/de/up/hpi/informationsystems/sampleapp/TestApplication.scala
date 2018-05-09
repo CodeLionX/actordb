@@ -16,9 +16,9 @@ object TestApplication extends App {
     * Definition of Columns and Relations for relation "User"
     */
   object UserRelationDefinition {
-    val colFirstname: TypedColumnDef[String] = ColumnDef("Firstname")
-    val colLastname: TypedColumnDef[String] = ColumnDef("Lastname")
-    val colAge: TypedColumnDef[Int] = ColumnDef("Age")
+    val colFirstname: ColumnDef[String] = ColumnDef("Firstname")
+    val colLastname: ColumnDef[String] = ColumnDef("Lastname")
+    val colAge: ColumnDef[Int] = ColumnDef("Age")
 
     val R: ColumnRelation = ColumnRelation(Seq(colFirstname, colLastname, colAge))
   }
@@ -27,9 +27,9 @@ object TestApplication extends App {
     * Definition of Columns and Relations for relation "Customer"
     */
   object CustomerRelationDefinition {
-    val colCustomerId: TypedColumnDef[Int] = ColumnDef("Id")
-    val colCustomerName: TypedColumnDef[String] = ColumnDef("Name")
-    val colCustomerDiscount: TypedColumnDef[Double] = ColumnDef("Discount")
+    val colCustomerId: ColumnDef[Int] = ColumnDef("Id")
+    val colCustomerName: ColumnDef[String] = ColumnDef("Name")
+    val colCustomerDiscount: ColumnDef[Double] = ColumnDef("Discount")
 
     val R: RowRelation = RowRelation(Seq(colCustomerId, colCustomerName, colCustomerDiscount))
   }
@@ -79,7 +79,7 @@ object TestApplication extends App {
   )
 
   assert(ColumnDef[String]("Firstname") == colFirstname)
-  assert(ColumnDef[Int]("Firstname").asInstanceOf[ColumnDef] != colFirstname.asInstanceOf[ColumnDef])
+  assert(ColumnDef[Int]("Firstname").untyped != colFirstname.untyped)
 
   println()
   println("Projection of user relation:")

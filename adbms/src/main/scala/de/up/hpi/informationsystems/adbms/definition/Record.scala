@@ -5,9 +5,9 @@ import java.util.Objects
 import scala.collection.{MapLike, mutable}
 import scala.util.Try
 
-class Record private (cells: Map[ColumnDef, Any])
-  extends MapLike[ColumnDef, Any, Record]
-    with Map[ColumnDef, Any] {
+class Record private (cells: Map[UntypedColumnDef, Any])
+  extends MapLike[UntypedColumnDef, Any, Record]
+    with Map[UntypedColumnDef, Any] {
 
   private val data = cells
 
@@ -15,7 +15,7 @@ class Record private (cells: Map[ColumnDef, Any])
     * Returns column definitions in this record.
     * Alias to `keys`
     */
-  val columns: Seq[ColumnDef] = cells.keys.toSeq
+  val columns: Seq[UntypedColumnDef] = cells.keys.toSeq
 
   /**
     * Optionally returns the cell's value of a specified column.
@@ -24,7 +24,7 @@ class Record private (cells: Map[ColumnDef, Any])
     * @tparam T type of the cell's value
     * @return the value of the column's cell wrapped in an `Option`
     */
-  def get[T](columnDef: TypedColumnDef[T]): Option[T] =
+  def get[T](columnDef: ColumnDef[T]): Option[T] =
     if(data.contains(columnDef))
       Option(data(columnDef).asInstanceOf[T])
     else
@@ -37,7 +37,7 @@ class Record private (cells: Map[ColumnDef, Any])
     * @param columnDefs columns to project to
     * @return A new record containing only the specified columns
     */
-  def project(columnDefs: Seq[ColumnDef]): Try[Record] = Try(internal_project(columnDefs))
+  def project(columnDefs: Seq[UntypedColumnDef]): Try[Record] = Try(internal_project(columnDefs))
 
   /**
     * Iff all columns of the relation are a subset of this record,
@@ -49,7 +49,7 @@ class Record private (cells: Map[ColumnDef, Any])
   def project(r: Relation): Try[Record] = Try(internal_project(r.columns))
 
   @throws[IncompatibleColumnDefinitionException]
-  private def internal_project(columnDefs: Seq[ColumnDef]): Record =
+  private def internal_project(columnDefs: Seq[UntypedColumnDef]): Record =
     if(columnDefs.toSet subsetOf columns.toSet)
       new Record(data.filterKeys(columnDefs.contains))
     else
@@ -58,23 +58,23 @@ class Record private (cells: Map[ColumnDef, Any])
   // from MapLike
   override def empty: Record = new Record(Map.empty)
 
-  override def default(key: ColumnDef): Any = null
+  override def default(key: UntypedColumnDef): Any = null
 
   /**
     * Use [[de.up.hpi.informationsystems.adbms.definition.Record#get]] instead!
     * It takes care of types!
     */
   @Deprecated
-  override def get(key: ColumnDef): Option[Any] = get(key.asInstanceOf[TypedColumnDef[Any]])
+  override def get(key: UntypedColumnDef): Option[Any] = get(key.asInstanceOf[ColumnDef[Any]])
 
-  override def iterator: Iterator[(ColumnDef, Any)] = data.iterator
+  override def iterator: Iterator[(UntypedColumnDef, Any)] = data.iterator
 
-  override def +[V1 >: Any](kv: (ColumnDef, V1)): Map[ColumnDef, V1] = data.+(kv)
+  override def +[V1 >: Any](kv: (UntypedColumnDef, V1)): Map[UntypedColumnDef, V1] = data.+(kv)
 
-  override def -(key: ColumnDef): Record = new Record(data - key)
+  override def -(key: UntypedColumnDef): Record = new Record(data - key)
 
   // from Iterable
-  override def seq: Map[ColumnDef, Any] = data.seq
+  override def seq: Map[UntypedColumnDef, Any] = data.seq
 
   // from Object
   override def toString: String = s"Record($data)"
@@ -95,7 +95,7 @@ class Record private (cells: Map[ColumnDef, Any])
 
   // FIXME: I don't know what to do here.
   // removing this line leads to a compiler error
-  override protected[this] def newBuilder: mutable.Builder[(ColumnDef, Any), Record] = ???
+  override protected[this] def newBuilder: mutable.Builder[(UntypedColumnDef, Any), Record] = ???
 }
 
 object Record {
@@ -129,7 +129,7 @@ object Record {
     * This call initiates the [[de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilder]] with
     * the column definitions of the corresponding relational schema
     */
-  def apply(columnDefs: Seq[ColumnDef]): RecordBuilder = new RecordBuilder(columnDefs, Map.empty)
+  def apply(columnDefs: Seq[UntypedColumnDef]): RecordBuilder = new RecordBuilder(columnDefs, Map.empty)
 
   /**
     * Builder for a [[de.up.hpi.informationsystems.adbms.definition.Record]].
@@ -137,7 +137,7 @@ object Record {
     * @param columnDefs all columns of the corresponding relational schema
     * @param recordData initial cell contents, usually: `Map.empty`
     */
-  class RecordBuilder(columnDefs: Seq[ColumnDef], recordData: Map[ColumnDef, Any]) {
+  class RecordBuilder(columnDefs: Seq[UntypedColumnDef], recordData: Map[UntypedColumnDef, Any]) {
 
     /**
       * Sets the selected cell's value.
@@ -145,7 +145,7 @@ object Record {
       * @tparam T value type, same as for the column definition
       * @return the updated [[RecordBuilder]]
       */
-    def apply[T](in: (TypedColumnDef[T], T)): RecordBuilder =
+    def apply[T](in: (ColumnDef[T], T)): RecordBuilder =
       new RecordBuilder(columnDefs, recordData ++ Map(in))
 
     /**
@@ -154,7 +154,7 @@ object Record {
       * @tparam T value type, same as for the column definition
       * @return the updated [[RecordBuilder]]
       */
-    def withCellContent[T](in: (TypedColumnDef[T], T)): RecordBuilder = apply(in)
+    def withCellContent[T](in: (ColumnDef[T], T)): RecordBuilder = apply(in)
 
     /**
       * Builds the [[de.up.hpi.informationsystems.adbms.definition.Record]] instance.
@@ -164,7 +164,7 @@ object Record {
       if(columnDefs.isEmpty)
         new Record(Map.empty)
       else {
-        val data: Map[ColumnDef, Any] = columnDefs
+        val data: Map[UntypedColumnDef, Any] = columnDefs
           .map{ colDef => Map(colDef -> recordData.getOrElse(colDef, null)) }
           .reduce( _ ++ _)
         new Record(data)

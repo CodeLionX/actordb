@@ -4,7 +4,7 @@ package definition
 import scala.collection.mutable
 
 private[definition] object ColumnStore {
-  def apply[T](columnDef: TypedColumnDef[T]): TypedColumnStore[T] = new TypedColumnStore[T](columnDef)
+  def apply[T](columnDef: ColumnDef[T]): TypedColumnStore[T] = new TypedColumnStore[T](columnDef)
 }
 
 /**
@@ -21,7 +21,7 @@ private[definition] sealed trait ColumnStore {
     * Returns the column definition of this Column
     * @return column definition
     */
-  def columnDef: ColumnDef
+  def columnDef: UntypedColumnDef
 
   /**
     * Appends a new value at the end of the Column's store.
@@ -68,9 +68,9 @@ private[definition] sealed trait ColumnStore {
   * @param columnDefInt typed column definition
   * @tparam T type of the values hold by this column
   */
-private[definition] class TypedColumnStore[T](columnDefInt: TypedColumnDef[T]) extends ColumnStore {
+private[definition] class TypedColumnStore[T](columnDefInt: ColumnDef[T]) extends ColumnStore {
   override type valueType = T
-  override def columnDef: ColumnDef = columnDefInt
+  override def columnDef: UntypedColumnDef = columnDefInt
   private val data: mutable.Buffer[T] = mutable.Buffer.empty
 
   override def append(value: T): Unit = data.append(value)
@@ -79,7 +79,7 @@ private[definition] class TypedColumnStore[T](columnDefInt: TypedColumnDef[T]) e
 
   override def get(idx: Int): Option[T] =
     if(idx < data.length && idx >= 0)
-      Some(data(idx))
+      Option(data(idx))
     else
       None
 
