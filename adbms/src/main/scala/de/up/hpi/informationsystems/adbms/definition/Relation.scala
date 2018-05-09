@@ -2,6 +2,8 @@ package de.up.hpi.informationsystems.adbms.definition
 
 import de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilder
 
+import scala.util.Try
+
 trait Relation {
 
   /**
@@ -32,6 +34,15 @@ trait Relation {
     */
   def whereAll(fs: Map[ColumnDef, Any => Boolean]): Seq[Record]
 
+  /**
+    * Iff `columnDefs` is a subset of this relation's column definition set,
+    * performs a projection of this relation to the specified columns,
+    * or returns an error message.
+    * @param columnDefs columns to project to
+    * @return All records containing only the specified columns
+    */
+  def project(columnDefs: Seq[ColumnDef]): Try[Seq[Record]]
+
 
   // this trait comes with this for nothing :)
   /**
@@ -47,5 +58,12 @@ trait Relation {
     */
   def insertAll(records: Seq[Record]): Unit = records.foreach(insert)
 
-
+  /**
+    * Iff all columns of the other relation are a subset of this relation's columns,
+    * returns all records with only the columns of the other relation,
+    * otherwise returns an error message.
+    * @param r Relation to project this relation to
+    * @return All records containing only the specified columns
+    */
+  def project(r: Relation): Try[Seq[Record]] = project(r.columns)
 }
