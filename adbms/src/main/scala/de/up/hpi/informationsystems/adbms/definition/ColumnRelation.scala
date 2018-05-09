@@ -51,7 +51,7 @@ object ColumnRelation {
       selectedColumns
         .foldLeft( Record(selectedColumns) )( (builder, column) => {
           val columnStore = data(column) // needed to get the right type here 🡫
-          builder.withCellContent(column.asInstanceOf[ColumnDef[columnStore.valueType]] -> columnStore(idx))
+          builder.withCellContent(column.asInstanceOf[ColumnDef[columnStore.valueType]])(columnStore(idx))
         })
         .build()
     }
