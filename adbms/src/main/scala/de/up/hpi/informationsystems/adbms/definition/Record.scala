@@ -140,6 +140,14 @@ object Record {
   class RecordBuilder(columnDefs: Seq[UntypedColumnDef], recordData: Map[UntypedColumnDef, Any]) {
 
     /**
+      * Sets a cell's value using `colDef ~> "value"`-notation
+      * @param in mapping from column to cell content
+      * @return the updated [[RecordBuilder]]
+      */
+    def apply(in: RecordBuilderPart): RecordBuilder =
+      new RecordBuilder(columnDefs, recordData ++ in.columnCellMapping)
+
+    /**
       * Sets the selected cell's value.
       * @param colDef cell to set indicated by column definition
       * @param value value of the cell
@@ -164,4 +172,16 @@ object Record {
       }
   }
 
+  final class RecordBuilderPart protected[Record](protected[Record] val columnCellMapping: Map[UntypedColumnDef, Any]){
+    def +(other: RecordBuilderPart): RecordBuilderPart = and(other)
+    def &(other: RecordBuilderPart): RecordBuilderPart = and(other)
+    def and(other: RecordBuilderPart): RecordBuilderPart =
+      new RecordBuilderPart(this.columnCellMapping ++ other.columnCellMapping)
+  }
+
+  object implicits {
+    implicit class ColumnCellMapper[T](in: ColumnDef[T]) {
+      def ~>(value: T): RecordBuilderPart = new RecordBuilderPart(Map(in.untyped -> value))
+    }
+  }
 }

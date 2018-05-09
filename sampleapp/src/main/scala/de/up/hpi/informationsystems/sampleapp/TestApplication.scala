@@ -92,10 +92,12 @@ object TestApplication extends App {
 
   println()
   println()
-  val record = Record(R.columns)
-    .withCellContent(colFirstname)("Hans")
-    .withCellContent(colAge)(45)
-    .withCellContent(colLastname)("")
+  import Record.implicits._
+  val record = Record(R.columns)(
+      colFirstname ~> "Hans" &
+      colLastname ~> "Lastname" &
+      colAge ~> 45
+    )
     .build()
   println(record)
   assert(record.project(Seq(colAge)) == Success(Record(Seq(colAge)).withCellContent(colAge)(45).build()))
