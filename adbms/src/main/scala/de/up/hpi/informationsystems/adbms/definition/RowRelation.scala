@@ -1,4 +1,5 @@
 package de.up.hpi.informationsystems.adbms.definition
+import scala.util.Try
 
 sealed trait RowRelation extends Relation
 
@@ -69,11 +70,18 @@ object RowRelation {
           .forall(_ == true)
       }
 
+    override def project(columnDefs: Seq[UntypedColumnDef]): Try[Seq[Record]] = Try(
+      if(columnDefs.toSet subsetOf columns.toSet)
+        data.map(_.project(columnDefs).get)
+      else
+        throw IncompatibleColumnDefinitionException(s"this relation does not contain all specified columns {$columnDefs}")
+    )
+
     /** @inheritdoc */
     override def toString: String = {
       val header = columns.map { c => s"${c.name}[${c.tpe}]" }.mkString(" | ")
       val line = "-" * header.length
-      var content = data.map(_.values.mkString(" | ")).mkString("\n")
+      val content = data.map(_.values.mkString(" | ")).mkString("\n")
       header + "\n" + line + "\n" + content + "\n" + line + "\n"
     }
   }

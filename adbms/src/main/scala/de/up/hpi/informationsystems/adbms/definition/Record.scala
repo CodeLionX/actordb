@@ -3,6 +3,7 @@ package de.up.hpi.informationsystems.adbms.definition
 import java.util.Objects
 
 import scala.collection.{MapLike, mutable}
+import scala.util.Try
 
 class Record private (cells: Map[UntypedColumnDef, Any])
   extends MapLike[UntypedColumnDef, Any, Record]
@@ -29,6 +30,30 @@ class Record private (cells: Map[UntypedColumnDef, Any])
     else
       None
 
+  /**
+    * Iff `columnDefs` is a subset of this record,
+    * performs a projection of this record to the specified columns,
+    * or returns an error message.
+    * @param columnDefs columns to project to
+    * @return A new record containing only the specified columns
+    */
+  def project(columnDefs: Seq[UntypedColumnDef]): Try[Record] = Try(internal_project(columnDefs))
+
+  /**
+    * Iff all columns of the relation are a subset of this record,
+    * returns a new record with only the columns of the relation,
+    * otherwise returns an error message.
+    * @param r Relation to project this Record to
+    * @return A new record containing only the specified columns
+    */
+  def project(r: Relation): Try[Record] = Try(internal_project(r.columns))
+
+  @throws[IncompatibleColumnDefinitionException]
+  private def internal_project(columnDefs: Seq[UntypedColumnDef]): Record =
+    if(columnDefs.toSet subsetOf columns.toSet)
+      new Record(data.filterKeys(columnDefs.contains))
+    else
+      throw IncompatibleColumnDefinitionException(s"this record does not contain all specified columns {$columnDefs}")
 
   // from MapLike
   override def empty: Record = new Record(Map.empty)
@@ -107,27 +132,43 @@ object Record {
   def apply(columnDefs: Seq[UntypedColumnDef]): RecordBuilder = new RecordBuilder(columnDefs, Map.empty)
 
   /**
-    * Builder for a [[de.up.hpi.informationsystems.adbms.definition.Record]]
+    * Builder for a [[de.up.hpi.informationsystems.adbms.definition.Record]].
+    * Initiates the record builder with the column definition list the record should comply with.
     * @param columnDefs all columns of the corresponding relational schema
+    * @param recordData initial cell contents, usually: `Map.empty`
     */
   class RecordBuilder(columnDefs: Seq[UntypedColumnDef], recordData: Map[UntypedColumnDef, Any]) {
 
     /**
-      *
+      * Sets the selected cell's value.
       * @param in mapping from column to cell content
       * @tparam T value type, same as for the column definition
-      * @return the [[RecordBuilder]] itself for
+      * @return the updated [[RecordBuilder]]
       */
     def apply[T](in: (ColumnDef[T], T)): RecordBuilder =
       new RecordBuilder(columnDefs, recordData ++ Map(in))
 
+    /**
+      * Sets the selected cell's value.
+      * @param in mapping from column to cell content
+      * @tparam T value type, same as for the column definition
+      * @return the updated [[RecordBuilder]]
+      */
     def withCellContent[T](in: (ColumnDef[T], T)): RecordBuilder = apply(in)
 
-    def build(): Record = {
-      val data: Map[UntypedColumnDef, Any] = columnDefs
-        .map{ colDef => Map(colDef -> recordData.getOrElse(colDef, null)) }
-        .reduce( _ ++ _)
-      new Record(data)
-    }
+    /**
+      * Builds the [[de.up.hpi.informationsystems.adbms.definition.Record]] instance.
+      * @return a new record
+      */
+    def build(): Record =
+      if(columnDefs.isEmpty)
+        new Record(Map.empty)
+      else {
+        val data: Map[UntypedColumnDef, Any] = columnDefs
+          .map{ colDef => Map(colDef -> recordData.getOrElse(colDef, null)) }
+          .reduce( _ ++ _)
+        new Record(data)
+      }
   }
+
 }

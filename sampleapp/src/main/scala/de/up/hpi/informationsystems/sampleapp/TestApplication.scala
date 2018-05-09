@@ -2,6 +2,8 @@ package de.up.hpi.informationsystems.sampleapp
 
 import de.up.hpi.informationsystems.adbms.definition._
 
+import scala.util.Success
+
 object TestApplication extends App {
 
   implicit class RecordSeqToString(a: Seq[Record]) {
@@ -79,6 +81,10 @@ object TestApplication extends App {
   assert(ColumnDef[String]("Firstname") == colFirstname)
   assert(ColumnDef[Int]("Firstname").untyped != colFirstname.untyped)
 
+  println()
+  println("Projection of user relation:")
+  println(R.project(Seq(colFirstname, colLastname)).getOrElse(Seq.empty).pretty)
+
 
   /**
     * Testing Customer relation => RowStore
@@ -92,6 +98,8 @@ object TestApplication extends App {
     .withCellContent(colLastname -> "")
     .build()
   println(record)
+  assert(record.project(Seq(colAge)) == Success(Record(Seq(colAge))(colAge -> 45).build()))
+  assert(record.project(Seq(colAge, colCustomerDiscount)).isFailure)
 
   println(R2.columns.mkString(", "))
   println()
@@ -136,4 +144,8 @@ object TestApplication extends App {
       )
       .pretty
   )
+
+  println()
+  println("Projection of customer relation:")
+  println(R2.project(Seq(colCustomerName, colCustomerDiscount)).getOrElse(Seq.empty).pretty)
 }
