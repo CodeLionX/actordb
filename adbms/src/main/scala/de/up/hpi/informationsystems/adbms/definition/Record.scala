@@ -109,19 +109,17 @@ object Record {
     *
     * // syntactic sugar
     * val record = Record(Seq(firstnameCol, lastnameCol, ageCol))(
-    *     firstnameCol -> "Hans"
-    *   )(
-    *     ageCol -> 45
-    *   )
-    *   .withCellContent(lastnameCol -> "")
-    *   .build()
+    *     firstnameCol ~> "Hans" &
+    *     ageCol ~> 45 +
+    *     lastnameCol -> ""
+    *   ).build()
     *
     * // is the same:
-    * var rb = Record(Seq(firstnameCol, lastnameCol, ageCol))
-    * rb = rb(firstnameCol -> "Hans")
-    * rb = rb(lastnameCol -> "")
-    * rb = rb(ageCol -> 45)
-    * val sameRecord = rb.build()
+    * val sameRecord = Record(Seq(firstnameCol, lastnameCol, ageCol))
+    *   .withCellContent(firstnameCol)("Hans")
+    *   .withCellContent(lastnameCol)("")
+    *   .withCellContent(ageCol)(45)
+    *   .build()
     *
     * assert(record == sameRecord)
     * }}}
@@ -140,7 +138,7 @@ object Record {
   class RecordBuilder(columnDefs: Seq[UntypedColumnDef], recordData: Map[UntypedColumnDef, Any]) {
 
     /**
-      * Sets a cell's value using `colDef ~> "value"`-notation
+      * Sets a cell's value using `colDef ~> &lt;value&gt;` -notation
       * @param in mapping from column to cell content
       * @return the updated [[RecordBuilder]]
       */
@@ -149,6 +147,7 @@ object Record {
 
     /**
       * Sets the selected cell's value.
+      * Curried function for having better compiler and IDE type mismatch errors.
       * @param colDef cell to set indicated by column definition
       * @param value value of the cell
       * @tparam T value type, same as for the column definition
@@ -179,8 +178,20 @@ object Record {
       new RecordBuilderPart(this.columnCellMapping ++ other.columnCellMapping)
   }
 
+  /**
+    * Provides implicits for dealing with [[de.up.hpi.informationsystems.adbms.definition.Record]]s.
+    */
   object implicits {
     implicit class ColumnCellMapper[T](in: ColumnDef[T]) {
+
+      /**
+        * Syntax-sugar for creating a mapping of column definition and cell value for the use in
+        * [[de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilder]]. Returns a
+        * [[de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilderPart]].
+        * @param value cell value
+        * @return a new [[de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilderPart]] containing
+        *         the column definition and cell value mapping
+        */
       def ~>(value: T): RecordBuilderPart = new RecordBuilderPart(Map(in.untyped -> value))
     }
   }
