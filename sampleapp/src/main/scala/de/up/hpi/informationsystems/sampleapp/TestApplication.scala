@@ -15,7 +15,7 @@ object TestApplication extends App {
   /**
     * Definition of Columns and Relations for relation "User"
     */
-  object User extends ColumnRelation {
+  object User extends RowRelation {
     val colFirstname: ColumnDef[String] = ColumnDef("Firstname")
     val colLastname: ColumnDef[String] = ColumnDef("Lastname")
     val colAge: ColumnDef[Int] = ColumnDef("Age")
