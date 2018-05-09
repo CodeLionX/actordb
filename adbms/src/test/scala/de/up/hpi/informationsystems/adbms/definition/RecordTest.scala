@@ -22,6 +22,7 @@ class RecordTest extends WordSpec with Matchers {
 
       "not allow projection, when projecting by any column definition" in {
         emptyRecord.project(Seq(ColumnDef[Any](""))) should be.leftSideValue
+        emptyRecord.project(RowRelation(Seq(ColumnDef[Any]("")))) should be.leftSideValue
       }
     }
 
@@ -30,6 +31,7 @@ class RecordTest extends WordSpec with Matchers {
       val col2 = ColumnDef[Int]("col2")
       val col3 = ColumnDef[Double]("col3")
       val record = Record(Seq(col1, col2, col3)).build()
+      val R = RowRelation(Seq(col1, col2))
 
       "have a column list" in {
         record.columns.size shouldBe 3
@@ -55,6 +57,7 @@ class RecordTest extends WordSpec with Matchers {
         record.project(Seq(col1)) should equal(Right(Record(Seq(col1)).build()))
         record.project(Seq(col2)) should equal(Right(Record(Seq(col2)).build()))
         record.project(Seq(col1, col3)) should equal(Right(Record(Seq(col1, col3)).build()))
+        record.project(R) should equal(Right(Record(Seq(col1, col2)).build()))
       }
     }
   }

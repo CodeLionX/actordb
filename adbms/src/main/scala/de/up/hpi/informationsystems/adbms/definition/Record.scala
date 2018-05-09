@@ -29,11 +29,28 @@ class Record private (cells: Map[ColumnDef, Any])
     else
       None
 
+  /**
+    * Iff `columnDefs` is a subset of this Record,
+    * performs a projection of this relation to the specified columns,
+    * or returns an error message.
+    * @param columnDefs columns to project to
+    * @return Either a new record containing only the specified columns or an error message
+    */
   def project(columnDefs: Seq[ColumnDef]): Either[String, Record] =
     if(columnDefs.toSet subsetOf columns.toSet)
       Right(new Record(data.filterKeys(columnDefs.contains)))
     else
       Left(s"this record does not contain all specified columns {$columnDefs}")
+
+  /**
+    * Iff all columns of the relation are a subset of this Record,
+    * returns a new Record with only the columns of the Relation,
+    * otherwise returns an error message.
+    * @param r Relation to project this Record to
+    * @return Either a new record containing only the specified columns or an error message
+    */
+  def project(r: Relation): Either[String, Record] =
+    project(r.columns)
 
   // from MapLike
   override def empty: Record = new Record(Map.empty)
