@@ -39,15 +39,6 @@ class Record private (cells: Map[UntypedColumnDef, Any])
     */
   def project(columnDefs: Set[UntypedColumnDef]): Try[Record] = Try(internal_project(columnDefs))
 
-  /**
-    * Iff all columns of the relation are a subset of this record,
-    * returns a new record with only the columns of the relation,
-    * otherwise returns an error message.
-    * @param r Relation to project this Record to
-    * @return A new record containing only the specified columns
-    */
-  def project(r: Relation): Try[Record] = Try(internal_project(r.columns))
-
   @throws[IncompatibleColumnDefinitionException]
   private def internal_project(columnDefs: Set[UntypedColumnDef]): Record =
     if(columnDefs subsetOf columns)

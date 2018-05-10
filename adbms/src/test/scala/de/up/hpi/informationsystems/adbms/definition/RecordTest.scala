@@ -60,14 +60,14 @@ class RecordTest extends WordSpec with Matchers {
       }
 
       "project to itself, when projected by an empty list" in {
-        emptyRecord.project(Set.empty: Set[UntypedColumnDef]) should equal(Success(emptyRecord))
+        emptyRecord.project(Set.empty) should equal(Success(emptyRecord))
       }
 
       "not allow projection, when projecting by any column definition" in {
-        emptyRecord.project(Set(ColumnDef[Any]("")): Set[UntypedColumnDef]).isFailure shouldBe true
+        emptyRecord.project(Set(ColumnDef[Any](""))).isFailure shouldBe true
         emptyRecord.project(new RowRelation {
           override def columns: Set[UntypedColumnDef] = Set(ColumnDef[Any](""))
-        }).isFailure shouldBe true
+        }.columns).isFailure shouldBe true
       }
     }
 
@@ -93,18 +93,18 @@ class RecordTest extends WordSpec with Matchers {
       }
 
       "project to empty record, when projected by an empty list" in {
-        record.project(Set.empty: Set[UntypedColumnDef]) should equal(Success(Record(Set.empty).build()))
+        record.project(Set.empty) should equal(Success(Record(Set.empty).build()))
       }
 
       "not allow projection, when projecting by any column definition" in {
-        record.project(Set(ColumnDef[Any]("")): Set[UntypedColumnDef]) should be.leftSideValue
+        record.project(Set(ColumnDef[Any](""))) should be.leftSideValue
       }
 
       "project to correct column subset, when projecting by contained columns" in {
-        record.project(Set(col1): Set[UntypedColumnDef]) should equal(Success(Record(Set(col1)).build()))
-        record.project(Set(col2): Set[UntypedColumnDef]) should equal(Success(Record(Set(col2)).build()))
-        record.project(Set(col1, col3): Set[UntypedColumnDef]) should equal(Success(Record(Set(col1, col3)).build()))
-        record.project(R) should equal(Success(Record(Set(col1, col2)).build()))
+        record.project(Set(col1)) should equal(Success(Record(Set(col1)).build()))
+        record.project(Set(col2)) should equal(Success(Record(Set(col2)).build()))
+        record.project(Set(col1, col3)) should equal(Success(Record(Set(col1, col3)).build()))
+        record.project(R.columns) should equal(Success(Record(Set(col1, col2)).build()))
       }
     }
 
@@ -132,14 +132,14 @@ class RecordTest extends WordSpec with Matchers {
       }
 
       "retain values of projected columns and drop others" in {
-        record.project(Set(col1): Set[UntypedColumnDef]) match {
+        record.project(Set(col1)) match {
           case Success(r) =>
             r.get(col1) shouldBe Some(val1)
             r.get(col2) shouldBe None
             r.get(col3) shouldBe None
           case Failure(_) => fail("Projection by column sequence failed, but it should succeed")
         }
-        record.project(R) match {
+        record.project(R.columns) match {
           case Success(r) =>
             r.get(col1) shouldBe Some(val1)
             r.get(col2) shouldBe Some(val2)
