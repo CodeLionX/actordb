@@ -4,14 +4,14 @@ import de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilder
 
 import scala.util.Try
 
-trait Relation {
+abstract class Relation {
 
   /**
     * Returns the column definitions of this relation.
     * @note override this value to define your relational schema
     * @return a sequence of column definitions
     */
-  def columns: Seq[UntypedColumnDef]
+  def columns: Set[UntypedColumnDef]
 
   /**
     * Inserts a [[de.up.hpi.informationsystems.adbms.definition.Record]] into the relation
@@ -42,7 +42,7 @@ trait Relation {
     * @param columnDefs columns to project to
     * @return All records containing only the specified columns
     */
-  def project(columnDefs: Seq[UntypedColumnDef]): Try[Seq[Record]]
+  def project(columnDefs: Set[UntypedColumnDef]): Try[Seq[Record]]
 
 
   // this trait comes with this for nothing :)
@@ -51,7 +51,7 @@ trait Relation {
     * columns for this relation.
     * @return initialized RecordBuilder
     */
-  def newRecord: RecordBuilder = Record(columns)
+  def newRecord: RecordBuilder = Record(columns.toSet)
 
   /**
     * Inserts all Records into the relation.

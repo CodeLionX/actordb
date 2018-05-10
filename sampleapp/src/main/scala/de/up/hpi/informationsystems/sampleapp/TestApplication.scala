@@ -20,7 +20,7 @@ object TestApplication extends App {
     val colLastname: ColumnDef[String] = ColumnDef("Lastname")
     val colAge: ColumnDef[Int] = ColumnDef("Age")
 
-    override val columns: Seq[UntypedColumnDef] = Seq(colFirstname, colLastname, colAge)
+    override val columns: Set[UntypedColumnDef] = Set(colFirstname, colLastname, colAge)
   }
 
   /**
@@ -31,7 +31,7 @@ object TestApplication extends App {
     val colName: ColumnDef[String] = ColumnDef("Name")
     val colDiscount: ColumnDef[Double] = ColumnDef("Discount")
 
-    override val columns: Seq[UntypedColumnDef] = Seq(colId, colName, colDiscount)
+    override val columns: Set[UntypedColumnDef] = Set(colId, colName, colDiscount)
   }
 
 
@@ -81,7 +81,7 @@ object TestApplication extends App {
 
   println()
   println("Projection of user relation:")
-  println(User.project(Seq(User.colFirstname, User.colLastname)).getOrElse(Seq.empty).pretty)
+  println(User.project(Set(User.colFirstname, User.colLastname): Set[UntypedColumnDef]).getOrElse(Set.empty))
 
 
   /**
@@ -98,8 +98,8 @@ object TestApplication extends App {
     )
     .build()
   println(record)
-  assert(record.project(Seq(User.colAge)) == Success(Record(Seq(User.colAge))(User.colAge ~> 45).build()))
-  assert(record.project(Seq(User.colAge, Customer.colDiscount)).isFailure)
+  assert(record.project(Set(User.colAge): Set[UntypedColumnDef]) == Success(Record(Set(User.colAge))(User.colAge ~> 45).build()))
+  assert(record.project(Set(User.colAge, Customer.colDiscount): Set[UntypedColumnDef]).isFailure)
 
   println(Customer.columns.mkString(", "))
   println()
@@ -147,5 +147,5 @@ object TestApplication extends App {
 
   println()
   println("Projection of customer relation:")
-  println(Customer.project(Seq(Customer.colName, Customer.colDiscount)).getOrElse(Seq.empty).pretty)
+  println(Customer.project(Set(Customer.colName, Customer.colDiscount): Set[UntypedColumnDef]).getOrElse(Set.empty))
 }

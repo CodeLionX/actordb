@@ -37,7 +37,7 @@ class Record private (cells: Map[UntypedColumnDef, Any])
     * @param columnDefs columns to project to
     * @return A new record containing only the specified columns
     */
-  def project(columnDefs: Seq[UntypedColumnDef]): Try[Record] = Try(internal_project(columnDefs))
+  def project(columnDefs: Set[UntypedColumnDef]): Try[Record] = Try(internal_project(columnDefs))
 
   /**
     * Iff all columns of the relation are a subset of this record,
@@ -49,8 +49,8 @@ class Record private (cells: Map[UntypedColumnDef, Any])
   def project(r: Relation): Try[Record] = Try(internal_project(r.columns))
 
   @throws[IncompatibleColumnDefinitionException]
-  private def internal_project(columnDefs: Seq[UntypedColumnDef]): Record =
-    if(columnDefs.toSet subsetOf columns.toSet)
+  private def internal_project(columnDefs: Set[UntypedColumnDef]): Record =
+    if(columnDefs subsetOf columns)
       new Record(data.filterKeys(columnDefs.contains))
     else
       throw IncompatibleColumnDefinitionException(s"this record does not contain all specified columns {$columnDefs}")
@@ -127,7 +127,7 @@ object Record {
     * This call initiates the [[de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilder]] with
     * the column definitions of the corresponding relational schema
     */
-  def apply(columnDefs: Seq[UntypedColumnDef]): RecordBuilder = new RecordBuilder(columnDefs, Map.empty)
+  def apply(columnDefs: Set[UntypedColumnDef]): RecordBuilder = new RecordBuilder(columnDefs, Map.empty)
 
   /**
     * Builder for a [[de.up.hpi.informationsystems.adbms.definition.Record]].
@@ -135,7 +135,7 @@ object Record {
     * @param columnDefs all columns of the corresponding relational schema
     * @param recordData initial cell contents, usually: `Map.empty`
     */
-  class RecordBuilder(columnDefs: Seq[UntypedColumnDef], recordData: Map[UntypedColumnDef, Any]) {
+  class RecordBuilder(columnDefs: Set[UntypedColumnDef], recordData: Map[UntypedColumnDef, Any]) {
 
     /**
       * Sets a cell's value using `colDef ~> &lt;value&gt;` -notation

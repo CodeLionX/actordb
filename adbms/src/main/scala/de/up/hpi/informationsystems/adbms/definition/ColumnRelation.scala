@@ -13,7 +13,7 @@ abstract class ColumnRelation extends Relation {
       Map(colDef -> colDef.buildColumnStore())
     }.reduce(_ ++ _)
 
-  private def getRecord(selectedColumns: Seq[UntypedColumnDef])(idx: Int): Record = {
+  private def getRecord(selectedColumns: Set[UntypedColumnDef])(idx: Int): Record = {
     selectedColumns
       .foldLeft( Record(selectedColumns) )( (builder, column) => {
         val columnStore = data(column) // needed to get the right type here 🡫
@@ -50,8 +50,8 @@ abstract class ColumnRelation extends Relation {
       .toSeq
 
   /** @inheritdoc */
-  override def project(columnDefs: Seq[UntypedColumnDef]): Try[Seq[Record]] = Try(
-    if(columnDefs.toSet subsetOf columns.toSet)
+  override def project(columnDefs: Set[UntypedColumnDef]): Try[Seq[Record]] = Try(
+    if(columnDefs subsetOf columns)
       (0 until data.size).map(getRecord(columnDefs)(_))
     else
       throw IncompatibleColumnDefinitionException(s"this relation does not contain all specified columns {$columnDefs}")
@@ -62,7 +62,7 @@ abstract class ColumnRelation extends Relation {
     val line = "-" * header.length
     var content: String = ""
     for (i <- 0 to data.size) {
-      val col: Seq[ColumnStore] = columns.map(data)
+      val col: Set[ColumnStore] = columns.map(data)
       content = content + col.map(_.get(i)).mkString(" | ") + "\n"
     }
     header + "\n" + line + "\n" + content + "\n" + line + "\n"
