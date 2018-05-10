@@ -11,7 +11,7 @@ trait Relation {
     * @note override this value to define your relational schema
     * @return a sequence of column definitions
     */
-  def columns: Seq[UntypedColumnDef]
+  val columns: Seq[UntypedColumnDef]
 
   /**
     * Inserts a [[de.up.hpi.informationsystems.adbms.definition.Record]] into the relation
