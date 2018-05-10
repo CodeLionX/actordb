@@ -66,7 +66,7 @@ class RecordTest extends WordSpec with Matchers {
       "not allow projection, when projecting by any column definition" in {
         emptyRecord.project(Seq(ColumnDef[Any](""))).isFailure shouldBe true
         emptyRecord.project(new RowRelation {
-          override def columns: Seq[UntypedColumnDef] = Seq(ColumnDef[Any](""))
+          override val columns: Seq[UntypedColumnDef] = Seq(ColumnDef[Any](""))
         }).isFailure shouldBe true
       }
     }
@@ -77,7 +77,7 @@ class RecordTest extends WordSpec with Matchers {
       val col3 = ColumnDef[Double]("col3")
       val record = Record(Seq(col1, col2, col3)).build()
       val R = new RowRelation {
-        override def columns: Seq[UntypedColumnDef] = Seq(col1, col2)
+        override val columns: Seq[UntypedColumnDef] = Seq(col1, col2)
       }
 
       "have a column list" in {
@@ -121,7 +121,7 @@ class RecordTest extends WordSpec with Matchers {
         .withCellContent(col3)(val3)
         .build()
       val R = new RowRelation {
-        override def columns: Seq[UntypedColumnDef] = Seq(col1, col2)
+        override val columns: Seq[UntypedColumnDef] = Seq(col1, col2)
       }
 
       "return the column's cell value" in {
