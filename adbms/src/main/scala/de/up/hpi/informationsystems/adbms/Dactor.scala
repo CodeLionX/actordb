@@ -13,7 +13,6 @@ abstract class Dactor(name: String) extends Actor with ActorLogging {
   protected val relations: Map[String, Relation]
 
   override def preStart(): Unit = log.info(s"${this.getClass.getSimpleName}($name) started")
-
+  
   override def postStop(): Unit = log.info(s"${this.getClass.getSimpleName}($name) stopped")
-
 }
