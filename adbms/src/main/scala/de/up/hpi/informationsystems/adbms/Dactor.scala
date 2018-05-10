@@ -15,4 +15,5 @@ abstract class Dactor(name: String) extends Actor with ActorLogging {
   override def preStart(): Unit = log.info(s"${this.getClass.getSimpleName}($name) started")
 
   override def postStop(): Unit = log.info(s"${this.getClass.getSimpleName}($name) stopped")
+
 }
