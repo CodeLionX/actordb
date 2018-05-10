@@ -20,7 +20,7 @@ object TestApplication extends App {
     val colLastname: ColumnDef[String] = ColumnDef("Lastname")
     val colAge: ColumnDef[Int] = ColumnDef("Age")
 
-    override val columns: Seq[UntypedColumnDef] = Seq(colFirstname, colLastname, colAge)
+   override val columns: Seq[UntypedColumnDef] = Seq(colFirstname, colLastname, colAge)
   }
 
   /**
