@@ -15,75 +15,73 @@ object TestApplication extends App {
   /**
     * Definition of Columns and Relations for relation "User"
     */
-  object UserRelationDefinition {
+  object User extends ColumnRelation {
     val colFirstname: ColumnDef[String] = ColumnDef("Firstname")
     val colLastname: ColumnDef[String] = ColumnDef("Lastname")
     val colAge: ColumnDef[Int] = ColumnDef("Age")
 
-    val R: RowRelation = RowRelation(Seq(colFirstname, colLastname, colAge))
+    override val columns: Seq[UntypedColumnDef] = Seq(colFirstname, colLastname, colAge)
   }
 
   /**
     * Definition of Columns and Relations for relation "Customer"
     */
-  object CustomerRelationDefinition {
-    val colCustomerId: ColumnDef[Int] = ColumnDef("Id")
-    val colCustomerName: ColumnDef[String] = ColumnDef("Name")
-    val colCustomerDiscount: ColumnDef[Double] = ColumnDef("Discount")
+  object Customer extends RowRelation {
+    val colId: ColumnDef[Int] = ColumnDef("Id")
+    val colName: ColumnDef[String] = ColumnDef("Name")
+    val colDiscount: ColumnDef[Double] = ColumnDef("Discount")
 
-    val R: RowRelation = RowRelation(Seq(colCustomerId, colCustomerName, colCustomerDiscount))
+    override val columns: Seq[UntypedColumnDef] = Seq(colId, colName, colDiscount)
   }
 
-  import UserRelationDefinition._
-  import CustomerRelationDefinition.{R => R2, colCustomerDiscount, colCustomerId, colCustomerName}
 
   /**
     * Testing User relation => ColumnStore
     */
 
-  println(R.columns.mkString(", "))
-  R.insert(
-    Record(R.columns)
-      .withCellContent(colLastname)("Maier")
-      .withCellContent(colFirstname)("Hans")
-      .withCellContent(colAge)(33)
+  println(User.columns.mkString(", "))
+  User.insert(
+    Record(User.columns)
+      .withCellContent(User.colLastname)("Maier")
+      .withCellContent(User.colFirstname)("Hans")
+      .withCellContent(User.colAge)(33)
       .build()
   )
-  R.insert(
-    Record(R.columns)
-      .withCellContent(colFirstname)("Hans")
-      .withCellContent(colLastname)("Schneider")
-      .withCellContent(colAge)(12)
+  User.insert(
+    Record(User.columns)
+      .withCellContent(User.colFirstname)("Hans")
+      .withCellContent(User.colLastname)("Schneider")
+      .withCellContent(User.colAge)(12)
       .build()
   )
-  R.insert(
-    Record(R.columns)
-      .withCellContent(colFirstname)("Justus")
-      .withCellContent(colLastname)("Jonas")
+  User.insert(
+    Record(User.columns)
+      .withCellContent(User.colFirstname)("Justus")
+      .withCellContent(User.colLastname)("Jonas")
       .build()
   )
   println()
-  println(R)
+  println(User)
 
   println()
   println("where:")
   println(
-    R.where[String](colFirstname -> { _ == "Hans" }).pretty
+    User.where[String](User.colFirstname -> { _ == "Hans" }).pretty
   )
   println("whereAll:")
   println(
-    R.whereAll(
-      Map(colFirstname.untyped -> { name: Any => name.asInstanceOf[String] == "Hans" })
-      ++ Map(colAge.untyped -> { age: Any => age.asInstanceOf[Int] == 33 })
+    User.whereAll(
+      Map(User.colFirstname.untyped -> { name: Any => name.asInstanceOf[String] == "Hans" })
+      ++ Map(User.colAge.untyped -> { age: Any => age.asInstanceOf[Int] == 33 })
     ).pretty
   )
 
-  assert(ColumnDef[String]("Firstname") == colFirstname)
-  assert(ColumnDef[Int]("Firstname").untyped != colFirstname.untyped)
+  assert(ColumnDef[String]("Firstname") == User.colFirstname)
+  assert(ColumnDef[Int]("Firstname").untyped != User.colFirstname.untyped)
 
   println()
   println("Projection of user relation:")
-  println(R.project(Seq(colFirstname, colLastname)).getOrElse(Seq.empty).pretty)
+  println(User.project(Seq(User.colFirstname, User.colLastname)).getOrElse(Seq.empty).pretty)
 
 
   /**
@@ -93,43 +91,43 @@ object TestApplication extends App {
   println()
   println()
   import Record.implicits._
-  val record = Record(R.columns)(
-      colFirstname ~> "Hans" &
-      colLastname ~> "Lastname" &
-      colAge ~> 45
+  val record = Record(User.columns)(
+      User.colFirstname ~> "Hans" &
+      User.colLastname ~> "Lastname" &
+      User.colAge ~> 45
     )
     .build()
   println(record)
-  assert(record.project(Seq(colAge)) == Success(Record(Seq(colAge)).withCellContent(colAge)(45).build()))
-  assert(record.project(Seq(colAge, colCustomerDiscount)).isFailure)
+  assert(record.project(Seq(User.colAge)) == Success(Record(Seq(User.colAge))(User.colAge ~> 45).build()))
+  assert(record.project(Seq(User.colAge, Customer.colDiscount)).isFailure)
 
-  println(R2.columns.mkString(", "))
+  println(Customer.columns.mkString(", "))
   println()
-  R2.insert(
-    Record(R2.columns)
-      .withCellContent(colCustomerId)(1)
-      .withCellContent(colCustomerName)("BMW")
+  Customer.insert(
+    Record(Customer.columns)
+      .withCellContent(Customer.colId)(1)
+      .withCellContent(Customer.colName)("BMW")
       .build()
   )
-  R2.insert(
-    Record(R2.columns)
-      .withCellContent(colCustomerId)(2)
-      .withCellContent(colCustomerName)("BMW Group")
-      .withCellContent(colCustomerDiscount)(0.023)
+  Customer.insert(
+    Record(Customer.columns)
+      .withCellContent(Customer.colId)(2)
+      .withCellContent(Customer.colName)("BMW Group")
+      .withCellContent(Customer.colDiscount)(0.023)
       .build()
   )
-  R2.insert(
-    Record(R2.columns)
-      .withCellContent(colCustomerId)(3)
-      .withCellContent(colCustomerName)("Audi AG")
-      .withCellContent(colCustomerDiscount)(0.05)
+  Customer.insert(
+    Record(Customer.columns)
+      .withCellContent(Customer.colId)(3)
+      .withCellContent(Customer.colName)("Audi AG")
+      .withCellContent(Customer.colDiscount)(0.05)
       .build()
   )
 
-  println(R2)
+  println(Customer)
   println("where:")
   println(
-    R2.where[String](colCustomerName -> { _.contains("BMW") }).pretty
+    Customer.where[String](Customer.colName -> { _.contains("BMW") }).pretty
   )
 
   val isBMW: Any => Boolean = value =>
@@ -140,14 +138,14 @@ object TestApplication extends App {
 
   println("whereAll:")
   println(
-    R2.whereAll(
-        Map(colCustomerName.untyped -> isBMW)
-          ++ Map(colCustomerDiscount.untyped -> discountGreaterThan(0.01))
+    Customer.whereAll(
+        Map(Customer.colName.untyped -> isBMW)
+          ++ Map(Customer.colDiscount.untyped -> discountGreaterThan(0.01))
       )
       .pretty
   )
 
   println()
   println("Projection of customer relation:")
-  println(R2.project(Seq(colCustomerName, colCustomerDiscount)).getOrElse(Seq.empty).pretty)
+  println(Customer.project(Seq(Customer.colName, Customer.colDiscount)).getOrElse(Seq.empty).pretty)
 }
