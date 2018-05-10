@@ -20,7 +20,7 @@ Participants:
 
    - Use `Set(columnDefs)` for defining relations and records instead of `Seq(columnDefs)` to prohibit duplicate column names.
      One issue remains unfixed: It's possible to create two `ColumnDef`s with the same name and different `valueTypes`.
-   - Keep name `project`
+   - Keep name `project` for projecting relations and records to other schemas (like SQL _SELECT_)
    - Needed features:
      - Capability to create primary keys, uniqueness constraint and accessor: `get(key: Int): Record`.
        Keys are always `Int`. Primary key generation possible.
