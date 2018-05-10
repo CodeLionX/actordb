@@ -27,6 +27,10 @@ cache:
     - $HOME/.ivy2/cache
     - $HOME/.sbt/boot
 
+before_install:
+# if build is a pull request and origin branch starts with doc/ skip the build (successfully)
+  - if [[ "$TRAVIS_PULL_REQUEST" != "false" && "$TRAVIS_PULL_REQUEST_BRANCH" == doc/* ]]; then exit 0; fi
+
 # build script (sbt test)
 script:
   - sbt ++$TRAVIS_SCALA_VERSION test
