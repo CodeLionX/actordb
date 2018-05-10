@@ -2,116 +2,71 @@ package de.up.hpi.informationsystems.adbms.definition
 import scala.util.Try
 
 /**
-  * @deprecated in favor of RowRelation since 09/05/2018
-  */
-@deprecated("Was deprecated in favor of RowRelation", "09/05/2018")
-sealed trait ColumnRelation extends Relation
-
-/**
-  * Defines a column-oriented relation schema, which's store gets automatically generated.
+  * Defines a column-oriented relation schema, which's data store gets automatically generated.
   *
   * @deprecated in favor of RowRelation since 09/05/2018
   */
 @deprecated("Was deprecated in favor of RowRelation", "09/05/2018")
-object ColumnRelation {
+abstract class ColumnRelation extends Relation {
 
-  /**
-    * Defines a column-oriented relation schema, which gets automatically generated.
-    *
-    * @param columnDefs sequence of column definitions
-    * @return the generated column-oriented relational store
-    */
-  def apply(columnDefs: Seq[UntypedColumnDef]): ColumnRelation = new ColumnRelationStore(columnDefs)
+  // needs to be lazy evaluated, because `columns` is not yet defined when this class gets instantiated
+  private lazy val data: Map[UntypedColumnDef, ColumnStore] =
+    columns.map { colDef: UntypedColumnDef =>
+      Map(colDef -> colDef.buildColumnStore())
+    }.reduce(_ ++ _)
 
-  /**
-    * Indicates that a [[de.up.hpi.informationsystems.adbms.definition.UntypedColumnDef]] was not found in
-    * the column relation.
-    *
-    * @param message gives details
-    */
-  class ColumnNotFoundException(message: String) extends Exception(message) {
-    def this(message: String, cause: Throwable) = {
-      this(message)
-      initCause(cause)
-    }
-
-    def this(cause: Throwable) = this(cause.toString, cause)
-
-    def this() = this(null: String)
-  }
-
-  /**
-    * Private (hidden) implementation of the [[de.up.hpi.informationsystems.adbms.definition.ColumnRelation]] trait.
-    * @param colDefs column definitions used to construct the underlying data store
-    */
-  private final class ColumnRelationStore(private val colDefs: Seq[UntypedColumnDef]) extends ColumnRelation {
-
-    private val data: Map[UntypedColumnDef, ColumnStore] =
-      colDefs.map { colDef: UntypedColumnDef =>
-        Map(colDef -> colDef.buildColumnStore())
-      }.reduce(_ ++ _)
-
-    private var n: Int = 0
-
-    private def getRecord(selectedColumns: Seq[UntypedColumnDef])(idx: Int): Record = {
-      selectedColumns
-        .foldLeft( Record(selectedColumns) )( (builder, column) => {
-          val columnStore = data(column) // needed to get the right type here 🡫
-          builder.withCellContent(column.asInstanceOf[ColumnDef[columnStore.valueType]])(columnStore(idx))
-        })
-        .build()
-    }
-
-
-    /** @inheritdoc */
-    override def columns: Seq[UntypedColumnDef] = colDefs
-
-    /** @inheritdoc */
-    override def insert(record: Record): Unit = {
-      n += 1
-      columns.foreach(column => {
-        val columnStore = data(column)
-        columnStore.append(record(column).asInstanceOf[columnStore.valueType])
+  private def getRecord(selectedColumns: Seq[UntypedColumnDef])(idx: Int): Record = {
+    selectedColumns
+      .foldLeft( Record(selectedColumns) )( (builder, column) => {
+        val columnStore = data(column) // needed to get the right type here 🡫
+        builder.withCellContent(column.asInstanceOf[ColumnDef[columnStore.valueType]])(columnStore(idx))
       })
-    }
-
-    /** @inheritdoc */
-    override def where[T](f: (ColumnDef[T], T => Boolean)): Seq[Record] = {
-      val columnStore = data(f._1.untyped) // needed to get the right type 2 lines below
-      columnStore
-        .indicesWhere(f._2.asInstanceOf[columnStore.valueType => Boolean])
-        .map(getRecord(columns)(_))
-    }
-
-    /** @inheritdoc */
-    override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Seq[Record] =
-      fs.keys
-        .map(column =>
-          data(column)
-            .indicesWhere(fs(column))
-            .map(getRecord(columns)(_))
-            .toSet
-        ).reduce( (a1, a2) => a1.intersect(a2) )
-        .toSeq
-
-    /** @inheritdoc */
-    override def project(columnDefs: Seq[UntypedColumnDef]): Try[Seq[Record]] = Try(
-      if(columnDefs.toSet subsetOf columns.toSet)
-        (0 until data.size).map(getRecord(columnDefs)(_))
-      else
-        throw IncompatibleColumnDefinitionException(s"this relation does not contain all specified columns {$columnDefs}")
-    )
-
-    override def toString: String = {
-      val header = columns.map { c => s"${c.name}[${c.tpe}]" }.mkString(" | ")
-      val line = "-" * header.length
-      var content: String = ""
-      for (i <- 0 to n) {
-        val col: Seq[ColumnStore] = columns.map(data)
-        content = content + col.map(_.get(i)).mkString(" | ") + "\n"
-      }
-      header + "\n" + line + "\n" + content + "\n" + line + "\n"
-    }
+      .build()
   }
 
+  /** @inheritdoc */
+  override def insert(record: Record): Unit = {
+    columns.foreach(column => {
+      val columnStore = data(column)
+      columnStore.append(record(column).asInstanceOf[columnStore.valueType])
+    })
+  }
+
+  /** @inheritdoc */
+  override def where[T](f: (ColumnDef[T], T => Boolean)): Seq[Record] = {
+    val columnStore = data(f._1.untyped) // needed to get the right type 2 lines below
+    columnStore
+      .indicesWhere(f._2.asInstanceOf[columnStore.valueType => Boolean])
+      .map(getRecord(columns)(_))
+  }
+
+  /** @inheritdoc */
+  override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Seq[Record] =
+    fs.keys
+      .map(column =>
+        data(column)
+          .indicesWhere(fs(column))
+          .map(getRecord(columns)(_))
+          .toSet
+      ).reduce( (a1, a2) => a1.intersect(a2) )
+      .toSeq
+
+  /** @inheritdoc */
+  override def project(columnDefs: Seq[UntypedColumnDef]): Try[Seq[Record]] = Try(
+    if(columnDefs.toSet subsetOf columns.toSet)
+      (0 until data.size).map(getRecord(columnDefs)(_))
+    else
+      throw IncompatibleColumnDefinitionException(s"this relation does not contain all specified columns {$columnDefs}")
+  )
+
+  override def toString: String = {
+    val header = columns.map { c => s"${c.name}[${c.tpe}]" }.mkString(" | ")
+    val line = "-" * header.length
+    var content: String = ""
+    for (i <- 0 to data.size) {
+      val col: Seq[ColumnStore] = columns.map(data)
+      content = content + col.map(_.get(i)).mkString(" | ") + "\n"
+    }
+    header + "\n" + line + "\n" + content + "\n" + line + "\n"
+  }
 }
