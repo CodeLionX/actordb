@@ -15,7 +15,7 @@ class Record private (cells: Map[UntypedColumnDef, Any])
     * Returns column definitions in this record.
     * Alias to `keys`
     */
-  val columns: Seq[UntypedColumnDef] = cells.keys.toSeq
+  val columns: Set[UntypedColumnDef] = cells.keys.toSet
 
   /**
     * Optionally returns the cell's value of a specified column.

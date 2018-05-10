@@ -80,9 +80,9 @@ class RecordTest extends WordSpec with Matchers {
         override def columns: Seq[UntypedColumnDef] = Seq(col1, col2)
       }
 
-      "have a column list" in {
+      "have a column set" in {
         record.columns.size shouldBe 3
-        record.columns shouldEqual Seq(col1, col2, col3)
+        record.columns shouldEqual Set(col1, col2, col3)
       }
 
       "return None, when accessing any column" in {
