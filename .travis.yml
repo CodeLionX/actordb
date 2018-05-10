@@ -9,7 +9,7 @@ scala:
 jdk:
   - oraclejdk8
 
-# build all PRs and only master branch and branchs starting with either
+# build all PRs and only master branch and branches starting with either
 # 'deploy-*', 'deploy/*', 'ci-*' or 'ci/*'
 branches:
   only:
@@ -26,6 +26,10 @@ cache:
   directories:
     - $HOME/.ivy2/cache
     - $HOME/.sbt/boot
+
+# if build is a pull request and origin branch starts with doc/ skip the build (successfully)
+before_install:
+  - if [[ "$TRAVIS_PULL_REQUEST" != "false" && "$TRAVIS_PULL_REQUEST_BRANCH" == doc/* ]]; then exit 0; fi
 
 # build script (sbt test)
 script:
