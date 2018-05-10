@@ -20,7 +20,7 @@ object TestApplication extends App {
     val colLastname: ColumnDef[String] = ColumnDef("Lastname")
     val colAge: ColumnDef[Int] = ColumnDef("Age")
 
-    val R: ColumnRelation = ColumnRelation(Seq(colFirstname, colLastname, colAge))
+    val R: RowRelation = RowRelation(Seq(colFirstname, colLastname, colAge))
   }
 
   /**
