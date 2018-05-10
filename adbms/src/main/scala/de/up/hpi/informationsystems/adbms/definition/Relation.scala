@@ -8,6 +8,7 @@ trait Relation {
 
   /**
     * Returns the column definitions of this relation.
+    * @note override this value to define your relational schema
     * @return a sequence of column definitions
     */
   def columns: Seq[UntypedColumnDef]
