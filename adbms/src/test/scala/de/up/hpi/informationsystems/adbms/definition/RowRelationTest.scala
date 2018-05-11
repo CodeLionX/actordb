@@ -74,8 +74,12 @@ class RowRelationTest extends WordSpec with Matchers {
         override val columns = Seq(colId, colField)
       }
 
-      "return an empty result set for any where query" in {
+      "return an empty result set for any where or whereAll query" in {
         TestRelation.where(TestRelation.colId, (_: Int) => true) shouldEqual Seq()
+        TestRelation.whereAll(Map(
+          TestRelation.colId.untyped -> {_: Any => true},
+          TestRelation.colField.untyped -> {_: Any => true}
+        )) shouldEqual Seq()
       }
     }
 
