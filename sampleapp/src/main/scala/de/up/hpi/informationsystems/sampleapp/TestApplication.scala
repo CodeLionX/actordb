@@ -123,6 +123,20 @@ object TestApplication extends App {
       .withCellContent(Customer.colDiscount)(0.05)
       .build()
   )
+  Customer.insertAll(
+    Seq(
+      Record(Customer.columns)
+        .withCellContent(Customer.colId)(4)
+        .withCellContent(Customer.colName)("Tesla")
+        .withCellContent(Customer.colDiscount)(0.001)
+        .build(),
+      Record(Customer.columns)
+        .withCellContent(Customer.colId)(5)
+        .withCellContent(Customer.colName)("Hyundai")
+        .withCellContent(Customer.colDiscount)(0.01)
+        .build()
+    )
+  )
 
   println(Customer)
   println("where:")

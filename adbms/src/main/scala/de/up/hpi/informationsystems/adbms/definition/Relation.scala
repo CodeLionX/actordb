@@ -2,7 +2,7 @@ package de.up.hpi.informationsystems.adbms.definition
 
 import de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilder
 
-import scala.util.Try
+import scala.util.{Success, Try}
 
 trait Relation {
 
@@ -55,9 +55,10 @@ trait Relation {
 
   /**
     * Inserts all Records into the relation.
+    * @note that this is not atomic
     * @param records to be inserted
     */
-  def insertAll(records: Seq[Record]): Unit = records.foreach(insert)
+  def insertAll(records: Seq[Record]): Try[Seq[Record]] = Success(records.map(insert).map(_.get))
 
   /**
     * Iff all columns of the other relation are a subset of this relation's columns,
