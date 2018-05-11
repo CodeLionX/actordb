@@ -1,4 +1,6 @@
 package de.up.hpi.informationsystems.adbms.definition
+import de.up.hpi.informationsystems.adbms.definition
+
 import scala.util.Try
 
 abstract class RowRelation extends Relation {
@@ -6,7 +8,19 @@ abstract class RowRelation extends Relation {
   private var data: Seq[Record] = Seq.empty
 
   /** @inheritdoc */
-  override def insert(record: Record): Unit = data = data :+ record
+  override def insert(record: Record): Try[Record] = Try(internal_insert(record))
+
+  @throws[IncompatibleColumnDefinitionException]
+  private def internal_insert(record: Record): Record =
+  // check for correct column layout
+    record.columns.equals((this.columns)) match {
+      case true => {
+        data = data :+ record
+        record
+      }
+      case false => throw IncompatibleColumnDefinitionException(s"this records column layout does not match this " +
+        s"relations schema:\n${record.columns} (record)\n${this.columns} (relation)")
+    }
 
   /** @inheritdoc */
   override def where[T](f: (ColumnDef[T], T => Boolean)): Seq[Record] =

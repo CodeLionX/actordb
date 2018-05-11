@@ -17,7 +17,7 @@ trait Relation {
     * Inserts a [[de.up.hpi.informationsystems.adbms.definition.Record]] into the relation
     * @param record to be inserted
     */
-  def insert(record: Record): Unit
+  def insert(record: Record): Try[Record]
 
   /**
     * Returns all records satisfying the provided condition.
