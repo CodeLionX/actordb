@@ -2,7 +2,7 @@ package de.up.hpi.informationsystems.adbms.definition
 
 import org.scalatest.{Matchers, WordSpec}
 
-import scala.reflect.classTag
+import scala.reflect.{ClassTag, classTag}
 
 class ColumnDefTest extends WordSpec with Matchers{
 
@@ -81,12 +81,22 @@ class ColumnDefTest extends WordSpec with Matchers{
       val cloneColInt = colInt.clone()
 
       colInt should equal(cloneColInt)
-      colInt shouldNot be theSameInstanceAs(cloneColInt)
+      colInt shouldNot be theSameInstanceAs cloneColInt
     }
 
     "contain its type in form of a classTag" in {
       colInt.tpe should equal(classTag[Int])
       colInt.tpe shouldNot equal(classTag[Byte])
+
+      // tpe can be used to filter columns
+      val columns: Seq[UntypedColumnDef] = Seq(ColumnDef[Int]("int"), ColumnDef[String]("string"), ColumnDef[Int]("int2"))
+      def extract(colDef: UntypedColumnDef): Option[String] = {
+        colDef match {
+          case i if i.tpe == classTag[Int] => Some(i.name)
+          case _ => None
+        }
+      }
+      columns.flatMap(extract) should equal(Seq("int", "int2"))
     }
 
   }
