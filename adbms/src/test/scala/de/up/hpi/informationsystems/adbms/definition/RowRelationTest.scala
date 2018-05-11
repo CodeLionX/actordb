@@ -119,8 +119,25 @@ class RowRelationTest extends WordSpec with Matchers {
 
       "return the appropriate result set for a whereAll query including the empty result set" in {
         TestRelation.whereAll(
-          Map(TestRelation.colId.untyped -> {id: Any => id.asInstanceOf[Int] <= 2},
-            TestRelation.colField.untyped -> {field: Any => field.asInstanceOf[String].contains("esty")})) shouldEqual Seq(rec1)
+          Map(
+            TestRelation.colId.untyped -> {id: Any => id.asInstanceOf[Int] <= 2},
+            TestRelation.colField.untyped -> {field: Any => field.asInstanceOf[String].contains("esty")}
+          )) shouldEqual Seq(rec1)
+      }
+
+      "return selected columns only from project" in {
+        // deduce correctness of Relation.project from correctness of Record.project
+        TestRelation.project(Seq(TestRelation.colField)).get shouldEqual
+          Seq(
+            rec1.project(Seq(TestRelation.colField)).get,
+            rec2.project(Seq(TestRelation.colField)).get,
+            rec3.project(Seq(TestRelation.colField)).get
+          )
+      }
+
+      "fail to project to non-existent columns" in {
+        TestRelation.project(Seq(ColumnDef[Int]("bad-col"))) should be.leftSideValue
+        TestRelation.project(TestRelation.columns :+ ColumnDef[Int]("bad-col")) should be.leftSideValue
       }
     }
 
