@@ -1,10 +1,12 @@
 package de.up.hpi.informationsystems.adbms.definition
 import scala.util.Try
 
-
 /**
   * Defines a column-oriented relation schema, which's data store gets automatically generated.
+  *
+  * @deprecated in favor of RowRelation since 09/05/2018
   */
+@deprecated("Was deprecated in favor of RowRelation", "09/05/2018")
 abstract class ColumnRelation extends Relation {
 
   // needs to be lazy evaluated, because `columns` is not yet defined when this class gets instantiated

@@ -3,6 +3,10 @@ package definition
 
 import scala.collection.mutable
 
+/**
+  * @deprecated in favor of RowRelation since 09/05/2018
+  */
+@deprecated("Was deprecated in favor of RowRelation", "09/05/2018")
 private[definition] object ColumnStore {
   def apply[T](columnDef: ColumnDef[T]): TypedColumnStore[T] = new TypedColumnStore[T](columnDef)
 }
@@ -10,7 +14,10 @@ private[definition] object ColumnStore {
 /**
   * Represents one Column with stored values of a column-oriented store.
   * Values are stored in order.
+  *
+  * @deprecated in favor of RowRelation since 09/05/2018
   */
+@deprecated("Was deprecated in favor of RowRelation", "09/05/2018")
 private[definition] sealed trait ColumnStore {
   /**
     * Type of the values hold by this Column
@@ -67,7 +74,9 @@ private[definition] sealed trait ColumnStore {
   * A Column with a fixed Type T
   * @param columnDefInt typed column definition
   * @tparam T type of the values hold by this column
+  * @deprecated in favor of RowRelation since 09/05/2018
   */
+@deprecated("Was deprecated in favor of RowRelation", "09/05/2018")
 private[definition] class TypedColumnStore[T](columnDefInt: ColumnDef[T]) extends ColumnStore {
   override type valueType = T
   override def columnDef: UntypedColumnDef = columnDefInt
