@@ -115,7 +115,6 @@ class RowRelationTest extends WordSpec with Matchers {
         TestRelation.where(TestRelation.colId, (_: Int) => true) shouldEqual Seq(rec1, rec2, rec3)
         TestRelation.where(TestRelation.colId, (id: Int) => id >= 2) shouldEqual Seq(rec2, rec3)
         TestRelation.where(TestRelation.colId, (id: Int) => id >= 5) shouldEqual Seq()
-
       }
 
       "return the appropriate result set for a whereAll query including the empty result set" in {
@@ -160,8 +159,10 @@ class RowRelationTest extends WordSpec with Matchers {
 
       "return the appropriate result set for a whereAll query including the empty result set" in {
         TestRelation.whereAll(
-          Map(TestRelation.colId.untyped -> {id: Any => id.asInstanceOf[Int] <= 2},
-            TestRelation.colField.untyped -> {field: Any => field.asInstanceOf[String].contains("esty")})) shouldEqual Seq(rec1)
+          Map(
+            TestRelation.colId.untyped -> {id: Any => id.asInstanceOf[Int] <= 2},
+            TestRelation.colField.untyped -> {field: Any => field.asInstanceOf[String].contains("esty")}
+          )) shouldEqual Seq(rec1)
       }
     }
   }
