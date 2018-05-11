@@ -1,48 +1,92 @@
 package de.up.hpi.informationsystems.adbms.definition
 
-import org.scalatest.WordSpec
+import org.scalatest.{Matchers, WordSpec}
 
-import scala.reflect.{ClassTag, classTag}
+import scala.reflect.classTag
 
-class ColumnDefTest extends WordSpec {
+class ColumnDefTest extends WordSpec with Matchers{
 
   "A ColumnDef" should {
+    val name = "name"
     val colInt = ColumnDef[Int]("integerColumn")
 
-    "equal another ColumnDef only if name and type are equal" in {
-      assert(colInt == ColumnDef[Int]("integerColumn"))
-      assert(colInt != ColumnDef[Byte]("integerColumn"))
-      assert(colInt != ColumnDef[Int]("differentName"))
-      assert(colInt != null)
+    "support all basic data types" in {
+      ColumnDef[Byte](name) should equal (ColumnDef[Byte](name))
+      ColumnDef[Short](name) should equal (ColumnDef[Short](name))
+      ColumnDef[Int](name) should equal (ColumnDef[Int](name))
+      ColumnDef[Long](name) should equal (ColumnDef[Long](name))
+      ColumnDef[Float](name) should equal (ColumnDef[Float](name))
+      ColumnDef[Double](name) should equal (ColumnDef[Double](name))
+      ColumnDef[Char](name) should equal (ColumnDef[Char](name))
+      ColumnDef[String](name) should equal (ColumnDef[String](name))
+      ColumnDef[Boolean](name) should equal (ColumnDef[Boolean](name))
+      ColumnDef[Any](name) should equal (ColumnDef[Any](name))
+      ColumnDef[AnyRef](name) should equal (ColumnDef[AnyRef](name))
 
-      assert(colInt.untyped == ColumnDef[Int]("integerColumn").untyped)
-      assert(colInt.untyped != ColumnDef[Byte]("integerColumn").untyped)
-      assert(colInt.untyped != ColumnDef[Int]("differentName").untyped)
-      assert(colInt.untyped != null)
+      ColumnDef[BigInt](name) should equal (ColumnDef[BigInt](name))
+      ColumnDef[BigDecimal](name) should equal (ColumnDef[BigDecimal](name))
+
+      // for those i'm not sure:
+      ColumnDef[Unit](name) should equal (ColumnDef[Unit](name))
+      ColumnDef[Nothing](name) should equal (ColumnDef[Nothing](name))
+    }
+
+    "support more complex data types" in {
+      // do we want to prevent this or not?
+      case class MyComplexType(s: String, i: Int, f: Float, b: Boolean)
+      class SomeType
+      type testType = () => Seq[String] => (Int, Int)
+
+      ColumnDef[Seq[Any]](name) should equal (ColumnDef[Seq[Any]](name))
+      ColumnDef[MyComplexType](name) should equal (ColumnDef[MyComplexType](name))
+      ColumnDef[SomeType](name) should equal (ColumnDef[SomeType](name))
+      ColumnDef[Array[Map[Int, Any]]](name) should equal (ColumnDef[Array[Map[Int, Any]]](name))
+      ColumnDef[String => (Int, Int)](name) should equal (ColumnDef[String => (Int, Int)](name))
+      ColumnDef[testType](name) should equal (ColumnDef[testType](name))
+      // insert arbitrary complex types here
+    }
+
+    "equal another ColumnDef if and only if name and type are equal" in {
+      colInt should equal (ColumnDef[Int]("integerColumn"))
+      colInt should equal (ColumnDef[Int]("integerColumn").untyped)
+      colInt.untyped should equal (ColumnDef[Int]("integerColumn"))
+      colInt.untyped should equal (ColumnDef[Int]("integerColumn").untyped)
+    }
+
+    "not equal if either name or type or both are not equal" in {
+      colInt shouldNot equal (ColumnDef[Any]("integerColumn"))
+      colInt shouldNot equal (ColumnDef[Byte]("integerColumn"))
+      colInt shouldNot equal (ColumnDef[Int]("differentName"))
+      colInt shouldNot equal (null)
+
+      colInt.untyped shouldNot equal (ColumnDef[Any]("integerColumn").untyped)
+      colInt.untyped shouldNot equal (ColumnDef[Byte]("integerColumn").untyped)
+      colInt.untyped shouldNot equal (ColumnDef[Int]("differentName").untyped)
+      colInt.untyped shouldNot equal (null)
     }
 
     "provide a hash that uniquely identifies its name and type" in {
-      assert(colInt.hashCode() == ColumnDef[Int]("integerColumn").hashCode())
-      assert(colInt.hashCode() == ColumnDef[Int]("integerColumn").untyped.hashCode())
-      assert(colInt.hashCode() != ColumnDef[Byte]("integerColumn").hashCode())
-      assert(colInt.hashCode() != ColumnDef[Int]("differentName").hashCode())
+      colInt.hashCode() should equal(ColumnDef[Int]("integerColumn").hashCode())
+      colInt.hashCode() should equal(ColumnDef[Int]("integerColumn").untyped.hashCode())
+      colInt.hashCode() shouldNot equal(ColumnDef[Byte]("integerColumn").hashCode())
+      colInt.hashCode() shouldNot equal(ColumnDef[Int]("differentName").hashCode())
 
-      assert(colInt.untyped.hashCode() == ColumnDef[Int]("integerColumn").untyped.hashCode())
-      assert(colInt.untyped.hashCode() == ColumnDef[Int]("integerColumn").hashCode())
-      assert(colInt.untyped.hashCode() != ColumnDef[Byte]("integerColumn").untyped)
-      assert(colInt.untyped.hashCode() != ColumnDef[Int]("differentName").untyped)
+      colInt.untyped.hashCode() should equal(ColumnDef[Int]("integerColumn").untyped.hashCode())
+      colInt.untyped.hashCode() should equal(ColumnDef[Int]("integerColumn").hashCode())
+      colInt.untyped.hashCode() shouldNot equal(ColumnDef[Byte]("integerColumn").untyped.hashCode())
+      colInt.untyped.hashCode() shouldNot equal(ColumnDef[Int]("differentName").untyped.hashCode())
     }
 
     "provide clones of itself" in {
       val cloneColInt = colInt.clone()
 
-      assert(colInt ne cloneColInt)
-      assert(colInt == cloneColInt)
+      colInt should equal(cloneColInt)
+      colInt shouldNot be theSameInstanceAs(cloneColInt)
     }
 
     "contain its type in form of a classTag" in {
-      assert(colInt.tpe == classTag[Int])
-      assert(colInt.tpe != classTag[Byte])
+      colInt.tpe should equal(classTag[Int])
+      colInt.tpe shouldNot equal(classTag[Byte])
     }
 
   }
