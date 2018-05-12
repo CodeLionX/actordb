@@ -1,8 +1,9 @@
 package de.up.hpi.informationsystems.sampleapp
 
-import akka.actor.{Actor, ActorSystem, Props}
+import akka.actor.{Actor, ActorSystem, PoisonPill, Props}
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition._
+import sun.awt.AWTAccessor.AccessibleContextAccessor
 
 import scala.io.StdIn
 import scala.util.Success
@@ -15,9 +16,8 @@ object TestApplication extends App {
     tester.tell(TestDactor.Test, Actor.noSender)
 
     // wait for pressing ENTER
-    StdIn.readLine()
-  } finally {
-    system.terminate()
+//    StdIn.readLine()
+    tester.tell(PoisonPill, Actor.noSender)
   }
 }
 
@@ -66,7 +66,10 @@ class TestDactor(name: String) extends Dactor(name) {
   override protected val relations: Map[String, Relation] = Map("User" -> User) ++ Map("Customer" -> Customer)
 
   override def receive: Receive = {
-    case Test => test(); println("####################\nPress ENTER to terminate\n####################")
+    case Test =>
+      test()
+      // shutdown actor system
+      context.system.terminate()
   }
 
   def test(): Unit = {
