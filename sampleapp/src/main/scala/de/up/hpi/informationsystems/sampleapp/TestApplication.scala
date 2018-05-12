@@ -3,9 +3,7 @@ package de.up.hpi.informationsystems.sampleapp
 import akka.actor.{Actor, ActorSystem, PoisonPill, Props}
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition._
-import sun.awt.AWTAccessor.AccessibleContextAccessor
 
-import scala.io.StdIn
 import scala.util.Success
 
 object TestApplication extends App {
