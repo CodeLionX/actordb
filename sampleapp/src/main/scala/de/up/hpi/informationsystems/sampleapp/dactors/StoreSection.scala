@@ -1,4 +1,4 @@
-package de.up.hpi.informationsystems.sampleapp
+package de.up.hpi.informationsystems.sampleapp.dactors
 
 import java.time.LocalDateTime
 
@@ -17,6 +17,7 @@ object StoreSection {
     case class Request(inventoryIds: Seq[Int])
 
     case class Success(result: Seq[Record])
+    // result
 
     case class Failure(e: Throwable)
 
