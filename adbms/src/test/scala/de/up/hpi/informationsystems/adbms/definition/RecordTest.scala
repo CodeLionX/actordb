@@ -65,9 +65,6 @@ class RecordTest extends WordSpec with Matchers {
 
       "not allow projection, when projecting by any column definition" in {
         emptyRecord.project(Set(ColumnDef[Any](""))).isFailure shouldBe true
-        emptyRecord.project(new RowRelation {
-          override def columns: Set[UntypedColumnDef] = Set(ColumnDef[Any](""))
-        }.columns).isFailure shouldBe true
       }
     }
 
@@ -76,9 +73,6 @@ class RecordTest extends WordSpec with Matchers {
       val col2 = ColumnDef[Int]("col2")
       val col3 = ColumnDef[Double]("col3")
       val record = Record(Set(col1, col2, col3)).build()
-      val R = new RowRelation {
-        override def columns: Set[UntypedColumnDef] = Set(col1, col2)
-      }
 
       "have a column set" in {
         record.columns.size shouldBe 3
@@ -104,7 +98,6 @@ class RecordTest extends WordSpec with Matchers {
         record.project(Set(col1)) should equal(Success(Record(Set(col1)).build()))
         record.project(Set(col2)) should equal(Success(Record(Set(col2)).build()))
         record.project(Set(col1, col3)) should equal(Success(Record(Set(col1, col3)).build()))
-        record.project(R.columns) should equal(Success(Record(Set(col1, col2)).build()))
       }
     }
 
@@ -120,9 +113,6 @@ class RecordTest extends WordSpec with Matchers {
         .withCellContent(col2)(val2)
         .withCellContent(col3)(val3)
         .build()
-      val R = new RowRelation {
-        override def columns: Set[UntypedColumnDef] = Set(col1, col2)
-      }
 
       "return the column's cell value" in {
         record.get(ColumnDef[Any]("")) shouldBe None
@@ -138,13 +128,6 @@ class RecordTest extends WordSpec with Matchers {
             r.get(col2) shouldBe None
             r.get(col3) shouldBe None
           case Failure(_) => fail("Projection by column sequence failed, but it should succeed")
-        }
-        record.project(R.columns) match {
-          case Success(r) =>
-            r.get(col1) shouldBe Some(val1)
-            r.get(col2) shouldBe Some(val2)
-            r.get(col3) shouldBe None
-          case Failure(_) => fail("Projection by Relation failed, but it should succeed")
         }
       }
     }
