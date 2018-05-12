@@ -11,7 +11,7 @@ trait Relation {
     * @note override this value to define your relational schema
     * @return a sequence of column definitions
     */
-  val columns: Seq[UntypedColumnDef]
+  val columns: Set[UntypedColumnDef]
 
   /**
     * Inserts a [[de.up.hpi.informationsystems.adbms.definition.Record]] into the relation
@@ -42,7 +42,7 @@ trait Relation {
     * @param columnDefs columns to project to
     * @return All records containing only the specified columns
     */
-  def project(columnDefs: Seq[UntypedColumnDef]): Try[Seq[Record]]
+  def project(columnDefs: Set[UntypedColumnDef]): Try[Seq[Record]]
 
 
   // this trait comes with this for nothing :)
@@ -58,13 +58,4 @@ trait Relation {
     * @param records to be inserted
     */
   def insertAll(records: Seq[Record]): Unit = records.foreach(insert)
-
-  /**
-    * Iff all columns of the other relation are a subset of this relation's columns,
-    * returns all records with only the columns of the other relation,
-    * otherwise returns an error message.
-    * @param r Relation to project this relation to
-    * @return All records containing only the specified columns
-    */
-  def project(r: Relation): Try[Seq[Record]] = project(r.columns)
 }

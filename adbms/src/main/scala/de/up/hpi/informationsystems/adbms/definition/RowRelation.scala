@@ -31,8 +31,8 @@ abstract class RowRelation extends Relation {
     }
 
   /** @inheritdoc */
-  override def project(columnDefs: Seq[UntypedColumnDef]): Try[Seq[Record]] = Try(
-    if(columnDefs.toSet subsetOf columns.toSet)
+  override def project(columnDefs: Set[UntypedColumnDef]): Try[Seq[Record]] = Try(
+    if(columnDefs subsetOf columns)
       data.map(_.project(columnDefs).get)
     else
       throw IncompatibleColumnDefinitionException(s"this relation does not contain all specified columns {$columnDefs}")

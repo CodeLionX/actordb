@@ -4,9 +4,13 @@ package definition
 import java.util.Objects
 
 import scala.reflect.ClassTag
+import scala.language.implicitConversions
 
 object ColumnDef {
   def apply[T](name: String)(implicit ct: ClassTag[T]): ColumnDef[T] = new ColumnDef[T](name)(ct)
+
+  implicit def columnDefSet2UntypedSet[T](set: Set[ColumnDef[T]]): Set[UntypedColumnDef] =
+    set.asInstanceOf[Set[UntypedColumnDef]]
 }
 
 /**
