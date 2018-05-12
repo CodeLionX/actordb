@@ -81,7 +81,7 @@ object TestApplication extends App {
 
   println()
   println("Projection of user relation:")
-  println(User.project(Set[UntypedColumnDef](User.colFirstname, User.colLastname)).getOrElse(Set.empty))
+  println(User.project(Set(User.colFirstname, User.colLastname)).getOrElse(Set.empty))
 
 
   /**
@@ -98,8 +98,8 @@ object TestApplication extends App {
     )
     .build()
   println(record)
-  assert(record.project(Set(User.colAge): Set[UntypedColumnDef]) == Success(Record(Set(User.colAge))(User.colAge ~> 45).build()))
-  assert(record.project(Set(User.colAge, Customer.colDiscount): Set[UntypedColumnDef]).isFailure)
+  assert(record.project(Set(User.colAge)) == Success(Record(Set(User.colAge))(User.colAge ~> 45).build()))
+  assert(record.project(Set(User.colAge, Customer.colDiscount)).isFailure)
 
   println(Customer.columns.mkString(", "))
   println()
@@ -147,5 +147,5 @@ object TestApplication extends App {
 
   println()
   println("Projection of customer relation:")
-  println(Customer.project(Set(Customer.colName, Customer.colDiscount): Set[UntypedColumnDef]).getOrElse(Set.empty))
+  println(Customer.project(Set(Customer.colName, Customer.colDiscount)).getOrElse(Set.empty))
 }

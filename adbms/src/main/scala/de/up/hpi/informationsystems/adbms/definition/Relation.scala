@@ -58,13 +58,4 @@ trait Relation {
     * @param records to be inserted
     */
   def insertAll(records: Seq[Record]): Unit = records.foreach(insert)
-
-  /**
-    * Iff all columns of the other relation are a subset of this relation's columns,
-    * returns all records with only the columns of the other relation,
-    * otherwise returns an error message.
-    * @param r Relation to project this relation to
-    * @return All records containing only the specified columns
-    */
-  def project(r: Relation): Try[Seq[Record]] = project(r.columns)
 }
