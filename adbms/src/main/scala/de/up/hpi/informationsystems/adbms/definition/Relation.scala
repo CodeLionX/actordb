@@ -4,7 +4,7 @@ import de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilder
 
 import scala.util.Try
 
-abstract class Relation {
+trait Relation {
 
   /**
     * Returns the column definitions of this relation.
