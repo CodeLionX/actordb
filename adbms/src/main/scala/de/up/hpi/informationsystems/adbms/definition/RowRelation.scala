@@ -1,5 +1,4 @@
 package de.up.hpi.informationsystems.adbms.definition
-import de.up.hpi.informationsystems.adbms.definition
 
 import scala.util.Try
 
@@ -12,14 +11,13 @@ abstract class RowRelation extends Relation {
 
   @throws[IncompatibleColumnDefinitionException]
   private def internal_insert(record: Record): Record =
-  // check for correct column layout
-    record.columns.equals((this.columns)) match {
-      case true => {
-        data = data :+ record
-        record
-      }
-      case false => throw IncompatibleColumnDefinitionException(s"this records column layout does not match this " +
-        s"relations schema:\n${record.columns} (record)\n${this.columns} (relation)")
+    // check for correct column layout
+    if(record.columns == columns) {
+      data = data :+ record
+      record
+    } else {
+      throw IncompatibleColumnDefinitionException(s"this records column layout does not match this " +
+      s"relations schema:\n${record.columns} (record)\n${this.columns} (relation)")
     }
 
   /** @inheritdoc */

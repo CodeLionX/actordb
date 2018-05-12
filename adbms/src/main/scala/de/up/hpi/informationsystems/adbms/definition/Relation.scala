@@ -53,12 +53,13 @@ trait Relation {
     */
   def newRecord: RecordBuilder = Record(columns)
 
+  // FIXME: insertAll is not atomic and insertions before a possible failure will stay in the relation
   /**
     * Inserts all Records into the relation.
     * @note that this is not atomic
     * @param records to be inserted
     */
-  def insertAll(records: Seq[Record]): Try[Seq[Record]] = Success(records.map(insert).map(_.get))
+  def insertAll(records: Seq[Record]): Try[Seq[Record]] = Try(records.map(r => insert(r).get))
 
   /**
     * Iff all columns of the other relation are a subset of this relation's columns,
