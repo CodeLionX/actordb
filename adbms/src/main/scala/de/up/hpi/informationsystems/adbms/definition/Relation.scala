@@ -51,7 +51,7 @@ trait Relation {
     * columns for this relation.
     * @return initialized RecordBuilder
     */
-  def newRecord: RecordBuilder = Record(columns.toSet)
+  def newRecord: RecordBuilder = Record(columns)
 
   /**
     * Inserts all Records into the relation.

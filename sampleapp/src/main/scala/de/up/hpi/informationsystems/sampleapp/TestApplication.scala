@@ -81,7 +81,7 @@ object TestApplication extends App {
 
   println()
   println("Projection of user relation:")
-  println(User.project(Set(User.colFirstname, User.colLastname): Set[UntypedColumnDef]).getOrElse(Set.empty))
+  println(User.project(Set[UntypedColumnDef](User.colFirstname, User.colLastname)).getOrElse(Set.empty))
 
 
   /**
