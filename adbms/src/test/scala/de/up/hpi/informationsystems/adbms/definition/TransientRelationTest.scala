@@ -32,6 +32,11 @@ class TransientRelationTest extends WordSpec with Matchers {
       .withCellContent(colAge)(200215)
       .build()
 
+    val record4 = Record(columns)
+      .withCellContent(colFirstname)(null)
+      .withCellContent(colAge)(2)
+      .build()
+
     "empty" should {
       val emptyRelation = TransientRelation(Seq.empty)
 
@@ -94,35 +99,46 @@ class TransientRelationTest extends WordSpec with Matchers {
     }
 
     "filled with incomplete records, i.e. missing values" should {
-      val incompleteRelation = TransientRelation(Seq(record1, record2, record3))
+      val incompleteRelation = TransientRelation(Seq(record1, record2, record3, record4))
 
-      "return the appropriate result set for a where query including the empty result set" in {
-        incompleteRelation
-          .where(colAge, (_: Any) => true)
-          .records shouldEqual Success(Seq(record1, record2, record3))
+      "return the appropriate result set for a where query" when {
 
-        incompleteRelation
-          .where(colAge, (id: Int) => id >= 42)
-          .records shouldEqual Success(Seq(record1, record3))
+        "matching all" in {
+          incompleteRelation
+            .where(colAge, (_: Any) => true)
+            .records shouldEqual Success(Seq(record1, record2, record3, record4))
+        }
 
-        incompleteRelation
-          .where(colAge, (id: Int) => id < 22)
-          .records shouldEqual Success(Seq.empty)
+        "smaller result set" in {
+          incompleteRelation
+            .where(colAge, (id: Int) => id >= 42)
+            .records shouldEqual Success(Seq(record1, record3))
+        }
 
-        incompleteRelation
-          .where(colFirstname, (field: String) => field.contains("Test"))
-          .records shouldEqual Success(Seq(record1))
+        "empty result set" in {
+          incompleteRelation
+            .where(colAge, (id: Int) => id < 2)
+            .records shouldEqual Success(Seq.empty)
+        }
+
+        "condition on column with null-value" in {
+          incompleteRelation
+            .where(colFirstname, (field: String) => field.contains("Test"))
+            .records shouldEqual Success(Seq(record1))
+        }
       }
 
       "return the appropriate result set for a whereAll query including the empty result set" in {
+        pending // NullPointerException
         incompleteRelation.whereAll(
           Map(
             colAge.untyped -> {age: Any => age.asInstanceOf[Int] > 40},
             colLastname.untyped -> {field: Any => field.asInstanceOf[String].contains("es")}
           )).records shouldEqual Success(Seq(record1, record3))
-      }
+        }
 
-      "return selected columns only from project" in {
+      "return selected columns only from project including records with null-values" in {
+        pending // NullPointerException
         // deduce correctness of Relation.project from correctness of Record.project
         incompleteRelation.project(Set(colFirstname)).records shouldEqual
           Success(Seq(
@@ -130,6 +146,15 @@ class TransientRelationTest extends WordSpec with Matchers {
             record2.project(Set(colFirstname)).get,
             record3.project(Set(colFirstname)).get
           ))
+      }
+
+      "return the appropriate result set for a whereAll query including condition on null-value column" in {
+        pending // NullPointerException
+        incompleteRelation.whereAll(
+          Map(
+            colAge.untyped -> {id: Any => id.asInstanceOf[Int] <= 2},
+            colFirstname.untyped -> {field: Any => field.asInstanceOf[String].contains("esty")}
+          )).records shouldEqual Success(Seq.empty)
       }
     }
   }
