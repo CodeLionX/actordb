@@ -13,7 +13,7 @@ class RowRelationTest extends WordSpec with Matchers {
       val colLastname: ColumnDef[String] = ColumnDef("Lastname")
       val colAge: ColumnDef[Int] = ColumnDef("Age")
 
-      override val columns: Seq[UntypedColumnDef] = Seq(colFirstname, colLastname, colAge)
+      override val columns: Set[UntypedColumnDef] = Set(colFirstname, colLastname, colAge)
     }
 
     val record1 = Record(Customer.columns)
@@ -22,7 +22,7 @@ class RowRelationTest extends WordSpec with Matchers {
       .withCellContent(Customer.colAge)(42)
       .build()
 
-    val record2 = Record(Seq(Customer.colFirstname, Customer.colLastname, Customer.colAge))
+    val record2 = Record(Set(Customer.colFirstname, Customer.colLastname, Customer.colAge))
       .withCellContent(Customer.colFirstname)("Max")
       .withCellContent(Customer.colLastname)("Mustermann")
       .withCellContent(Customer.colAge)(23)
@@ -34,7 +34,7 @@ class RowRelationTest extends WordSpec with Matchers {
       .withCellContent(Customer.colAge)(200215)
       .build()
 
-    val record4 = Record(Seq(ColumnDef[String]("ID"), ColumnDef[Int]("LEVEL"))) // wrong record type
+    val record4 = Record(Set(ColumnDef[String]("ID"), ColumnDef[Int]("LEVEL"))) // wrong record type
       .withCellContent(Customer.colLastname)("A8102C2")
       .withCellContent(Customer.colAge)(3)
       .build()
@@ -71,7 +71,7 @@ class RowRelationTest extends WordSpec with Matchers {
         val colId = ColumnDef[Int]("id")
         val colField = ColumnDef[String]("field")
 
-        override val columns = Seq(colId, colField)
+        override val columns = Set(colId, colField)
       }
 
       "return an empty result set for any where or whereAll query" in {
@@ -89,7 +89,7 @@ class RowRelationTest extends WordSpec with Matchers {
         val colId = ColumnDef[Int]("id")
         val colField = ColumnDef[String]("field")
 
-        override val columns = Seq(colId, colField)
+        override val columns = Set(colId, colField)
       }
 
       val rec1 = Record(TestRelation.columns)
@@ -127,17 +127,17 @@ class RowRelationTest extends WordSpec with Matchers {
 
       "return selected columns only from project" in {
         // deduce correctness of Relation.project from correctness of Record.project
-        TestRelation.project(Seq(TestRelation.colField)).get shouldEqual
+        TestRelation.project(Set(TestRelation.colField)).get shouldEqual
           Seq(
-            rec1.project(Seq(TestRelation.colField)).get,
-            rec2.project(Seq(TestRelation.colField)).get,
-            rec3.project(Seq(TestRelation.colField)).get
+            rec1.project(Set(TestRelation.colField)).get,
+            rec2.project(Set(TestRelation.colField)).get,
+            rec3.project(Set(TestRelation.colField)).get
           )
       }
 
       "fail to project to non-existent columns" in {
-        TestRelation.project(Seq(ColumnDef[Int]("bad-col"))) should be.leftSideValue
-        TestRelation.project(TestRelation.columns :+ ColumnDef[Int]("bad-col")) should be.leftSideValue
+        TestRelation.project(Set(ColumnDef[Int]("bad-col"))) should be.leftSideValue
+        TestRelation.project(TestRelation.columns + ColumnDef[Int]("bad-col")) should be.leftSideValue
       }
     }
 
@@ -146,7 +146,7 @@ class RowRelationTest extends WordSpec with Matchers {
         val colId = ColumnDef[Int]("id")
         val colField = ColumnDef[String]("field")
 
-        override val columns = Seq(colId, colField)
+        override val columns = Set(colId, colField)
       }
 
       val rec1 = Record(TestRelation.columns)
