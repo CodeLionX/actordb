@@ -16,6 +16,8 @@ object TestApplication extends App {
     // wait for pressing ENTER
 //    StdIn.readLine()
     tester.tell(PoisonPill, Actor.noSender)
+  } finally {
+
   }
 }
 
@@ -102,14 +104,17 @@ class TestDactor(name: String) extends Dactor(name) {
     println()
     println("where:")
     println(
-      User.where[String](User.colFirstname -> { _ == "Hans" }).pretty
+      User.where[String](User.colFirstname -> { _ == "Hans" }).records.getOrElse(Seq.empty).pretty
     )
     println("whereAll:")
     println(
-      User.whereAll(
-        Map(User.colFirstname.untyped -> { name: Any => name.asInstanceOf[String] == "Hans" })
-          ++ Map(User.colAge.untyped -> { age: Any => age.asInstanceOf[Int] == 33 })
-      ).pretty
+      User
+        .whereAll(
+          Map(User.colFirstname.untyped -> { name: Any => name.asInstanceOf[String] == "Hans" })
+            ++ Map(User.colAge.untyped -> { age: Any => age.asInstanceOf[Int] == 33 })
+        )
+        .records.getOrElse(Seq.empty)
+        .pretty
     )
 
     assert(ColumnDef[String]("Firstname") == User.colFirstname)
@@ -117,7 +122,7 @@ class TestDactor(name: String) extends Dactor(name) {
 
     println()
     println("Projection of user relation:")
-    println(User.project(Set(User.colFirstname, User.colLastname)).getOrElse(Seq.empty).pretty)
+    println(User.project(Set(User.colFirstname, User.colLastname)).records.getOrElse(Seq.empty).pretty)
 
 
     /**
@@ -162,7 +167,7 @@ class TestDactor(name: String) extends Dactor(name) {
     println(Customer)
     println("where:")
     println(
-      Customer.where[String](Customer.colName -> { _.contains("BMW") }).pretty
+      Customer.where[String](Customer.colName -> { _.contains("BMW") }).records.getOrElse(Seq.empty).pretty
     )
 
     val isBMW: Any => Boolean = value =>
@@ -173,15 +178,17 @@ class TestDactor(name: String) extends Dactor(name) {
 
     println("whereAll:")
     println(
-      Customer.whereAll(
-        Map(Customer.colName.untyped -> isBMW)
-          ++ Map(Customer.colDiscount.untyped -> discountGreaterThan(0.01))
-      )
+      Customer
+        .whereAll(
+          Map(Customer.colName.untyped -> isBMW)
+            ++ Map(Customer.colDiscount.untyped -> discountGreaterThan(0.01))
+        )
+        .records.getOrElse(Seq.empty)
         .pretty
     )
 
     println()
     println("Projection of customer relation:")
-    println(Customer.project(Set(Customer.colName, Customer.colDiscount)).getOrElse(Seq.empty).pretty)
+    println(Customer.project(Set(Customer.colName, Customer.colDiscount)).records.getOrElse(Seq.empty).pretty)
   }
 }

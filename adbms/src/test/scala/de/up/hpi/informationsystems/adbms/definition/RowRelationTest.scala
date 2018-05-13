@@ -71,7 +71,7 @@ class RowRelationTest extends WordSpec with Matchers {
         val colId = ColumnDef[Int]("id")
         val colField = ColumnDef[String]("field")
 
-        override val columns = Set(colId, colField)
+        override val columns: Set[UntypedColumnDef] = Set(colId, colField)
       }
 
       "return an empty result set for any where or whereAll query" in {
@@ -89,7 +89,7 @@ class RowRelationTest extends WordSpec with Matchers {
         val colId = ColumnDef[Int]("id")
         val colField = ColumnDef[String]("field")
 
-        override val columns = Set(colId, colField)
+        override val columns: Set[UntypedColumnDef] = Set(colId, colField)
       }
 
       val rec1 = Record(TestRelation.columns)
@@ -127,7 +127,7 @@ class RowRelationTest extends WordSpec with Matchers {
 
       "return selected columns only from project" in {
         // deduce correctness of Relation.project from correctness of Record.project
-        TestRelation.project(Set(TestRelation.colField)).get shouldEqual
+        TestRelation.project(Set(TestRelation.colField)).records.get shouldEqual
           Seq(
             rec1.project(Set(TestRelation.colField)).get,
             rec2.project(Set(TestRelation.colField)).get,
@@ -136,8 +136,8 @@ class RowRelationTest extends WordSpec with Matchers {
       }
 
       "fail to project to non-existent columns" in {
-        TestRelation.project(Set(ColumnDef[Int]("bad-col"))).isFailure should equal (true)
-        TestRelation.project(TestRelation.columns + ColumnDef[Int]("bad-col")).isFailure should equal (true)
+        TestRelation.project(Set(ColumnDef[Int]("bad-col"))).records.isFailure should equal (true)
+        TestRelation.project(TestRelation.columns + ColumnDef[Int]("bad-col")).records.isFailure should equal (true)
       }
     }
 
@@ -146,7 +146,7 @@ class RowRelationTest extends WordSpec with Matchers {
         val colId = ColumnDef[Int]("id")
         val colField = ColumnDef[String]("field")
 
-        override val columns = Set(colId, colField)
+        override val columns: Set[UntypedColumnDef] = Set(colId, colField)
       }
 
       val rec1 = Record(TestRelation.columns)
