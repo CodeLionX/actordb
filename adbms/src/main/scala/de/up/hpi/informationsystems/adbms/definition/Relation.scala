@@ -17,7 +17,7 @@ trait Relation {
     * Inserts a [[de.up.hpi.informationsystems.adbms.definition.Record]] into the relation
     * @param record to be inserted
     */
-  def insert(record: Record): Unit
+  def insert(record: Record): Try[Record]
 
   /**
     * Returns all records satisfying the provided condition.
@@ -53,9 +53,12 @@ trait Relation {
     */
   def newRecord: RecordBuilder = Record(columns)
 
+
   /**
     * Inserts all Records into the relation.
+    * @note that this is not atomic
     * @param records to be inserted
     */
-  def insertAll(records: Seq[Record]): Unit = records.foreach(insert)
+  // FIXME: insertAll is not atomic and insertions before a possible failure will stay in the relation
+  def insertAll(records: Seq[Record]): Try[Seq[Record]] = Try(records.map(r => insert(r).get))
 }

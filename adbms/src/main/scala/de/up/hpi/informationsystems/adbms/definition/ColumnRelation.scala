@@ -25,11 +25,12 @@ abstract class ColumnRelation extends Relation {
   }
 
   /** @inheritdoc */
-  override def insert(record: Record): Unit = {
+  override def insert(record: Record): Try[Record] = {
     columns.foreach(column => {
       val columnStore = data(column)
       columnStore.append(record(column).asInstanceOf[columnStore.valueType])
     })
+    Try(record)
   }
 
   /** @inheritdoc */
