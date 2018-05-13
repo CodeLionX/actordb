@@ -14,12 +14,6 @@ trait Relation {
   val columns: Set[UntypedColumnDef]
 
   /**
-    * Inserts a [[de.up.hpi.informationsystems.adbms.definition.Record]] into the relation
-    * @param record to be inserted
-    */
-  def insert(record: Record): Try[Record]
-
-  /**
     * Returns all records satisfying the provided condition.
     * @param f tuple of a column definition and a boolean function
     * @tparam T value type of the column
@@ -61,4 +55,14 @@ trait Relation {
     */
   // FIXME: insertAll is not atomic and insertions before a possible failure will stay in the relation
   def insertAll(records: Seq[Record]): Try[Seq[Record]] = Try(records.map(r => insert(r).get))
+}
+
+trait MutableRelation extends Relation {
+
+  /**
+    * Inserts a [[de.up.hpi.informationsystems.adbms.definition.Record]] into the relation
+    * @param record to be inserted
+    */
+  def insert(record: Record): Try[Record]
+
 }

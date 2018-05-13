@@ -1,8 +1,10 @@
 package de.up.hpi.informationsystems.adbms.definition
 
+import de.up.hpi.informationsystems.adbms.Util
+
 import scala.util.Try
 
-abstract class RowRelation extends Relation {
+abstract class RowRelation extends MutableRelation {
 
   private var data: Seq[Record] = Seq.empty
 
@@ -51,10 +53,5 @@ abstract class RowRelation extends Relation {
   )
 
   /** @inheritdoc */
-  override def toString: String = {
-    val header = columns.map { c => s"${c.name}[${c.tpe}]" }.mkString(" | ")
-    val line = "-" * header.length
-    val content = data.map(_.values.mkString(" | ")).mkString("\n")
-    header + "\n" + line + "\n" + content + "\n" + line + "\n"
-  }
+  override def toString: String = s"${this.getClass.getSimpleName}:\n" + Util.prettyTable(columns, data)
 }
