@@ -1,4 +1,5 @@
 package de.up.hpi.informationsystems.adbms.definition
+
 import scala.util.Try
 
 abstract class RowRelation extends Relation {
@@ -6,7 +7,18 @@ abstract class RowRelation extends Relation {
   private var data: Seq[Record] = Seq.empty
 
   /** @inheritdoc */
-  override def insert(record: Record): Unit = data = data :+ record
+  override def insert(record: Record): Try[Record] = Try(internal_insert(record))
+
+  @throws[IncompatibleColumnDefinitionException]
+  private def internal_insert(record: Record): Record =
+    // check for correct column layout
+    if(record.columns == columns) {
+      data = data :+ record
+      record
+    } else {
+      throw IncompatibleColumnDefinitionException(s"this records column layout does not match this " +
+      s"relations schema:\n${record.columns} (record)\n${this.columns} (relation)")
+    }
 
   /** @inheritdoc */
   override def where[T](f: (ColumnDef[T], T => Boolean)): Seq[Record] =
@@ -31,8 +43,8 @@ abstract class RowRelation extends Relation {
     }
 
   /** @inheritdoc */
-  override def project(columnDefs: Seq[UntypedColumnDef]): Try[Seq[Record]] = Try(
-    if(columnDefs.toSet subsetOf columns.toSet)
+  override def project(columnDefs: Set[UntypedColumnDef]): Try[Seq[Record]] = Try(
+    if(columnDefs subsetOf columns)
       data.map(_.project(columnDefs).get)
     else
       throw IncompatibleColumnDefinitionException(s"this relation does not contain all specified columns {$columnDefs}")
