@@ -2,7 +2,7 @@ package de.up.hpi.informationsystems.adbms.definition
 
 import de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilder
 
-import scala.util.{Success, Try}
+import scala.util.Try
 
 trait Relation {
 

@@ -2,7 +2,7 @@ package de.up.hpi.informationsystems.adbms.definition
 
 import org.scalatest.{Matchers, WordSpec}
 
-import scala.util.{Success, Failure}
+import scala.util.Success
 
 class RowRelationTest extends WordSpec with Matchers {
 
@@ -44,22 +44,22 @@ class RowRelationTest extends WordSpec with Matchers {
       val inserted2 = Customer.insert(record2)
       val inserted3 = Customer.insert(record3)
 
-      inserted1 should equal(Success(record1))
-      inserted2 should equal(Success(record2))
-      inserted3 should equal(Success(record3))
+      inserted1 should equal (Success(record1))
+      inserted2 should equal (Success(record2))
+      inserted3 should equal (Success(record3))
     }
 
     "allow for batch insert of records with and without missing values correctly" in {
       val inserted = Customer.insertAll(Seq(record1, record2, record3))
-      inserted shouldEqual Success(Seq(record1, record2, record3))
+      inserted should equal (Success(Seq(record1, record2, record3)))
     }
 
     "fail to insert records that do not adhere to the relations schema" in {
-      Customer.insert(record4) should be.leftSideValue
+      Customer.insert(record4).isFailure should equal (true)
     }
 
     "fail to batch insert records with at least one that does not adhere to the relations schema" in {
-      Customer.insertAll(Seq(record1, record2, record3, record4)) should be.leftSideValue
+      Customer.insertAll(Seq(record1, record2, record3, record4)).isFailure should equal (true)
     }
   }
 
@@ -136,8 +136,8 @@ class RowRelationTest extends WordSpec with Matchers {
       }
 
       "fail to project to non-existent columns" in {
-        TestRelation.project(Set(ColumnDef[Int]("bad-col"))) should be.leftSideValue
-        TestRelation.project(TestRelation.columns + ColumnDef[Int]("bad-col")) should be.leftSideValue
+        TestRelation.project(Set(ColumnDef[Int]("bad-col"))).isFailure should equal (true)
+        TestRelation.project(TestRelation.columns + ColumnDef[Int]("bad-col")).isFailure should equal (true)
       }
     }
 
