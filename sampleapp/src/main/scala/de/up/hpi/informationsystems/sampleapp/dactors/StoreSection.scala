@@ -79,7 +79,7 @@ class StoreSection(name: String) extends Dactor(name) {
     val resultSchema = Set(Inventory.price, Inventory.minPrice)
     Try(
       Inventory
-        .where(Inventory.inventoryId -> { id => inventoryIds.contains(id) })
+        .where[Int](Inventory.inventoryId -> { id => inventoryIds.contains(id) })
         .map(_.project(resultSchema).get)
     )
   }

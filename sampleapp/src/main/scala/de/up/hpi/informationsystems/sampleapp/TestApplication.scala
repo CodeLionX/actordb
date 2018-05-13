@@ -16,7 +16,7 @@ object TestApplication extends App {
     // wait for pressing ENTER
 //    StdIn.readLine()
     tester.tell(PoisonPill, Actor.noSender)
-  }
+  } finally {}
 }
 
 
