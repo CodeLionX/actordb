@@ -59,12 +59,12 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
     if(isFailue)
       this
     else
-      TransientRelation(
+      TransientRelation(Try(
         if(columnDefs subsetOf columns)
           internal_data.map(_.project(columnDefs).get)
         else
           throw IncompatibleColumnDefinitionException(s"this relation does not contain all specified columns {$columnDefs}")
-      )
+      ))
 
   /** @inheritdoc */
   override def records: Try[Seq[Record]] = data
