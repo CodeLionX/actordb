@@ -60,9 +60,16 @@ class Record private (cells: Map[UntypedColumnDef, Any])
 
   override def iterator: Iterator[(UntypedColumnDef, Any)] = data.iterator
 
-  override def +[V1 >: Any](kv: (UntypedColumnDef, V1)): Map[UntypedColumnDef, V1] = data.+(kv)
+  override def +[V1 >: Any](kv: (UntypedColumnDef, V1)): Record = new Record(data.+(kv))
 
   override def -(key: UntypedColumnDef): Record = new Record(data - key)
+
+  /** A new record containing the updated column/value mapping.
+    *  @param    column the key
+    *  @param    value the value
+    *  @return   A new record with the new column/value mapping
+    */
+  override def updated [V1 >: Any](column: UntypedColumnDef, value: V1): Record = this + ((column, value))
 
   // from Iterable
   override def seq: Map[UntypedColumnDef, Any] = data.seq
