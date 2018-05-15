@@ -22,7 +22,7 @@ class RecordTest extends WordSpec with Matchers {
         .withCellContent(col3)(val3)
         .build()
 
-      import Record.implicits._
+      import ColumnCellMapping._
       val r2 = builder(
         col1 ~> val1 &
         col2 ~> val2 and
@@ -40,7 +40,7 @@ class RecordTest extends WordSpec with Matchers {
     }
 
     "fail to compile if types of column and value do not match with apply and RecordBuilderPart" in {
-      import Record.implicits._
+      import ColumnCellMapping._
       assertTypeError("val r = Record(Seq(col1, col2, col3))(col1 ~> val2).build()")
       assertTypeError("val r = Record(Seq(col1, col2, col3))(col2 ~> val3).build()")
       assertTypeError("val r = Record(Seq(col1, col2, col3))(col3 ~> val1).build()")
