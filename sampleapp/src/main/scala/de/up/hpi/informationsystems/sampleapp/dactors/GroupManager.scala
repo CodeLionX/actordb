@@ -7,6 +7,7 @@ import de.up.hpi.informationsystems.adbms.definition._
 import scala.util.{Failure, Success, Try}
 
 object GroupManager {
+
   def props(name: String): Props = Props(new GroupManager(name))
 
   object GetFixedDiscounts {
@@ -15,6 +16,7 @@ object GroupManager {
     case class Success(results: Seq[Record])
     // results: i_id, fixed_disc
     case class Failure(e: Throwable)
+
   }
 }
 
@@ -42,4 +44,5 @@ class GroupManager(name: String) extends Dactor(name) {
     Discounts
       .where(Discounts.id -> { id: Int => ids.contains(id) })
       .records
+
 }

@@ -15,23 +15,20 @@ object StoreSection {
   object GetPrice {
 
     case class Request(inventoryIds: Seq[Int])
-
+    // result: i_price, i_min_price
     case class Success(result: Seq[Record])
-    // result
-
     case class Failure(e: Throwable)
 
   }
 
   object GetVariableDiscountUpdateInventory {
 
-    case class Request(customerId: Int, cardId: Int, cartTime: LocalDateTime, orderItems: Seq[Record])
     // order items: i_id, i_quantity, i_min_price, i_price, i_fixed_disc
-
-    case class Success(totals: Seq[Record])
+    case class Request(customerId: Int, cardId: Int, cartTime: LocalDateTime, orderItems: Seq[Record])
     // totals: amount, fixed_disc, var_disc
-
+    case class Success(totals: Seq[Record])
     case class Failure(e: Throwable)
+
   }
 
 }
@@ -62,14 +59,12 @@ class StoreSection(name: String) extends Dactor(name) {
     Map("inventory" -> Inventory) ++
     Map("purchase_history" -> PurchaseHistory)
 
-
   override def receive: Receive = {
     case GetPrice.Request(inventoryIds) =>
       getPrice(inventoryIds) match {
         case Success(result) => sender() ! GetPrice.Success(result)
         case Failure(e) => sender() ! GetPrice.Failure(e)
       }
-
 
     case GetVariableDiscountUpdateInventory.Request =>
       sender() ! GetVariableDiscountUpdateInventory.Failure(new NotImplementedError)
