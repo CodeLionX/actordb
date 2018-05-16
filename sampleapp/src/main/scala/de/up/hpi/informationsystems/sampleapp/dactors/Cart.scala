@@ -57,5 +57,5 @@ class Cart(name: String) extends Dactor(name) {
     case AddItems.Request(_, _) => sender() ! AddItems.Failure(new NotImplementedError)
     case Checkout.Request(_) => sender() ! Checkout.Failure(new NotImplementedError)
   }
-  
+
 }

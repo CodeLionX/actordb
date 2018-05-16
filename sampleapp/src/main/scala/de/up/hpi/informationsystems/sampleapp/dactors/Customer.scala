@@ -99,7 +99,7 @@ class Customer(name: String) extends Dactor(name) {
     ).build())
 
   def authenticate(passwordHash: String): Boolean = {
-    val res = Password.where(Password.encryptedPassword -> { _.equals(passwordHash) }).records
+    val res = Password.where[String](Password.encryptedPassword -> { _.equals(passwordHash) }).records
     res.isFailure || res.get.length == 1
   }
 }
