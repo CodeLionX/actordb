@@ -7,13 +7,14 @@ trait MutableRelation extends Relation {
   /**
     * Inserts a [[de.up.hpi.informationsystems.adbms.definition.Record]] into the relation
     * @param record to be inserted
+    * @return the record or an exception wrapped in a Try
     */
   def insert(record: Record): Try[Record]
 
   /**
-    *
-    * @param record
-    * @return
+    * Deletes the specified record from the relation and returns it.
+    * @param record to be deleted
+    * @return the record or an exception wrapped in a Try
     */
   def delete(record: Record): Try[Record]
 
