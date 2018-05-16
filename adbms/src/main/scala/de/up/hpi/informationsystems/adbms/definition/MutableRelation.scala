@@ -11,6 +11,13 @@ trait MutableRelation extends Relation {
   def insert(record: Record): Try[Record]
 
   /**
+    *
+    * @param record
+    * @return
+    */
+  def delete(record: Record): Try[Record]
+
+  /**
     * Performs an update to new values for all records satisfying the conditions.
     * Hidden update call, wrapped by the fluent API.
     * @param updateData column-cell-mapping representing the updated values
