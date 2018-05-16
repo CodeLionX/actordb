@@ -19,7 +19,7 @@ abstract class RowRelation extends MutableRelation {
   override def delete(record: Record): Try[Record] = Try{
     exceptionWhenNotEqual(record.columns)
     if(!data.contains(record))
-      throw new RecordNotFoundException(s"this relation does not contain the record: $record")
+      throw RecordNotFoundException(s"this relation does not contain the record: $record")
     data = data.filterNot(_ == record)
     record
   }
