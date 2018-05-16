@@ -6,7 +6,6 @@ import akka.actor.Props
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.definition.Record.implicits._
-import de.up.hpi.informationsystems.sampleapp.dactors.Customer.{AddStoreVisit, Authenticate, GetCustomerInfo}
 
 import scala.util.{Failure, Success, Try}
 
@@ -35,11 +34,12 @@ object Customer {
     case class Request(passwordHash: String)
     case class Success()
     case class Failure()
-    
+
   }
 }
 
 class Customer(name: String) extends Dactor(name) {
+  import Customer._
 
   object CustomerInfo extends RowRelation {
     val custName: ColumnDef[String] = ColumnDef("cust_name")
@@ -58,7 +58,7 @@ class Customer(name: String) extends Dactor(name) {
     override val columns: Set[UntypedColumnDef] = Set(storeId, timestamp, amount, fixedDiscount, varDiscount)
   }
 
-  object Password extends RowRelation /* with encryption */ {
+  object Password extends RowRelation /* with Encryption */ {
     val encryptedPassword: ColumnDef[String] = ColumnDef("enc_passwd")
 
     override val columns: Set[UntypedColumnDef] = Set(encryptedPassword)
