@@ -16,6 +16,15 @@ abstract class RowRelation extends MutableRelation {
   }
 
   /** @inheritdoc*/
+  override def delete(record: Record): Try[Record] = Try{
+    exceptionWhenNotEqual(record.columns)
+    if(!data.contains(record))
+      throw RecordNotFoundException(s"this relation does not contain the record: $record")
+    data = data.filterNot(_ == record)
+    record
+  }
+
+  /** @inheritdoc*/
   override protected def internalUpdateByWhere(
         updateData: Map[UntypedColumnDef, Any], fs: Map[UntypedColumnDef, Any => Boolean]
       ): Try[Int] = Try {
