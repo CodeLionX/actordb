@@ -1,8 +1,10 @@
 package de.up.hpi.informationsystems.adbms.definition
 
+import de.up.hpi.informationsystems.adbms.Util
+
 import scala.util.Try
 
-abstract class RowRelation extends Relation {
+abstract class RowRelation extends MutableRelation {
 
   private var data: Seq[Record] = Seq.empty
 
@@ -21,40 +23,17 @@ abstract class RowRelation extends Relation {
     }
 
   /** @inheritdoc */
-  override def where[T](f: (ColumnDef[T], T => Boolean)): Seq[Record] =
-    data.filter{ record => record.get[T](f._1).exists(f._2) }
+  override def where[T](f: (ColumnDef[T], T => Boolean)): Relation = TransientRelation(data).where(f)
 
   /** @inheritdoc */
-  override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Seq[Record] =
-    // filter all records
-    data.filter{ record =>
-      fs.keys
-        // map over all supplied filters (key = column)
-        .map { col: UntypedColumnDef =>
-        /* `val rVal = record(col)` returns the value in the record for the column `col`
-         * `val filterF = fs(col)` returns the filter for column `col`
-         * `val res = filterF(rVal)` applies the filter to the value of the record and corresponding column,
-         * returning `true` or `false`
-         */
-        fs(col)(record(col))
-      }
-        // test if all filters for this record are true
-        .forall(_ == true)
-    }
+  override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation = TransientRelation(data).whereAll(fs)
 
   /** @inheritdoc */
-  override def project(columnDefs: Set[UntypedColumnDef]): Try[Seq[Record]] = Try(
-    if(columnDefs subsetOf columns)
-      data.map(_.project(columnDefs).get)
-    else
-      throw IncompatibleColumnDefinitionException(s"this relation does not contain all specified columns {$columnDefs}")
-  )
+  override def project(columnDefs: Set[UntypedColumnDef]): Relation = TransientRelation(data).project(columnDefs)
 
   /** @inheritdoc */
-  override def toString: String = {
-    val header = columns.map { c => s"${c.name}[${c.tpe}]" }.mkString(" | ")
-    val line = "-" * header.length
-    val content = data.map(_.values.mkString(" | ")).mkString("\n")
-    header + "\n" + line + "\n" + content + "\n" + line + "\n"
-  }
+  override def records: Try[Seq[Record]] = Try(data)
+
+  /** @inheritdoc */
+  override def toString: String = s"${this.getClass.getSimpleName}:\n" + Util.prettyTable(columns, data)
 }

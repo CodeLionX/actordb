@@ -14,36 +14,36 @@ trait Relation {
   val columns: Set[UntypedColumnDef]
 
   /**
-    * Inserts a [[de.up.hpi.informationsystems.adbms.definition.Record]] into the relation
-    * @param record to be inserted
-    */
-  def insert(record: Record): Try[Record]
-
-  /**
-    * Returns all records satisfying the provided condition.
+    * Returns a new Relation only containing the records satisfying the provided condition.
     * @param f tuple of a column definition and a boolean function
     * @tparam T value type of the column
-    * @return all records for which the function is true
+    * @return a new Relation only containing the data satisfying the condition
     */
-  def where[T](f: (ColumnDef[T], T => Boolean)): Seq[Record]
+  def where[T](f: (ColumnDef[T], T => Boolean)): Relation
 
   /**
-    * Returns all records satisfying all provided conditions.
+    * Returns a new Relation only containing the records satisfying all provided conditions.
     * @note This function has no type guarantees!
     * @param fs map of column definitions and functions on the respective column
-    * @return all records for which all functions are true
+    * @return a new Relation only containing the records for which all functions are true
     */
-  def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Seq[Record]
+  def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation
 
   /**
     * Iff `columnDefs` is a subset of this relation's column definition set,
     * performs a projection of this relation to the specified columns,
     * or returns an error message.
     * @param columnDefs columns to project to
-    * @return All records containing only the specified columns
+    * @return A new Relation containing all records pruned to the specified columns
     */
-  def project(columnDefs: Set[UntypedColumnDef]): Try[Seq[Record]]
+  def project(columnDefs: Set[UntypedColumnDef]): Relation
 
+  /**
+    * Converts this Relation to a sequence of Records.
+    * @note Depending on the underlying Relation, this operation can be very costly!
+    * @return a sequence of Records if all
+    */
+  def records: Try[Seq[Record]]
 
   // this trait comes with this for nothing :)
   /**
@@ -53,6 +53,15 @@ trait Relation {
     */
   def newRecord: RecordBuilder = Record(columns)
 
+}
+
+trait MutableRelation extends Relation {
+
+  /**
+    * Inserts a [[de.up.hpi.informationsystems.adbms.definition.Record]] into the relation
+    * @param record to be inserted
+    */
+  def insert(record: Record): Try[Record]
 
   /**
     * Inserts all Records into the relation.
@@ -61,4 +70,5 @@ trait Relation {
     */
   // FIXME: insertAll is not atomic and insertions before a possible failure will stay in the relation
   def insertAll(records: Seq[Record]): Try[Seq[Record]] = Try(records.map(r => insert(r).get))
+
 }
