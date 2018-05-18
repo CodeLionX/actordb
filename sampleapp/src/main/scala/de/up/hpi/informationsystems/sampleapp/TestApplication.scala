@@ -14,7 +14,7 @@ object TestApplication extends App {
     tester.tell(TestDactor.Test, Actor.noSender)
 
     // wait for pressing ENTER
-//    StdIn.readLine()
+    // StdIn.readLine()
     tester.tell(PoisonPill, Actor.noSender)
   } finally {
 
