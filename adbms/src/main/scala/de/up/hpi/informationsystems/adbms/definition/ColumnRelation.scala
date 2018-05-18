@@ -25,7 +25,7 @@ abstract class ColumnRelation extends Relation {
   }
 
   /** @inheritdoc */
-  override def insert(record: Record): Try[Record] = {
+  def insert(record: Record): Try[Record] = {
     columns.foreach(column => {
       val columnStore = data(column)
       columnStore.append(record(column).asInstanceOf[columnStore.valueType])
@@ -34,15 +34,15 @@ abstract class ColumnRelation extends Relation {
   }
 
   /** @inheritdoc */
-  override def where[T](f: (ColumnDef[T], T => Boolean)): Seq[Record] = {
+  override def where[T](f: (ColumnDef[T], T => Boolean)): Relation = {
     val columnStore = data(f._1.untyped) // needed to get the right type 2 lines below
-    columnStore
+    TransientRelation(columnStore
       .indicesWhere(f._2.asInstanceOf[columnStore.valueType => Boolean])
-      .map(getRecord(columns)(_))
+      .map(getRecord(columns)(_)))
   }
 
   /** @inheritdoc */
-  override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Seq[Record] =
+  override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation = TransientRelation(
     fs.keys
       .map(column =>
         data(column)
@@ -51,9 +51,10 @@ abstract class ColumnRelation extends Relation {
           .toSet
       ).reduce( (a1, a2) => a1.intersect(a2) )
       .toSeq
+  )
 
   /** @inheritdoc */
-  override def project(columnDefs: Set[UntypedColumnDef]): Try[Seq[Record]] = Try(
+  override def project(columnDefs: Set[UntypedColumnDef]): Relation = TransientRelation(
     if(columnDefs subsetOf columns)
       (0 until data.size).map(getRecord(columnDefs)(_))
     else
