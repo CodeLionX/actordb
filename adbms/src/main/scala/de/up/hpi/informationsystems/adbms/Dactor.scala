@@ -1,6 +1,6 @@
 package de.up.hpi.informationsystems.adbms
 
-import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, ActorSelection, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, ActorSelection, ActorSystem, Props}
 import de.up.hpi.informationsystems.adbms.definition.Relation
 
 object Dactor {
@@ -15,6 +15,16 @@ object Dactor {
     */
   def dactorOf(factory: ActorRefFactory, clazz: Class[_ <: Dactor], id: Int): ActorRef =
     factory.actorOf(Props(clazz, id), nameOf(clazz, id))
+
+  /**
+    * Looks up the path to a Dactor and returns the `ActorSelection`.
+    * @note lookup is global to the system, i.e. /user/$dactorName
+    * @param clazz class of the Dactor
+    * @param id id of the Dactor
+    * @return ActorSelection of the lookup
+    */
+  def dactorSelection(system: ActorSystem, clazz: Class[_ <: Dactor], id: Int): ActorSelection =
+    system.actorSelection(s"/user/${nameOf(clazz, id)}")
 
   /**
     * Constructs the name for a Dactor of type `clazz` and with id `id`.
