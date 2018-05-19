@@ -61,7 +61,7 @@ abstract class Dactor(id: Int) extends Actor with ActorLogging {
     * @return ActorSelection of the lookup
     */
   protected def dactorSelection(clazz: Class[_ <: Dactor], id: Int): ActorSelection =
-    context.system.actorSelection(context.system / Dactor.nameOf(clazz, id))
+    Dactor.dactorSelection(context.system, clazz, id)
 
   override def preStart(): Unit = log.info(s"${this.getClass.getSimpleName}($id) started")
 
