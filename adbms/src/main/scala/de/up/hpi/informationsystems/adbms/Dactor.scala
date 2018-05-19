@@ -5,14 +5,29 @@ import de.up.hpi.informationsystems.adbms.definition.Relation
 
 object Dactor {
 
-  def refFor(factory: ActorRefFactory, clazz: Class[_], id: Int): ActorRef =
-    factory.actorOf(Props(clazz, s"$id"), nameFor(clazz, s"$id"))
+  /**
+    * Creates a new Dactor of type `clazz` with id `id` in context of the supplied `ActorRefFactory`
+    * and returns its ActorRef.
+    * @param factory `ActorRefFactory` to be used to create the new Dactor
+    * @param clazz class of the Dactor to be created
+    * @param id id of the new Dactor
+    * @return ActorRef of the newly created Dactor
+    */
+  def dactorOf(factory: ActorRefFactory, clazz: Class[_ <: Dactor], id: Int): ActorRef =
+    factory.actorOf(Props(clazz, id), nameOf(clazz, id))
 
-  def nameFor(clazz: Class[_], name: String): String = s"${clazz.getSimpleName}-$name"
+  /**
+    * Constructs the name for a Dactor of type `clazz` and with id `id`.
+    * It can be used to create a path.
+    * @param clazz class of the Dactor to be created
+    * @param id id of the new Dactor
+    * @return name of the Dactor with the supplied properties
+    */
+  def nameOf(clazz: Class[_ <: Dactor], id: Int): String = s"${clazz.getSimpleName}-$id"
 
 }
 
-abstract class Dactor(name: String) extends Actor with ActorLogging {
+abstract class Dactor(id: Int) extends Actor with ActorLogging {
 
   /**
     * Returns all relations of this actor mapped with their name.
@@ -20,13 +35,25 @@ abstract class Dactor(name: String) extends Actor with ActorLogging {
     */
   protected val relations: Map[String, Relation]
 
-  override def preStart(): Unit = log.info(s"${this.getClass.getSimpleName}($name) started")
+  /**
+    * Creates a new Dactor of type `clazz` with id `id` in the same context as this Dactor and returns its ActorRef.
+    * @param clazz class of the Dactor to be created
+    * @param id id of the new Dactor
+    * @return ActorRef of the newly created Dactor
+    */
+  protected def dactorOf(clazz: Class[_ <: Dactor], id: Int): ActorRef =
+    Dactor.dactorOf(context.system, clazz, id)
 
-  override def postStop(): Unit = log.info(s"${this.getClass.getSimpleName}($name) stopped")
+  /**
+    * Looks up the path to a Dactor and returns the `ActorSelection`.
+    * @param clazz class of the Dactor
+    * @param id id of the Dactor
+    * @return ActorSelection of the lookup
+    */
+  protected def dactorSelection(clazz: Class[_ <: Dactor], id: Int): ActorSelection =
+    context.system.actorSelection(context.system / Dactor.nameOf(clazz, id))
 
-  protected def dactorOf(clazz: Class[_], id: Int): ActorRef =
-    Dactor.refFor(context.system, clazz, id)
+  override def preStart(): Unit = log.info(s"${this.getClass.getSimpleName}($id) started")
 
-  protected def dactorSelection(clazz: Class[_], id: Int): ActorSelection =
-    context.system.actorSelection(context.system / Dactor.nameFor(clazz, s"$id"))
+  override def postStop(): Unit = log.info(s"${this.getClass.getSimpleName}($id) stopped")
 }

@@ -5,13 +5,13 @@ import java.time.LocalDateTime
 import akka.actor.Props
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition._
-import de.up.hpi.informationsystems.adbms.definition.Record.implicits._
+import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
 
 import scala.util.{Failure, Success, Try}
 
 object Customer {
 
-  def props(name: String): Props = Props(new Customer(name))
+  def props(id: Int): Props = Props(new Customer(id))
 
   object GetCustomerInfo {
 
@@ -38,7 +38,7 @@ object Customer {
   }
 }
 
-class Customer(name: String) extends Dactor(name) {
+class Customer(id: Int) extends Dactor(id) {
   import Customer._
 
   object CustomerInfo extends RowRelation {

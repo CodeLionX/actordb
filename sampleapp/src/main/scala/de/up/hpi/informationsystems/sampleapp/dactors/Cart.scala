@@ -6,7 +6,7 @@ import de.up.hpi.informationsystems.adbms.definition._
 
 object Cart {
 
-  def props(name: String): Props = Props(new Cart(name))
+  def props(id: Int): Props = Props(new Cart(id))
 
   object AddItems {
 
@@ -26,7 +26,7 @@ object Cart {
   }
 }
 
-class Cart(name: String) extends Dactor(name) {
+class Cart(id: Int) extends Dactor(id) {
   import Cart._
 
   object CartInfo extends RowRelation {

@@ -13,8 +13,8 @@ object TestApplication extends App {
   val system = ActorSystem("system")
 
   try {
-    val tester = system.actorOf(TestDactor.props("tester1"), "tester")
-    val groupManager10 = Dactor.refFor(system, classOf[GroupManager], 10)
+    val tester = system.actorOf(TestDactor.props(1), "TestDactor-1")
+    val groupManager10 = Dactor.dactorOf(system, classOf[GroupManager], 10)
 
     tester.tell(TestDactor.Test, Actor.noSender)
 
@@ -31,13 +31,13 @@ object TestApplication extends App {
 
 
 object TestDactor {
-  def props(name: String): Props = Props(new TestDactor(name))
+  def props(id: Int): Props = Props(new TestDactor(id))
 
   case class Test()
   case class Terminate()
 }
 
-class TestDactor(name: String) extends Dactor(name) {
+class TestDactor(id: Int) extends Dactor(id) {
   import TestDactor._
 
   /**

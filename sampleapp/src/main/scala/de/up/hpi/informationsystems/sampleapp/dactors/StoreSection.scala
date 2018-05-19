@@ -10,7 +10,7 @@ import scala.util.{Failure, Success, Try}
 
 object StoreSection {
 
-  def props(name: String): Props = Props(new StoreSection(name))
+  def props(id: Int): Props = Props(new StoreSection(id))
 
   object GetPrice {
 
@@ -33,7 +33,7 @@ object StoreSection {
 
 }
 
-class StoreSection(name: String) extends Dactor(name) {
+class StoreSection(id: Int) extends Dactor(id) {
   import StoreSection._
 
   object Inventory extends RowRelation {

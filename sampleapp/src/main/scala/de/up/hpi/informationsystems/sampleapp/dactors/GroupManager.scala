@@ -8,7 +8,7 @@ import scala.util.{Failure, Success, Try}
 
 object GroupManager {
 
-  def props(name: String): Props = Props(new GroupManager(name))
+  def props(id: Int): Props = Props(new GroupManager(id))
 
   object GetFixedDiscounts {
 
@@ -20,7 +20,7 @@ object GroupManager {
   }
 }
 
-class GroupManager(name: String) extends Dactor(name) {
+class GroupManager(id: Int) extends Dactor(id) {
   import GroupManager._
 
   object Discounts extends RowRelation {
