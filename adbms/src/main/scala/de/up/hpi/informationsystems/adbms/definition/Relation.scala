@@ -54,21 +54,3 @@ trait Relation {
   def newRecord: RecordBuilder = Record(columns)
 
 }
-
-trait MutableRelation extends Relation {
-
-  /**
-    * Inserts a [[de.up.hpi.informationsystems.adbms.definition.Record]] into the relation
-    * @param record to be inserted
-    */
-  def insert(record: Record): Try[Record]
-
-  /**
-    * Inserts all Records into the relation.
-    * @note that this is not atomic
-    * @param records to be inserted
-    */
-  // FIXME: insertAll is not atomic and insertions before a possible failure will stay in the relation
-  def insertAll(records: Seq[Record]): Try[Seq[Record]] = Try(records.map(r => insert(r).get))
-
-}

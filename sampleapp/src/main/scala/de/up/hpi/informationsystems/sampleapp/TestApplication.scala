@@ -139,7 +139,7 @@ class TestDactor(name: String) extends Dactor(name) {
 
     println()
     println()
-    import Record.implicits._
+    import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
     val record = User.newRecord(
       User.colFirstname ~> "Firstname" &
       User.colLastname ~> "Lastname" &

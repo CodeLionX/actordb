@@ -60,9 +60,16 @@ class Record private (cells: Map[UntypedColumnDef, Any])
 
   override def iterator: Iterator[(UntypedColumnDef, Any)] = data.iterator
 
-  override def +[V1 >: Any](kv: (UntypedColumnDef, V1)): Map[UntypedColumnDef, V1] = data.+(kv)
+  override def +[V1 >: Any](kv: (UntypedColumnDef, V1)): Record = new Record(data.+(kv))
 
   override def -(key: UntypedColumnDef): Record = new Record(data - key)
+
+  /** A new record containing the updated column/value mapping.
+    *  @param    column the key
+    *  @param    value the value
+    *  @return   A new record with the new column/value mapping
+    */
+  override def updated [V1 >: Any](column: UntypedColumnDef, value: V1): Record = this + ((column, value))
 
   // from Iterable
   override def seq: Map[UntypedColumnDef, Any] = data.seq
@@ -133,8 +140,8 @@ object Record {
       * @param in mapping from column to cell content
       * @return the updated [[RecordBuilder]]
       */
-    def apply(in: RecordBuilderPart): RecordBuilder =
-      new RecordBuilder(columnDefs, recordData ++ in.columnCellMapping)
+    def apply(in: ColumnCellMapping): RecordBuilder =
+      new RecordBuilder(columnDefs, recordData ++ in.toMap)
 
     /**
       * Sets the selected cell's value.
@@ -160,30 +167,5 @@ object Record {
           .reduce( _ ++ _)
         new Record(data)
       }
-  }
-
-  final class RecordBuilderPart protected[Record](protected[Record] val columnCellMapping: Map[UntypedColumnDef, Any]){
-    def +(other: RecordBuilderPart): RecordBuilderPart = and(other)
-    def &(other: RecordBuilderPart): RecordBuilderPart = and(other)
-    def and(other: RecordBuilderPart): RecordBuilderPart =
-      new RecordBuilderPart(this.columnCellMapping ++ other.columnCellMapping)
-  }
-
-  /**
-    * Provides implicits for dealing with [[de.up.hpi.informationsystems.adbms.definition.Record]]s.
-    */
-  object implicits {
-    implicit class ColumnCellMapper[T](in: ColumnDef[T]) {
-
-      /**
-        * Syntax-sugar for creating a mapping of column definition and cell value for the use in
-        * [[de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilder]]. Returns a
-        * [[de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilderPart]].
-        * @param value cell value
-        * @return a new [[de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilderPart]] containing
-        *         the column definition and cell value mapping
-        */
-      def ~>(value: T): RecordBuilderPart = new RecordBuilderPart(Map(in.untyped -> value))
-    }
   }
 }

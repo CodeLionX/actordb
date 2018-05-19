@@ -17,3 +17,10 @@ sealed class AdbmsException(message: String) extends Exception(message) {
   * @param message gives details
   */
 case class IncompatibleColumnDefinitionException(message: String) extends AdbmsException(message)
+
+/**
+  * Indicates that the supplied record could not be found.
+  *
+  * @param message gives details
+  */
+case class RecordNotFoundException(message: String) extends AdbmsException(message)
