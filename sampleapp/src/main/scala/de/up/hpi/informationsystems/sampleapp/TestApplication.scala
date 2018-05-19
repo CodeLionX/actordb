@@ -1,21 +1,29 @@
 package de.up.hpi.informationsystems.sampleapp
 
-import akka.actor.{Actor, ActorSystem, PoisonPill, Props}
+import akka.actor.{Actor, ActorSystem, Props}
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition._
+import de.up.hpi.informationsystems.sampleapp.dactors.GroupManager
 
+import scala.concurrent.duration._
 import scala.util.Success
+import scala.language.postfixOps
 
 object TestApplication extends App {
   val system = ActorSystem("system")
 
   try {
-    val tester = system.actorOf(TestDactor.props("tester1"), "tester")
+    val tester = system.actorOf(TestDactor.props(1), "TestDactor-1")
+    val groupManager10 = Dactor.dactorOf(system, classOf[GroupManager], 10)
+
     tester.tell(TestDactor.Test, Actor.noSender)
 
-    // wait for pressing ENTER
-    // StdIn.readLine()
-    tester.tell(PoisonPill, Actor.noSender)
+    // shutdown system
+    import de.up.hpi.informationsystems.sampleapp.TestDactor.Terminate
+    import system.dispatcher
+    system.scheduler.scheduleOnce(5 seconds){
+      tester ! Terminate()
+    }
   } finally {
 
   }
@@ -23,12 +31,13 @@ object TestApplication extends App {
 
 
 object TestDactor {
-  def props(name: String): Props = Props(new TestDactor(name))
+  def props(id: Int): Props = Props(new TestDactor(id))
 
   case class Test()
+  case class Terminate()
 }
 
-class TestDactor(name: String) extends Dactor(name) {
+class TestDactor(id: Int) extends Dactor(id) {
   import TestDactor._
 
   /**
@@ -66,10 +75,9 @@ class TestDactor(name: String) extends Dactor(name) {
   override protected val relations: Map[String, Relation] = Map("User" -> User) ++ Map("Customer" -> Customer)
 
   override def receive: Receive = {
-    case Test =>
-      test()
-      // shutdown actor system
-      context.system.terminate()
+    case Test => test()
+    case Terminate() => context.system.terminate()
+    case e => println(s"Received Message:\n$e")
   }
 
   def test(): Unit = {
@@ -190,5 +198,13 @@ class TestDactor(name: String) extends Dactor(name) {
     println()
     println("Projection of customer relation:")
     println(Customer.project(Set(Customer.colName, Customer.colDiscount)).records.getOrElse(Seq.empty).pretty)
+
+    /**
+      * Testing communicating with another actor
+      */
+
+    val groupManager10 = dactorSelection(classOf[GroupManager], 10)
+    println(groupManager10)
+    groupManager10 ! GroupManager.GetFixedDiscounts.Request(Seq(1,2,3))
   }
 }
