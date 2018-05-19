@@ -4,14 +4,18 @@ import akka.actor.Props
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition._
 
+import scala.util.{Failure, Success, Try}
+
 object Cart {
 
   def props(id: Int): Props = Props(new Cart(id))
 
   object AddItems {
 
+    case class Order(inventoryId: Int, sectionId: Int, quantity: Int)
+
     // orders: item_id, i_quantity
-    case class Request(orders: Seq[Record], customerId: Int)
+    case class Request(orders: Seq[Order], customerId: Int)
     case class Success(sessionId: Int)
     case class Failure(e: Throwable)
 
@@ -54,8 +58,20 @@ class Cart(id: Int) extends Dactor(id) {
     Map("cart_info" -> CartInfo) ++ Map("cart_purchases" -> CartPurchases)
 
   override def receive: Receive = {
-    case AddItems.Request(_, _) => sender() ! AddItems.Failure(new NotImplementedError)
+    case AddItems.Request(orders, customerId) =>
+      addItems(orders, customerId) match {
+        case Success(sessionId) => sender() ! AddItems.Success(sessionId)
+        case Failure(e) => sender() ! AddItems.Failure(e)
+      }
+
     case Checkout.Request(_) => sender() ! Checkout.Failure(new NotImplementedError)
+  }
+
+  def addItems(orders: Seq[AddItems.Order], i: Int): Try[Int] = {
+    for ((sectionId, orders) <- orders.groupBy({ case AddItems.Order(_, sec_id, _) => sec_id})) {
+      val storeSection = dactorSelection(classOf[StoreSection], sectionId)
+      storeSection ! StoreSection.GetPrice.Request(orders.map({ case AddItems.Order(i_id, _, _) => i_id}))
+    }
   }
 
 }
