@@ -23,7 +23,7 @@ object Dactor {
     * @param id id of the Dactor
     * @return ActorSelection of the lookup
     */
-  def dactorSelection(system: ActorSystem, clazz: Class[_ <: Dactor], id: Int): ActorSelection =
+  def dactorSelection(system: ActorRefFactory, clazz: Class[_ <: Dactor], id: Int): ActorSelection =
     system.actorSelection(s"/user/${nameOf(clazz, id)}")
 
   /**
