@@ -74,7 +74,7 @@ class Cart(id: Int) extends Dactor(id) {
     case Checkout.Request(_) => sender() ! Checkout.Failure(new NotImplementedError)
   }
 
-  def addItems(orders: Seq[AddItems.Order], customerId: Int): Try[Int] = {
+  def addItems(orders: Seq[AddItems.Order], customerId: Int): Future[Try[Seq[Record]]] = {
     // ask for prices of orders
     // i_id, i_price, i_min_price
     val prices = Future.sequence(orders
@@ -106,9 +106,11 @@ class Cart(id: Int) extends Dactor(id) {
     // join with quantities, add sec_id, sess_id,
     val result = for {
       prices_with_discounts <- prices_with_discounts
-    } joinPriceDiscountWithQuantities(prices_with_discounts, (orders map {order => order.inventoryId -> order.quantity}).toMap)
+    } yield joinPriceDiscountWithQuantities(prices_with_discounts, (orders map {order => order.inventoryId -> order.quantity}).toMap)
 
-    Success(-1)
+    result.map(records => {
+      CartPurchases.insertAll(records)
+    })
   }
 
   private def joinPriceDiscountWithQuantities(prices_with_discounts: Seq[Cart.this.PriceDiscountPartialResult], quantityOfInventoryId: Map[Int, Int]) =
