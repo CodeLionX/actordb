@@ -21,6 +21,14 @@ object Customer {
 
   }
 
+  object GetCustomerGroupId {
+
+    case class Request()
+    case class Success(result: Int)
+    case class Failure(e: Throwable)
+
+  }
+
   object AddStoreVisit {
 
     case class Request(storeId: Int, time: LocalDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double)
@@ -74,6 +82,12 @@ class Customer(id: Int) extends Dactor(id) {
         case Failure(e) => sender() ! GetCustomerInfo.Failure(e)
       }
 
+    case GetCustomerGroupId.Request() =>
+      getCustomerGroupId() match {
+        case Success(groupId) => sender() ! GetCustomerGroupId.Success(groupId)
+        case Failure(e) => sender() ! GetCustomerGroupId.Failure(e)
+      }
+
     case AddStoreVisit.Request(storeId: Int, time: LocalDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double) =>
       addStoreVisit(storeId, time, amount, fixedDiscount, varDiscount) match {
         case Success(_) => sender() ! AddStoreVisit.Success()
@@ -88,6 +102,11 @@ class Customer(id: Int) extends Dactor(id) {
   }
 
   def getCustomerInfo(): Try[Seq[Record]] = CustomerInfo.records
+
+  def getCustomerGroupId(): Try[Int] = {
+    assert(CustomerInfo.records.get.size == 1)
+    Try(CustomerInfo.records.get.head.get(CustomerInfo.custGroupId).get)
+  }
 
   def addStoreVisit(storeId: Int, time: LocalDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double): Try[Record] =
     StoreVisits.insert(StoreVisits.newRecord(

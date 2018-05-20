@@ -13,8 +13,8 @@ object GroupManager {
   object GetFixedDiscounts {
 
     case class Request(ids: Seq[Int])
-    case class Success(results: Seq[Record])
     // results: i_id, fixed_disc
+    case class Success(results: Seq[Record])
     case class Failure(e: Throwable)
 
   }
