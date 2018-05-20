@@ -66,10 +66,10 @@ class Cart(id: Int) extends Dactor(id) {
 
   override def receive: Receive = {
     case AddItems.Request(orders, customerId) =>
-      addItems(orders, customerId) match {
-        case Success(sessionId) => sender() ! AddItems.Success(sessionId)
-        case Failure(e) => sender() ! AddItems.Failure(e)
-      }
+      addItems(orders, customerId).map(res => res match {
+        case Success(newRecords) => sender() ! AddItems.Success(newRecords.head.get(CartPurchases.sessionId).get)
+        case Failure (e) => sender() ! AddItems.Failure(e)
+      })
 
     case Checkout.Request(_) => sender() ! Checkout.Failure(new NotImplementedError)
   }
