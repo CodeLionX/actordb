@@ -12,7 +12,7 @@ import scala.concurrent.duration._
 object DactorTest {
   class TestDactor(id: Int) extends Dactor(id) {
 
-    override val relations: Map[String, Relation] = Map()
+    override val relations: Map[String, MutableRelation] = Map()
 
     override def receive: Receive = {
       case _ => {}
@@ -21,7 +21,7 @@ object DactorTest {
 
   class TestDactor2(id: Int) extends Dactor(id) {
 
-    override val relations: Map[String, Relation] = Map()
+    override val relations: Map[String, MutableRelation] = Map()
 
     override def receive: Receive = {
       case _ => {}
