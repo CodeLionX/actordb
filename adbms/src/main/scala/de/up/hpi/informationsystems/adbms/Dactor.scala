@@ -87,7 +87,7 @@ abstract class Dactor(id: Int) extends Actor with ActorLogging {
     * @param records records to be inserted
     * @return either number of successfully inserted records or a `Throwable` describing the failure
     */
-  private def handleGenericInsert(relationName: String, records: Seq[Record]): Try[Int] =
-    relations(relationName).insertAll(records).map( _.count(_ => true) )
-
+  private def handleGenericInsert(relationName: String, records: Seq[Record]): Try[Int] = Try {
+    relations(relationName).insertAll(records).map(_.count(_ => true))
+  }.flatten
 }
