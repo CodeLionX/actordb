@@ -50,7 +50,7 @@ class Cart(id: Int) extends Dactor(id) {
       Set(sectionId, sessionId, inventoryId, quantity, fixedDiscount, minPrice, price)
   }
 
-  override protected val relations: Map[String, Relation] =
+  override protected val relations: Map[String, MutableRelation] =
     Map("cart_info" -> CartInfo) ++ Map("cart_purchases" -> CartPurchases)
 
   override def receive: Receive = {

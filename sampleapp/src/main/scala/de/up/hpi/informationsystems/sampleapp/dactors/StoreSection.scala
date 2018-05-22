@@ -55,7 +55,7 @@ class StoreSection(id: Int) extends Dactor(id) {
     override val columns: Set[UntypedColumnDef] = Set(inventoryId, time, quantity, cartId)
   }
 
-  override protected val relations: Map[String, Relation] =
+  override protected val relations: Map[String, MutableRelation] =
     Map("inventory" -> Inventory) ++
     Map("purchase_history" -> PurchaseHistory)
 

@@ -6,8 +6,8 @@ import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.sampleapp.dactors.GroupManager
 
 import scala.concurrent.duration._
-import scala.util.Success
 import scala.language.postfixOps
+import scala.util.Success
 
 object TestApplication extends App {
   val system = ActorSystem("system")
@@ -72,7 +72,7 @@ class TestDactor(id: Int) extends Dactor(id) {
     override val columns: Set[UntypedColumnDef] = Set(colId, colName, colDiscount)
   }
 
-  override protected val relations: Map[String, Relation] = Map("User" -> User) ++ Map("Customer" -> Customer)
+  override protected val relations: Map[String, MutableRelation] = Map("User" -> User) ++ Map("Customer" -> Customer)
 
   override def receive: Receive = {
     case Test => test()
@@ -207,4 +207,5 @@ class TestDactor(id: Int) extends Dactor(id) {
     println(groupManager10)
     groupManager10 ! GroupManager.GetFixedDiscounts.Request(Seq(1,2,3))
   }
+
 }
