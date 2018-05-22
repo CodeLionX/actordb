@@ -47,7 +47,7 @@ abstract class Dactor(id: Int) extends Actor with ActorLogging {
     * Returns all relations of this actor mapped with their name.
     * @return map of relation name and relation store
     */
-  protected def relations: Map[String, MutableRelation]
+  protected val relations: Map[String, MutableRelation]
 
   /**
     * Creates a new Dactor of type `clazz` with id `id` in the same context as this Dactor and returns its ActorRef.
