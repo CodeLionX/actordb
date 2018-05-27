@@ -10,6 +10,7 @@ import de.up.hpi.informationsystems.adbms.definition._
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Success}
 
 object Cart {
 
@@ -56,7 +57,8 @@ object Cart {
   private object AddItemsHelper {
     def apply(system: ActorSystem, backTo: ActorRef): AddItemsHelper = new AddItemsHelper(system, backTo)
 
-    case class Response(results: Seq[Record])
+    case class Success(results: Seq[Record], replyTo: ActorRef)
+    case class Failure(e: Throwable, replyTo: ActorRef)
 
     private case class PriceDiscountPartialResult(sectionId: Int, inventoryId: Int, price: Double, minPrice: Double, fixedDiscount: Double)
     private case class PricePartialResult(sectionId: Int, inventoryId: Int, price: Double, minPrice: Double)
@@ -69,7 +71,7 @@ object Cart {
     import de.up.hpi.informationsystems.sampleapp.dactors.Cart.AddItems.Order
     import Dactor._
 
-    def addItems(orders: Seq[Order], customerId: Int) = {
+    def help(orders: Seq[Order], customerId: Int, replyTo: ActorRef) = {
       val prices = Future.sequence(orders
         .groupBy(order => order.sectionId)
         .map(askStoreSectionForPrices))
@@ -95,7 +97,7 @@ object Cart {
         pricesWithDiscounts <- pricesWithDiscounts
       } yield joinPriceDiscountWithQuantities(pricesWithDiscounts, (orders map {order => order.inventoryId -> order.quantity}).toMap)
 
-      results.map(records => AddItemsHelper.Response(records)).pipeTo(recipient)
+      results.map(records => AddItemsHelper.Success(records, replyTo)).pipeTo(recipient)
     }
 
     private def joinPriceDiscountWithQuantities(pricesWithDiscounts: Seq[PriceDiscountPartialResult], quantityOfInventoryId: Map[Int, Int]) =
@@ -174,13 +176,19 @@ class Cart(id: Int) extends Dactor(id) {
   override protected val relations: Map[String, Relation] =
     Map("cart_info" -> CartInfo) ++ Map("cart_purchases" -> CartPurchases)
 
+  def newCartPurchaseRecord: RecordBuilder = CartPurchases.newRecord
+
   override def receive: Receive = {
-    case AddItems.Request(orders, customerId) => AddItemsHelper(context.system, self).addItems(orders, customerId)
-    case AddItemsHelper.Response(result) => CartPurchases.insertAll(result)
+    case AddItems.Request(orders, customerId) => AddItemsHelper(context.system, self).help(orders, customerId, sender())
+
+    case AddItemsHelper.Success(records, replyTo) => CartPurchases.insertAll(records) match {
+      case Success(_) => replyTo ! AddItems.Success(currentSessionId)
+      case Failure(e) => replyTo ! AddItems.Failure(e)
+    }
+    case AddItemsHelper.Failure(e, replyTo) => replyTo ! AddItems.Failure(e)
+
     case Checkout.Request(_) => sender() ! Checkout.Failure(new NotImplementedError)
   }
-
-  def newCartPurchaseRecord: RecordBuilder = CartPurchases.newRecord
 
 }
 
