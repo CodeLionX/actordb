@@ -31,12 +31,7 @@ object StoreSection {
 
   }
 
-}
-
-class StoreSection(id: Int) extends Dactor(id) {
-  import StoreSection._
-
-  object Inventory extends RowRelation {
+  object InventoryDef extends RelationDef {
     val inventoryId: ColumnDef[Int] = ColumnDef("i_id")
     val price: ColumnDef[Double] = ColumnDef("i_price")
     val minPrice: ColumnDef[Double] = ColumnDef("i_min_price")
@@ -44,20 +39,29 @@ class StoreSection(id: Int) extends Dactor(id) {
     val varDisc: ColumnDef[Double] = ColumnDef("i_var_disc")
 
     override val columns: Set[UntypedColumnDef] = Set(inventoryId, price, minPrice, quantity, varDisc)
+    override val name: String = "inventory"
   }
 
-  object PurchaseHistory extends RowRelation {
+  object PurchaseHistoryDef extends RelationDef {
     val inventoryId: ColumnDef[Int] = ColumnDef("i_id")
     val time: ColumnDef[LocalDateTime] = ColumnDef("time")
     val quantity: ColumnDef[Long] = ColumnDef("i_quantity")
     val cartId: ColumnDef[Int] = ColumnDef("c_id")
 
     override val columns: Set[UntypedColumnDef] = Set(inventoryId, time, quantity, cartId)
+    override val name: String = "purchase_history"
   }
+}
+
+class StoreSection(id: Int) extends Dactor(id) {
+  import StoreSection._
+
+  val Inventory = RowRelation(InventoryDef)
+  val PurchaseHistory = RowRelation(PurchaseHistoryDef)
 
   override protected val relations: Map[String, MutableRelation] =
-    Map("inventory" -> Inventory) ++
-    Map("purchase_history" -> PurchaseHistory)
+    Map(InventoryDef.name -> Inventory) ++
+    Map(PurchaseHistoryDef.name -> PurchaseHistory)
 
   override def receive: Receive = {
     case GetPrice.Request(inventoryIds) =>
@@ -71,10 +75,10 @@ class StoreSection(id: Int) extends Dactor(id) {
   }
 
   def getPrice(inventoryIds: Seq[Int]): Try[Seq[Record]] = {
-    val resultSchema = Set(Inventory.price, Inventory.minPrice)
+    val resultSchema = Set(InventoryDef.price, InventoryDef.minPrice)
     Inventory
       .project(resultSchema)
-      .where[Int](Inventory.inventoryId -> { id => inventoryIds.contains(id) })
+      .where[Int](InventoryDef.inventoryId -> { id => inventoryIds.contains(id) })
       .records
   }
 
