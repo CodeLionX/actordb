@@ -2,7 +2,7 @@ package de.up.hpi.informationsystems.adbms.definition
 
 import java.util.NoSuchElementException
 
-import akka.actor.{Actor, ActorNotFound, ActorRef, ActorSystem, InvalidActorNameException}
+import akka.actor.{Actor, ActorNotFound, ActorRef, ActorSystem, InvalidActorNameException, Props}
 import akka.testkit.{TestKit, TestProbe}
 import akka.util.Timeout
 import de.up.hpi.informationsystems.adbms.Dactor
@@ -11,6 +11,8 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
 import scala.concurrent.duration._
+import scala.language.postfixOps
+import scala.util.Try
 
 object DactorTest {
   class TestDactor(id: Int) extends Dactor(id) {
@@ -23,6 +25,25 @@ object DactorTest {
   class TestDactor2(id: Int) extends Dactor(id) {
 
     override val relations: Map[String, MutableRelation] = Map()
+
+    override def receive: Receive = Actor.emptyBehavior
+  }
+
+  object DactorWithRelation {
+    def props(id: Int): Props = Props(new DactorWithRelation(id))
+    object TestRelation {
+      val col1: ColumnDef[Int] = ColumnDef("col1")
+      val col2: ColumnDef[String] = ColumnDef("col2")
+      val columns: Set[UntypedColumnDef] = Set(col1, col2)
+    }
+  }
+
+  class DactorWithRelation(id: Int) extends Dactor(id) {
+    val testRelation: MutableRelation = new RowRelation {
+      override val columns: Set[UntypedColumnDef] = DactorWithRelation.TestRelation.columns
+    }
+
+    override protected val relations: Map[String, MutableRelation] = Map("testrelation" -> testRelation)
 
     override def receive: Receive = Actor.emptyBehavior
   }
@@ -40,7 +61,7 @@ class DactorTest extends TestKit(ActorSystem("test-system"))
 
   "Dactor" when {
 
-    implicit val timeout: Timeout = 1.seconds
+    implicit val timeout: Timeout = 1 second
 
     "using Dactor companion object" should {
 
@@ -71,18 +92,68 @@ class DactorTest extends TestKit(ActorSystem("test-system"))
       }
     }
 
-     "no relations" should {
+    "no relations" should {
 
-       "reject insert messages with a Failure" in {
-         val probe = TestProbe()
-         val dut = Dactor.dactorOf(system, classOf[DactorTest.TestDactor], 99)
+      "reject insert messages with a Failure" in {
+        val probe = TestProbe()
+        val dut = Dactor.dactorOf(system, classOf[DactorTest.TestDactor], 99)
 
-         val msg = DefaultMessagingProtocol.InsertIntoRelation("someRelation", Seq(Record.empty))
-         dut.tell(msg, probe.ref)
-         val response = probe.expectMsgType[akka.actor.Status.Failure]
-         response.cause shouldBe a [NoSuchElementException]
-         response.cause.getMessage should startWith ("key not found")
-       }
+        val msg = DefaultMessagingProtocol.InsertIntoRelation("someRelation", Seq(Record.empty))
+        dut.tell(msg, probe.ref)
+        val response = probe.expectMsgType[akka.actor.Status.Failure]
+        response.cause shouldBe a[NoSuchElementException]
+        response.cause.getMessage should startWith("key not found")
+      }
+    }
+
+    "relations available" should {
+      import DactorTest.DactorWithRelation.TestRelation
+      import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
+
+      val probe = TestProbe()
+      val dut = Dactor.dactorOf(system, classOf[DactorTest.DactorWithRelation], 1)
+
+      "insert matching record successfully" in {
+        val insertMessage = DefaultMessagingProtocol.InsertIntoRelation("testrelation", Seq(
+          Record(TestRelation.columns)(
+            TestRelation.col1 ~> 1 &
+            TestRelation.col2 ~> "1"
+          ).build()
+        ))
+        dut.tell(insertMessage, probe.ref)
+        probe.expectMsg(akka.actor.Status.Success)
+      }
+
+      "insert multiple matching records successfully" in {
+        val insertMessage = DefaultMessagingProtocol.InsertIntoRelation("testrelation", Seq(
+          Record(TestRelation.columns)(
+            TestRelation.col1 ~> 1 &
+              TestRelation.col2 ~> "1"
+          ).build(),
+          Record(TestRelation.columns)(
+            TestRelation.col1 ~> 2 &
+              TestRelation.col2 ~> "2"
+          ).build(),
+          Record(TestRelation.columns)(
+            TestRelation.col1 ~> 3 &
+              TestRelation.col2 ~> "3"
+          ).build()
+        ))
+        dut.tell(insertMessage, probe.ref)
+        probe.expectMsg(akka.actor.Status.Success)
+      }
+
+      "fail inserting wrong records" in {
+        val insertMessage = DefaultMessagingProtocol.InsertIntoRelation("testrelation", Seq(
+          Record(Set(TestRelation.col1, ColumnDef[Float]("undefinedCol")))(
+            TestRelation.col1 ~> 1 &
+            ColumnDef[Float]("undefinedCol") ~> 1.2f
+          ).build()
+        ))
+        dut.tell(insertMessage, probe.ref)
+        val response = probe.expectMsgType[akka.actor.Status.Failure]
+        response.cause shouldBe a[IncompatibleColumnDefinitionException]
+      }
     }
   }
 
