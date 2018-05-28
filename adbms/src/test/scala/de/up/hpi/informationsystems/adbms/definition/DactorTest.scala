@@ -31,22 +31,19 @@ object DactorTest {
   object DactorWithRelation {
     def props(id: Int): Props = Props(new DactorWithRelation(id))
 
-    object TestRelationDef {
-      val name: String = "testrelation"
+    object TestRelationDef extends RelationDef {
       val col1: ColumnDef[Int] = ColumnDef("col1")
       val col2: ColumnDef[String] = ColumnDef("col2")
-      val columns: Set[UntypedColumnDef] = Set(col1, col2)
 
-      def rowRelation: MutableRelation = new RowRelation {
-        override val columns: Set[UntypedColumnDef] = TestRelationDef.columns
-      }
+      override val columns: Set[UntypedColumnDef] = Set(col1, col2)
+      override val name: String = "testrelation"
     }
 
   }
 
   class DactorWithRelation(id: Int) extends Dactor(id) {
     import DactorWithRelation._
-    val testRelation: MutableRelation = TestRelationDef.rowRelation
+    val testRelation: MutableRelation = RowRelation(TestRelationDef)
 
     override protected val relations: Map[String, MutableRelation] = Map(TestRelationDef.name -> testRelation)
 
