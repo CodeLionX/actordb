@@ -15,7 +15,7 @@ private[definition] object TransientRelation {
 private[definition] final class TransientRelation(data: Try[Seq[Record]]) extends Relation with Immutable {
 
   private val internal_data = data.getOrElse(Seq.empty)
-  private val isFailue = data.isFailure
+  private val isFailure = data.isFailure
 
   /** @inheritdoc */
   override val columns: Set[UntypedColumnDef] =
@@ -26,14 +26,14 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
 
   /** @inheritdoc */
   override def where[T](f: (ColumnDef[T], T => Boolean)): Relation =
-    if(isFailue)
+    if(isFailure)
       this
     else
       TransientRelation(internal_data.filter{ record => record.get[T](f._1).exists(f._2) })
 
   /** @inheritdoc */
   override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation =
-    if(isFailue)
+    if(isFailure)
       this
     else
       TransientRelation(
@@ -56,7 +56,7 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
 
   /** @inheritdoc */
   override def project(columnDefs: Set[UntypedColumnDef]): Relation =
-    if(isFailue)
+    if(isFailure)
       this
     else
       TransientRelation(Try(

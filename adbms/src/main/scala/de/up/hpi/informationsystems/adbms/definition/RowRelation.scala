@@ -5,6 +5,21 @@ import de.up.hpi.informationsystems.adbms.Util
 import scala.util.Try
 
 object RowRelation {
+
+  /**
+    * Creates an instance of a row relation, which actually stores data.
+    * Use a [[de.up.hpi.informationsystems.adbms.definition.RelationDef]] to define your relational schema.
+    * Use like the following:
+    *
+    * @example {{{
+    *           object MyRelationDef extends RelationDef {
+    *             ...
+    *           }
+    *           val store: MutableRelation = RowRelation(MyRelationDef)
+    * }}}
+    *
+    * @see [[de.up.hpi.informationsystems.adbms.definition.RelationDef]]
+    */
   def apply(relDef: RelationDef): MutableRelation = new RowRelation(relDef.columns)
 }
 
