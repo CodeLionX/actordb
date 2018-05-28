@@ -47,6 +47,30 @@ object TestDactor {
 
   case class Test()
   case class Terminate()
+
+  /**
+    * Definition of Columns and Relations for relation "User"
+    */
+  object UserDef extends RelationDef {
+    val colFirstname: ColumnDef[String] = ColumnDef("Firstname")
+    val colLastname: ColumnDef[String] = ColumnDef("Lastname")
+    val colAge: ColumnDef[Int] = ColumnDef("Age")
+
+    override val columns: Set[UntypedColumnDef] = Set(colFirstname, colLastname, colAge)
+    override val name: String = "User"
+  }
+
+  /**
+    * Definition of Columns and Relations for relation "Customer"
+    */
+  object CustomerDef extends RelationDef {
+    val colId: ColumnDef[Int] = ColumnDef("Id")
+    val colName: ColumnDef[String] = ColumnDef("Name")
+    val colDiscount: ColumnDef[Double] = ColumnDef("Discount")
+
+    override val columns: Set[UntypedColumnDef] = Set(colId, colName, colDiscount)
+    override val name: String = "Customer"
+  }
 }
 
 class TestDactor(id: Int) extends Dactor(id) {
@@ -62,29 +86,10 @@ class TestDactor(id: Int) extends Dactor(id) {
         .mkString("\n")
   }
 
-  /**
-    * Definition of Columns and Relations for relation "User"
-    */
-  object User extends RowRelation {
-    val colFirstname: ColumnDef[String] = ColumnDef("Firstname")
-    val colLastname: ColumnDef[String] = ColumnDef("Lastname")
-    val colAge: ColumnDef[Int] = ColumnDef("Age")
+  val User = RowRelation(UserDef)
+  val Customer = RowRelation(CustomerDef)
 
-    override val columns: Set[UntypedColumnDef] = Set(colFirstname, colLastname, colAge)
-  }
-
-  /**
-    * Definition of Columns and Relations for relation "Customer"
-    */
-  object Customer extends RowRelation {
-    val colId: ColumnDef[Int] = ColumnDef("Id")
-    val colName: ColumnDef[String] = ColumnDef("Name")
-    val colDiscount: ColumnDef[Double] = ColumnDef("Discount")
-
-    override val columns: Set[UntypedColumnDef] = Set(colId, colName, colDiscount)
-  }
-
-  override protected val relations: Map[String, MutableRelation] = Map("User" -> User) ++ Map("Customer" -> Customer)
+  override protected val relations: Map[String, MutableRelation] = Map(UserDef.name -> User) ++ Map(CustomerDef.name -> Customer)
 
   override def receive: Receive = {
     case Test => test()
@@ -98,23 +103,23 @@ class TestDactor(id: Int) extends Dactor(id) {
 
     println(User.columns.mkString(", "))
     User.insert(
-      Record(User.columns)
-        .withCellContent(User.colLastname)("Maier")
-        .withCellContent(User.colFirstname)("Hans")
-        .withCellContent(User.colAge)(33)
+      Record(UserDef.columns)
+        .withCellContent(UserDef.colLastname)("Maier")
+        .withCellContent(UserDef.colFirstname)("Hans")
+        .withCellContent(UserDef.colAge)(33)
         .build()
     )
     User.insert(
-      Record(User.columns)
-        .withCellContent(User.colFirstname)("Hans")
-        .withCellContent(User.colLastname)("Schneider")
-        .withCellContent(User.colAge)(12)
+      Record(UserDef.columns)
+        .withCellContent(UserDef.colFirstname)("Hans")
+        .withCellContent(UserDef.colLastname)("Schneider")
+        .withCellContent(UserDef.colAge)(12)
         .build()
     )
     User.insert(
-      Record(User.columns)
-        .withCellContent(User.colFirstname)("Justus")
-        .withCellContent(User.colLastname)("Jonas")
+      Record(UserDef.columns)
+        .withCellContent(UserDef.colFirstname)("Justus")
+        .withCellContent(UserDef.colLastname)("Jonas")
         .build()
     )
     println()
@@ -123,25 +128,25 @@ class TestDactor(id: Int) extends Dactor(id) {
     println()
     println("where:")
     println(
-      User.where[String](User.colFirstname -> { _ == "Hans" }).records.getOrElse(Seq.empty).pretty
+      User.where[String](UserDef.colFirstname -> { _ == "Hans" }).records.getOrElse(Seq.empty).pretty
     )
     println("whereAll:")
     println(
       User
         .whereAll(
-          Map(User.colFirstname.untyped -> { name: Any => name.asInstanceOf[String] == "Hans" })
-            ++ Map(User.colAge.untyped -> { age: Any => age.asInstanceOf[Int] == 33 })
+          Map(UserDef.colFirstname.untyped -> { name: Any => name.asInstanceOf[String] == "Hans" })
+            ++ Map(UserDef.colAge.untyped -> { age: Any => age.asInstanceOf[Int] == 33 })
         )
         .records.getOrElse(Seq.empty)
         .pretty
     )
 
-    assert(ColumnDef[String]("Firstname") == User.colFirstname)
-    assert(ColumnDef[Int]("Firstname").untyped != User.colFirstname.untyped)
+    assert(ColumnDef[String]("Firstname") == UserDef.colFirstname)
+    assert(ColumnDef[Int]("Firstname").untyped != UserDef.colFirstname.untyped)
 
     println()
     println("Projection of user relation:")
-    println(User.project(Set(User.colFirstname, User.colLastname)).records.getOrElse(Seq.empty).pretty)
+    println(User.project(Set(UserDef.colFirstname, UserDef.colLastname)).records.getOrElse(Seq.empty).pretty)
 
 
     /**
@@ -150,42 +155,43 @@ class TestDactor(id: Int) extends Dactor(id) {
 
     println()
     println()
-    val record = User.newRecord(
-      User.colFirstname ~> "Firstname" &
-      User.colLastname ~> "Lastname" &
-      User.colAge ~> 45
+    import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
+    val record = UserDef.newRecord(
+      UserDef.colFirstname ~> "Firstname" &
+      UserDef.colLastname ~> "Lastname" &
+      UserDef.colAge ~> 45
     ).build()
     println(record)
-    assert(record.project(Set(User.colAge)) == Success(Record(Set(User.colAge))(User.colAge ~> 45).build()))
-    assert(record.project(Set(User.colAge, Customer.colDiscount)).isFailure)
+    assert(record.project(Set(UserDef.colAge)) == Success(Record(Set(UserDef.colAge))(UserDef.colAge ~> 45).build()))
+    assert(record.project(Set(UserDef.colAge, CustomerDef.colDiscount)).isFailure)
 
     println(Customer.columns.mkString(", "))
     println()
     Customer.insert(
-      Record(Customer.columns)
-        .withCellContent(Customer.colId)(1)
-        .withCellContent(Customer.colName)("BMW")
+      Record(CustomerDef.columns)
+        .withCellContent(CustomerDef.colId)(1)
+        .withCellContent(CustomerDef.colName)("BMW")
         .build()
     )
     Customer.insert(
-      Record(Customer.columns)
-        .withCellContent(Customer.colId)(2)
-        .withCellContent(Customer.colName)("BMW Group")
-        .withCellContent(Customer.colDiscount)(0.023)
+      Record(CustomerDef.columns)
+        .withCellContent(CustomerDef.colId)(2)
+        .withCellContent(CustomerDef.colName)("BMW Group")
+        .withCellContent(CustomerDef.colDiscount)(0.023)
         .build()
     )
     Customer.insert(
-      Record(Customer.columns)
-        .withCellContent(Customer.colId)(3)
-        .withCellContent(Customer.colName)("Audi AG")
-        .withCellContent(Customer.colDiscount)(0.05)
+      Record(CustomerDef.columns)
+        .withCellContent(CustomerDef.colId)(3)
+        .withCellContent(CustomerDef.colName)("Audi AG")
+        .withCellContent(CustomerDef.colDiscount)(0.05)
         .build()
     )
 
     println(Customer)
     println("where:")
     println(
-      Customer.where[String](Customer.colName -> { _.contains("BMW") }).records.getOrElse(Seq.empty).pretty
+      Customer.where[String](CustomerDef.colName -> { _.contains("BMW") }).records.getOrElse(Seq.empty).pretty
     )
 
     val isBMW: Any => Boolean = value =>
@@ -198,8 +204,8 @@ class TestDactor(id: Int) extends Dactor(id) {
     println(
       Customer
         .whereAll(
-          Map(Customer.colName.untyped -> isBMW)
-            ++ Map(Customer.colDiscount.untyped -> discountGreaterThan(0.01))
+          Map(CustomerDef.colName.untyped -> isBMW)
+            ++ Map(CustomerDef.colDiscount.untyped -> discountGreaterThan(0.01))
         )
         .records.getOrElse(Seq.empty)
         .pretty
@@ -207,7 +213,7 @@ class TestDactor(id: Int) extends Dactor(id) {
 
     println()
     println("Projection of customer relation:")
-    println(Customer.project(Set(Customer.colName, Customer.colDiscount)).records.getOrElse(Seq.empty).pretty)
+    println(Customer.project(Set(CustomerDef.colName, CustomerDef.colDiscount)).records.getOrElse(Seq.empty).pretty)
 
     /**
       * Testing communicating with another actor
