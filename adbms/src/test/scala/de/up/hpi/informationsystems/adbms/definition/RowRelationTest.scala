@@ -8,35 +8,37 @@ class RowRelationTest extends WordSpec with Matchers {
 
   "A row relation" should {
 
-    object Customer extends RowRelation {
+    object CustomerDef extends RelationDef {
       val colFirstname: ColumnDef[String] = ColumnDef("Firstname")
       val colLastname: ColumnDef[String] = ColumnDef("Lastname")
       val colAge: ColumnDef[Int] = ColumnDef("Age")
 
       override val columns: Set[UntypedColumnDef] = Set(colFirstname, colLastname, colAge)
+      override val name: String = "Customer"
     }
+    val Customer = RowRelation(CustomerDef)
 
-    val record1 = Record(Customer.columns)
-      .withCellContent(Customer.colFirstname)("Test")
-      .withCellContent(Customer.colLastname)("Test")
-      .withCellContent(Customer.colAge)(42)
+    val record1 = Record(CustomerDef.columns)
+      .withCellContent(CustomerDef.colFirstname)("Test")
+      .withCellContent(CustomerDef.colLastname)("Test")
+      .withCellContent(CustomerDef.colAge)(42)
       .build()
 
-    val record2 = Record(Set(Customer.colFirstname, Customer.colLastname, Customer.colAge))
-      .withCellContent(Customer.colFirstname)("Max")
-      .withCellContent(Customer.colLastname)("Mustermann")
-      .withCellContent(Customer.colAge)(23)
+    val record2 = Record(Set(CustomerDef.colFirstname, CustomerDef.colLastname, CustomerDef.colAge))
+      .withCellContent(CustomerDef.colFirstname)("Max")
+      .withCellContent(CustomerDef.colLastname)("Mustermann")
+      .withCellContent(CustomerDef.colAge)(23)
       .build()
 
-    val record3 = Record(Customer.columns)
+    val record3 = Record(CustomerDef.columns)
       // missing firstName
-      .withCellContent(Customer.colLastname)("Doe")
-      .withCellContent(Customer.colAge)(200215)
+      .withCellContent(CustomerDef.colLastname)("Doe")
+      .withCellContent(CustomerDef.colAge)(200215)
       .build()
 
     val record4 = Record(Set(ColumnDef[String]("ID"), ColumnDef[Int]("LEVEL"))) // wrong record type
-      .withCellContent(Customer.colLastname)("A8102C2")
-      .withCellContent(Customer.colAge)(3)
+      .withCellContent(CustomerDef.colLastname)("A8102C2")
+      .withCellContent(CustomerDef.colAge)(3)
       .build()
 
     "insert records with and without missing values correctly" in {
@@ -63,15 +65,17 @@ class RowRelationTest extends WordSpec with Matchers {
     }
 
     "allow updating records with simple where" in {
-      object Test extends RowRelation {
+      object TestDef extends RelationDef {
         val col1: ColumnDef[Int] = ColumnDef("ID")
         val col2: ColumnDef[String] = ColumnDef("Firstname")
         val col3: ColumnDef[String] = ColumnDef("Lastname")
 
         override val columns: Set[UntypedColumnDef] = Set(col1, col2, col3)
+        override val name: String = "Test"
       }
+      val Test = RowRelation(TestDef)
 
-      import Test._
+      import TestDef._
       import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
       Test.insertAll(Seq(
         Test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
@@ -95,15 +99,17 @@ class RowRelationTest extends WordSpec with Matchers {
     }
 
     "allow updating records with multiple where conditions" in {
-      object Test extends RowRelation {
+      object TestDef extends RelationDef {
         val col1: ColumnDef[Int] = ColumnDef("ID")
         val col2: ColumnDef[String] = ColumnDef("Firstname")
         val col3: ColumnDef[String] = ColumnDef("Lastname")
 
         override val columns: Set[UntypedColumnDef] = Set(col1, col2, col3)
+        override val name: String = "Test"
       }
+      val Test = RowRelation(TestDef)
 
-      import Test._
+      import TestDef._
       import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
       Test.insertAll(Seq(
         Test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
@@ -130,15 +136,17 @@ class RowRelationTest extends WordSpec with Matchers {
     }
 
     "allow deletion of records" in {
-      object Test extends RowRelation {
+      object TestDef extends RelationDef {
         val col1: ColumnDef[Int] = ColumnDef("ID")
         val col2: ColumnDef[String] = ColumnDef("Firstname")
         val col3: ColumnDef[String] = ColumnDef("Lastname")
 
         override val columns: Set[UntypedColumnDef] = Set(col1, col2, col3)
+        override val name: String = "Test"
       }
+      val Test = RowRelation(TestDef)
 
-      import Test._
+      import TestDef._
       import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
       Test.insertAll(Seq(
         Test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
@@ -161,15 +169,17 @@ class RowRelationTest extends WordSpec with Matchers {
     }
 
     "throw error when trying to delete non-existing record" in {
-      object Test extends RowRelation {
+      object TestDef extends RelationDef {
         val col1: ColumnDef[Int] = ColumnDef("ID")
         val col2: ColumnDef[String] = ColumnDef("Firstname")
         val col3: ColumnDef[String] = ColumnDef("Lastname")
 
         override val columns: Set[UntypedColumnDef] = Set(col1, col2, col3)
+        override val name: String = "Test"
       }
+      val Test = RowRelation(TestDef)
 
-      import Test._
+      import TestDef._
       import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
       Test.insertAll(Seq(
         Test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
