@@ -2,6 +2,28 @@ package de.up.hpi.informationsystems.adbms.definition
 
 import de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilder
 
+/**
+  * Can be used for defining relations.
+  *
+  * @example {{{
+  *           object TestRelationDef extends RelationDef {
+  *             override val name: String = "testrelation"
+  *
+  *             val col1: ColumnDef[Int] = ColumnDef("col1")
+  *             val col2: ColumnDef[String] = ColumnDef("col2")
+  *
+  *             override val columns: Set[UntypedColumnDef] = Set(col1, col2)
+  *
+  *           }
+  *
+  *           // `RowRelation` can be replaced by any other relational store
+  *           val testRelStore: MutableRelation = RowRelation(TestRelationDef)
+  *           testRelStore.insert(
+  *             TestRelationDef.newRecord.build()
+  *           )
+  *           val records: Relation = testRelStore.where(TestRelationDef.col1 -> { _ == 1 })
+  *          }}}
+  */
 trait RelationDef {
 
   /**
@@ -22,5 +44,5 @@ trait RelationDef {
     * @return initialized RecordBuilder
     */
   def newRecord: RecordBuilder = Record(columns)
-  
+
 }
