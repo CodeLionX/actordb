@@ -127,6 +127,8 @@ object Record {
     */
   def apply(columnDefs: Set[UntypedColumnDef]): RecordBuilder = new RecordBuilder(columnDefs, Map.empty)
 
+  val empty: Record = Record.empty
+
   /**
     * Builder for a [[de.up.hpi.informationsystems.adbms.definition.Record]].
     * Initiates the record builder with the column definition list the record should comply with.

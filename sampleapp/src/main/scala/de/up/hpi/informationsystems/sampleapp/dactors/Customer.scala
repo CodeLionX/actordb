@@ -64,7 +64,7 @@ class Customer(id: Int) extends Dactor(id) {
     override val columns: Set[UntypedColumnDef] = Set(encryptedPassword)
   }
 
-  override protected val relations: Map[String, Relation] =
+  override protected val relations: Map[String, MutableRelation] =
     Map("customer_info" -> CustomerInfo) ++ Map("store_visits" -> StoreVisits) ++ Map("passwd" -> Password)
 
   override def receive: Receive = {

@@ -1,7 +1,11 @@
 package de.up.hpi.informationsystems.adbms
 
-import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, ActorSelection, ActorSystem, Props}
-import de.up.hpi.informationsystems.adbms.definition.Relation
+import akka.actor.Status.{Failure, Success}
+import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, ActorSelection, Props}
+import de.up.hpi.informationsystems.adbms.definition.{MutableRelation, Record}
+import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol
+
+import scala.util.Try
 
 object Dactor {
 
@@ -43,7 +47,7 @@ abstract class Dactor(id: Int) extends Actor with ActorLogging {
     * Returns all relations of this actor mapped with their name.
     * @return map of relation name and relation store
     */
-  protected val relations: Map[String, Relation]
+  protected val relations: Map[String, MutableRelation]
 
   /**
     * Creates a new Dactor of type `clazz` with id `id` in the same context as this Dactor and returns its ActorRef.
@@ -66,4 +70,24 @@ abstract class Dactor(id: Int) extends Actor with ActorLogging {
   override def preStart(): Unit = log.info(s"${this.getClass.getSimpleName}($id) started")
 
   override def postStop(): Unit = log.info(s"${this.getClass.getSimpleName}($id) stopped")
+
+  override def unhandled(message: Any): Unit = message match {
+    case DefaultMessagingProtocol.InsertIntoRelation(relationName, records) =>
+      handleGenericInsert(relationName, records) match {
+        case util.Success(_) => sender() ! Success
+        case util.Failure(e) => sender() ! Failure(e)
+      }
+    case _ => super.unhandled(message)
+  }
+
+
+  /**
+    * Inserts the specified records into the relation and returns the number of successfully inserted records.
+    * @param relationName name of the relation the records should be inserted to
+    * @param records records to be inserted
+    * @return either number of successfully inserted records or a `Throwable` describing the failure
+    */
+  private def handleGenericInsert(relationName: String, records: Seq[Record]): Try[Int] = Try {
+    relations(relationName).insertAll(records).map(_.count(_ => true))
+  }.flatten
 }
