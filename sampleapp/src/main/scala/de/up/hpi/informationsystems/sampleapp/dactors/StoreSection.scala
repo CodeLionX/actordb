@@ -7,17 +7,17 @@ import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition._
 
 import scala.util.{Failure, Success, Try}
-
+import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 object StoreSection {
 
   def props(id: Int): Props = Props(new StoreSection(id))
 
   object GetPrice {
 
-    case class Request(inventoryIds: Seq[Int])
+    case class Request(inventoryIds: Seq[Int]) extends RequestResponseProtocol.Request
     // result: i_price, i_min_price
-    case class Success(result: Seq[Record])
-    case class Failure(e: Throwable)
+    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    val Failure: RequestResponseProtocol.Failure.type = RequestResponseProtocol.Failure
 
   }
 
