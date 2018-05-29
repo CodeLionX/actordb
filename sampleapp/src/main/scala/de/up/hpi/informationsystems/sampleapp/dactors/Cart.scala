@@ -4,12 +4,11 @@ import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
 import de.up.hpi.informationsystems.adbms.Dactor
-import de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilder
 import de.up.hpi.informationsystems.adbms.definition._
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
 
 object Cart {
@@ -64,6 +63,15 @@ object Cart {
     case class Failure(e: Throwable, replyTo: ActorRef)
 
     private[AddItemsHelper] case class PriceDiscountPartialResult(sectionId: Int, inventoryId: Int, price: Double, minPrice: Double, fixedDiscount: Double)
+    private[AddItemsHelper] object PricePartialResult {
+      def forSection(id: Int): Record => PricePartialResult = r =>
+          PricePartialResult(
+            sectionId = id,
+            inventoryId = r.get(ColumnDef[Int]("i_id")).get,
+            price = r.get(ColumnDef[Double]("i_price")).get,
+            minPrice = r.get(ColumnDef[Double]("i_min_price")).get
+          )
+    }
     private[AddItemsHelper] case class PricePartialResult(sectionId: Int, inventoryId: Int, price: Double, minPrice: Double)
     private[AddItemsHelper] case class DiscountsPartialResult(inventoryId: Int, fixedDiscount: Double) {
       def toInventoryDiscountTuple: (Int, Double) = (inventoryId, fixedDiscount)
@@ -71,10 +79,10 @@ object Cart {
   }
 
   private class AddItemsHelper(system: ActorSystem, recipient: ActorRef, implicit val askTimeout: Timeout) {
-    import de.up.hpi.informationsystems.sampleapp.dactors.Cart.AddItemsHelper.{DiscountsPartialResult, PriceDiscountPartialResult, PricePartialResult}
+    import Dactor._
     import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
     import de.up.hpi.informationsystems.sampleapp.dactors.Cart.AddItems.Order
-    import Dactor._
+    import de.up.hpi.informationsystems.sampleapp.dactors.Cart.AddItemsHelper.{DiscountsPartialResult, PriceDiscountPartialResult, PricePartialResult}
 
     def help(orders: Seq[Order], customerId: Int, replyTo: ActorRef): Unit = {
       val prices = Future.sequence(orders
@@ -136,20 +144,23 @@ object Cart {
       val (sectionId, orders) = inp
       val inventoryIds = orders.map(_.inventoryId)
 
-      val answer = dactorSelection(system, classOf[StoreSection], sectionId) ? StoreSection.GetPrice.Request(inventoryIds)
+//      val answer = dactorSelection(system, classOf[StoreSection], sectionId) ? StoreSection.GetPrice.Request(inventoryIds)
+//
+//      answer
+//        .mapTo[StoreSection.GetPrice.Success]                        // map to success response to fail fast
+//        .map( getPriceSuccess =>
+//          getPriceSuccess.result.map( r => {  // build result set
+//            PricePartialResult(
+//              sectionId = sectionId,
+//              inventoryId = r.get(ColumnDef[Int]("i_id")).get,
+//              price = r.get(ColumnDef[Double]("i_price")).get,
+//              minPrice = r.get(ColumnDef[Double]("i_min_price")).get
+//            )
+//          })
+//        )
 
-      answer
-        .mapTo[StoreSection.GetPrice.Success]                        // map to success response to fail fast
-        .map( getPriceSuccess =>
-          getPriceSuccess.result.map( r => {  // build result set
-            PricePartialResult(
-              sectionId = sectionId,
-              inventoryId = r.get(ColumnDef[Int]("i_id")).get,
-              price = r.get(ColumnDef[Double]("i_price")).get,
-              minPrice = r.get(ColumnDef[Double]("i_min_price")).get
-            )
-          })
-        )
+      val answer: FutureRelation = Dactor.askDactor[StoreSection.GetPrice.Success](system, classOf[StoreSection], Map(sectionId -> StoreSection.GetPrice.Request(inventoryIds)))
+      scala.concurrent.Await.result(answer, 5 seconds).map(_.map( PricePartialResult.forSection(sectionId) ))
     }
 
     private def askCustomerForGroupId(custId: Int): Future[Int] = {

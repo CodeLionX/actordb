@@ -3,7 +3,7 @@ package de.up.hpi.informationsystems.adbms
 import akka.actor.Status.{Failure, Success}
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, ActorSelection, ActorSystem, Props}
 import akka.util.Timeout
-import de.up.hpi.informationsystems.adbms.definition.{MutableRelation, Record}
+import de.up.hpi.informationsystems.adbms.definition.{FutureRelation, MutableRelation, Record}
 import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessagingProtocol, RequestResponseProtocol}
 
 import scala.concurrent.Future
@@ -43,14 +43,14 @@ object Dactor {
   def nameOf(clazz: Class[_ <: Dactor], id: Int): String = s"${clazz.getSimpleName}-$id"
 
 
-  private def ask[ResultMsgType <: RequestResponseProtocol.Success](
+  def askDactor[ResultMsgType <: RequestResponseProtocol.Success](
                                                                      system: ActorSystem,
                                                                      dactorClass: Class[_ <: Dactor],
                                                                      messages: Map[Int, RequestResponseProtocol.Request]
                                                                    )(
                                                                      implicit ev: ClassTag[ResultMsgType],
                                                                      timeout: Timeout
-                                                                   ): Future[Seq[Record]] = {
+                                                                   ): FutureRelation = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
     val results =  messages.keys
@@ -62,7 +62,7 @@ object Dactor {
           .map(_.result)
       })
 
-    Future.sequence(results).map(_.flatten.toSeq)
+    FutureRelation.fromRecordSeq(Future.sequence(results).map(_.flatten.toSeq))
   }
 }
 
