@@ -33,15 +33,16 @@ object Cart {
     case class Failure(e: Throwable)
   }
 
-  private object CartInfo extends RowRelation {
+  object CartInfo extends RelationDef {
     val cartId: ColumnDef[Int] = ColumnDef("c_id")
     val storeId: ColumnDef[Int] = ColumnDef("store_id")
     val sessionId: ColumnDef[Int] = ColumnDef("session_id")
 
     override val columns: Set[UntypedColumnDef] = Set(cartId, storeId, sessionId)
+    override val name: String = "cart_info"
   }
 
-  private object CartPurchases extends RowRelation {
+  object CartPurchases extends RelationDef {
     val sectionId: ColumnDef[Int] = ColumnDef("sec_id")
     val sessionId: ColumnDef[Int] = ColumnDef("session_id")
     val inventoryId: ColumnDef[Int] = ColumnDef("i_id")
@@ -52,6 +53,7 @@ object Cart {
 
     override val columns: Set[UntypedColumnDef] =
       Set(sectionId, sessionId, inventoryId, quantity, fixedDiscount, minPrice, price)
+    override val name: String = "cart_purchases"
   }
 
   private object AddItemsHelper {
@@ -173,15 +175,18 @@ object Cart {
 class Cart(id: Int) extends Dactor(id) {
   import Cart._
 
+  val cartInfo = RowRelation(CartInfo)
+  val cartPurchases = RowRelation(CartPurchases)
+
   override protected val relations: Map[String, MutableRelation] =
-    Map("cart_info" -> CartInfo) ++ Map("cart_purchases" -> CartPurchases)
+    Map(CartInfo.name -> cartInfo) ++ Map(CartPurchases.name -> cartPurchases)
 
   def newCartPurchaseRecord: RecordBuilder = CartPurchases.newRecord
 
   override def receive: Receive = {
     case AddItems.Request(orders, customerId) => AddItemsHelper(context.system, self).help(orders, customerId, sender())
 
-    case AddItemsHelper.Success(records, replyTo) => CartPurchases.insertAll(records) match {
+    case AddItemsHelper.Success(records, replyTo) => cartPurchases.insertAll(records) match {
       case Success(_) => replyTo ! AddItems.Success(currentSessionId)
       case Failure(e) => replyTo ! AddItems.Failure(e)
     }

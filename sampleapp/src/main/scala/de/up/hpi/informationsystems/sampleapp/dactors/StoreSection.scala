@@ -31,12 +31,7 @@ object StoreSection {
 
   }
 
-}
-
-class StoreSection(id: Int) extends Dactor(id) {
-  import StoreSection._
-
-  object Inventory extends RowRelation {
+  object Inventory extends RelationDef {
     val inventoryId: ColumnDef[Int] = ColumnDef("i_id")
     val price: ColumnDef[Double] = ColumnDef("i_price")
     val minPrice: ColumnDef[Double] = ColumnDef("i_min_price")
@@ -44,20 +39,29 @@ class StoreSection(id: Int) extends Dactor(id) {
     val varDisc: ColumnDef[Double] = ColumnDef("i_var_disc")
 
     override val columns: Set[UntypedColumnDef] = Set(inventoryId, price, minPrice, quantity, varDisc)
+    override val name: String = "inventory"
   }
 
-  object PurchaseHistory extends RowRelation {
+  object PurchaseHistory extends RelationDef {
     val inventoryId: ColumnDef[Int] = ColumnDef("i_id")
     val time: ColumnDef[LocalDateTime] = ColumnDef("time")
     val quantity: ColumnDef[Long] = ColumnDef("i_quantity")
     val cartId: ColumnDef[Int] = ColumnDef("c_id")
 
     override val columns: Set[UntypedColumnDef] = Set(inventoryId, time, quantity, cartId)
+    override val name: String = "purchase_history"
   }
+}
+
+class StoreSection(id: Int) extends Dactor(id) {
+  import StoreSection._
+
+  val inventory = RowRelation(Inventory)
+  val purchaseHistory = RowRelation(PurchaseHistory)
 
   override protected val relations: Map[String, MutableRelation] =
-    Map("inventory" -> Inventory) ++
-    Map("purchase_history" -> PurchaseHistory)
+    Map(Inventory.name -> inventory) ++
+    Map(PurchaseHistory.name -> purchaseHistory)
 
   override def receive: Receive = {
     case GetPrice.Request(inventoryIds) =>
@@ -72,7 +76,7 @@ class StoreSection(id: Int) extends Dactor(id) {
 
   def getPrice(inventoryIds: Seq[Int]): Try[Seq[Record]] = {
     val resultSchema = Set(Inventory.price, Inventory.minPrice)
-    Inventory
+    inventory
       .project(resultSchema)
       .where[Int](Inventory.inventoryId -> { id => inventoryIds.contains(id) })
       .records

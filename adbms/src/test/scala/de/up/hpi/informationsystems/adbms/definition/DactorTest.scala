@@ -31,24 +31,21 @@ object DactorTest {
   object DactorWithRelation {
     def props(id: Int): Props = Props(new DactorWithRelation(id))
 
-    object TestRelationDef {
-      val name: String = "testrelation"
+    object TestRelation extends RelationDef {
       val col1: ColumnDef[Int] = ColumnDef("col1")
       val col2: ColumnDef[String] = ColumnDef("col2")
-      val columns: Set[UntypedColumnDef] = Set(col1, col2)
 
-      def rowRelation: MutableRelation = new RowRelation {
-        override val columns: Set[UntypedColumnDef] = TestRelationDef.columns
-      }
+      override val columns: Set[UntypedColumnDef] = Set(col1, col2)
+      override val name: String = "testRelation"
     }
 
   }
 
   class DactorWithRelation(id: Int) extends Dactor(id) {
     import DactorWithRelation._
-    val testRelation: MutableRelation = TestRelationDef.rowRelation
+    val testRelation: MutableRelation = RowRelation(TestRelation)
 
-    override protected val relations: Map[String, MutableRelation] = Map(TestRelationDef.name -> testRelation)
+    override protected val relations: Map[String, MutableRelation] = Map(TestRelation.name -> testRelation)
 
     override def receive: Receive = Actor.emptyBehavior
   }
@@ -112,17 +109,17 @@ class DactorTest extends TestKit(ActorSystem("test-system"))
     }
 
     "relations available" should {
-      import DactorTest.DactorWithRelation.TestRelationDef
+      import DactorTest.DactorWithRelation.TestRelation
       import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
 
       val probe = TestProbe()
       val dut = Dactor.dactorOf(system, classOf[DactorTest.DactorWithRelation], 1)
 
       "insert matching record successfully" in {
-        val insertMessage = DefaultMessagingProtocol.InsertIntoRelation(TestRelationDef.name, Seq(
-          Record(TestRelationDef.columns)(
-            TestRelationDef.col1 ~> 1 &
-            TestRelationDef.col2 ~> "1"
+        val insertMessage = DefaultMessagingProtocol.InsertIntoRelation(TestRelation.name, Seq(
+          Record(TestRelation.columns)(
+            TestRelation.col1 ~> 1 &
+            TestRelation.col2 ~> "1"
           ).build()
         ))
         dut.tell(insertMessage, probe.ref)
@@ -130,18 +127,18 @@ class DactorTest extends TestKit(ActorSystem("test-system"))
       }
 
       "insert multiple matching records successfully" in {
-        val insertMessage = DefaultMessagingProtocol.InsertIntoRelation(TestRelationDef.name, Seq(
-          Record(TestRelationDef.columns)(
-            TestRelationDef.col1 ~> 1 &
-              TestRelationDef.col2 ~> "1"
+        val insertMessage = DefaultMessagingProtocol.InsertIntoRelation(TestRelation.name, Seq(
+          Record(TestRelation.columns)(
+            TestRelation.col1 ~> 1 &
+              TestRelation.col2 ~> "1"
           ).build(),
-          Record(TestRelationDef.columns)(
-            TestRelationDef.col1 ~> 2 &
-              TestRelationDef.col2 ~> "2"
+          Record(TestRelation.columns)(
+            TestRelation.col1 ~> 2 &
+              TestRelation.col2 ~> "2"
           ).build(),
-          Record(TestRelationDef.columns)(
-            TestRelationDef.col1 ~> 3 &
-              TestRelationDef.col2 ~> "3"
+          Record(TestRelation.columns)(
+            TestRelation.col1 ~> 3 &
+              TestRelation.col2 ~> "3"
           ).build()
         ))
         dut.tell(insertMessage, probe.ref)
@@ -149,9 +146,9 @@ class DactorTest extends TestKit(ActorSystem("test-system"))
       }
 
       "fail inserting wrong records" in {
-        val insertMessage = DefaultMessagingProtocol.InsertIntoRelation(TestRelationDef.name, Seq(
-          Record(Set(TestRelationDef.col1, ColumnDef[Float]("undefinedCol")))(
-            TestRelationDef.col1 ~> 1 &
+        val insertMessage = DefaultMessagingProtocol.InsertIntoRelation(TestRelation.name, Seq(
+          Record(Set(TestRelation.col1, ColumnDef[Float]("undefinedCol")))(
+            TestRelation.col1 ~> 1 &
             ColumnDef[Float]("undefinedCol") ~> 1.2f
           ).build()
         ))

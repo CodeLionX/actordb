@@ -4,9 +4,31 @@ import de.up.hpi.informationsystems.adbms.Util
 
 import scala.util.Try
 
-abstract class RowRelation extends MutableRelation {
+object RowRelation {
+
+  /**
+    * Creates an instance of a row relation, which actually stores data.
+    * Use a [[de.up.hpi.informationsystems.adbms.definition.RelationDef]] to define your relational schema.
+    * Use like the following:
+    *
+    * @example {{{
+    *           object MyRelation extends RelationDef {
+    *             ...
+    *           }
+    *           val myRelation: MutableRelation = RowRelation(MyRelation)
+    * }}}
+    *
+    * @see [[de.up.hpi.informationsystems.adbms.definition.RelationDef]]
+    */
+  def apply(relDef: RelationDef): MutableRelation = new RowRelation(relDef.columns)
+}
+
+private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends MutableRelation {
 
   private var data: Seq[Record] = Seq.empty
+
+  /** @inheritdoc */
+  override val columns: Set[UntypedColumnDef] = passedColumns
 
   /** @inheritdoc */
   override def insert(record: Record): Try[Record] = Try{
@@ -72,4 +94,5 @@ abstract class RowRelation extends MutableRelation {
     if(incomingColumns != columns)
       throw IncompatibleColumnDefinitionException(s"the provided column layout does not match this " +
         s"relation's schema:\n$incomingColumns (provided)\n${this.columns} (relation)")
+
 }
