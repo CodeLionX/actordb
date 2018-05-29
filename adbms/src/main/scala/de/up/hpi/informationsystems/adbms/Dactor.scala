@@ -58,13 +58,13 @@ abstract class Dactor(id: Int) extends Actor with ActorLogging {
     * Returns a map of relation definition and corresponding relational store.
     * @return map of relation definition and corresponding relational store
     */
-  protected val relationFromDef: Map[RelationDef, MutableRelation]
+  protected val relations: Map[RelationDef, MutableRelation]
 
   /**
     * Returns all relations of this actor mapped with their name.
     * @return map of relation name and relational store
     */
-  protected val relationFromName: Map[String, MutableRelation] = relationFromDef.map(mapping => {
+  protected def relationFromName: Map[String, MutableRelation] = relations.map(mapping => {
     mapping._1.name -> mapping._2
   })
 
