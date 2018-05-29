@@ -30,7 +30,7 @@ class GroupManager(id: Int) extends Dactor(id) {
     override val columns: Set[UntypedColumnDef] = Set(id, fixedDisc)
   }
 
-  override protected val relations: Map[String, Relation] = Map("discounts" -> Discounts)
+  override protected val relations: Map[String, MutableRelation] = Map("discounts" -> Discounts)
 
   override def receive: Receive = {
     case GetFixedDiscounts.Request(ids) =>

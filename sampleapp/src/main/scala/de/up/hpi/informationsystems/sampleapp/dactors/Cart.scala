@@ -173,7 +173,7 @@ object Cart {
 class Cart(id: Int) extends Dactor(id) {
   import Cart._
 
-  override protected val relations: Map[String, Relation] =
+  override protected val relations: Map[String, MutableRelation] =
     Map("cart_info" -> CartInfo) ++ Map("cart_purchases" -> CartPurchases)
 
   def newCartPurchaseRecord: RecordBuilder = CartPurchases.newRecord

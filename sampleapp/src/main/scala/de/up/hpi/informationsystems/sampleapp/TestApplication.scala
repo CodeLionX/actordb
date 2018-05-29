@@ -2,12 +2,14 @@ package de.up.hpi.informationsystems.sampleapp
 
 import akka.actor.{Actor, ActorSystem, Props}
 import de.up.hpi.informationsystems.adbms.Dactor
+import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.definition._
+import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol
 import de.up.hpi.informationsystems.sampleapp.dactors.GroupManager
 
 import scala.concurrent.duration._
-import scala.util.Success
 import scala.language.postfixOps
+import scala.util.Success
 
 object TestApplication extends App {
   val system = ActorSystem("system")
@@ -16,6 +18,16 @@ object TestApplication extends App {
     val tester = system.actorOf(TestDactor.props(1), "TestDactor-1")
     val groupManager10 = Dactor.dactorOf(system, classOf[GroupManager], 10)
 
+    val userCols: Set[UntypedColumnDef] = Set(
+      ColumnDef[String]("Firstname"),
+      ColumnDef[String]("Lastname"),
+      ColumnDef[Int]("Age")
+    )
+    tester.tell(DefaultMessagingProtocol.InsertIntoRelation("User", Seq(Record(userCols)(
+      ColumnDef[String]("Firstname") ~> "Somebody" &
+      ColumnDef[String]("Lastname") ~> "I used to know" &
+      ColumnDef[Int]("Age") ~> 12
+    ).build())), Actor.noSender)
     tester.tell(TestDactor.Test, Actor.noSender)
 
     // shutdown system
@@ -72,12 +84,11 @@ class TestDactor(id: Int) extends Dactor(id) {
     override val columns: Set[UntypedColumnDef] = Set(colId, colName, colDiscount)
   }
 
-  override protected val relations: Map[String, Relation] = Map("User" -> User) ++ Map("Customer" -> Customer)
+  override protected val relations: Map[String, MutableRelation] = Map("User" -> User) ++ Map("Customer" -> Customer)
 
   override def receive: Receive = {
     case Test => test()
     case Terminate() => context.system.terminate()
-    case e => println(s"Received Message:\n$e")
   }
 
   def test(): Unit = {
@@ -139,7 +150,6 @@ class TestDactor(id: Int) extends Dactor(id) {
 
     println()
     println()
-    import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
     val record = User.newRecord(
       User.colFirstname ~> "Firstname" &
       User.colLastname ~> "Lastname" &
@@ -207,4 +217,5 @@ class TestDactor(id: Int) extends Dactor(id) {
     println(groupManager10)
     groupManager10 ! GroupManager.GetFixedDiscounts.Request(Seq(1,2,3))
   }
+
 }
