@@ -16,14 +16,14 @@ import scala.language.postfixOps
 object DactorTest {
   class TestDactor(id: Int) extends Dactor(id) {
 
-    override val relations: Map[String, MutableRelation] = Map()
+    override val relationFromDef: Map[RelationDef, MutableRelation] = Map.empty
 
     override def receive: Receive = Actor.emptyBehavior
   }
 
   class TestDactor2(id: Int) extends Dactor(id) {
 
-    override val relations: Map[String, MutableRelation] = Map()
+    override val relationFromDef: Map[RelationDef, MutableRelation] = Map.empty
 
     override def receive: Receive = Actor.emptyBehavior
   }
@@ -43,9 +43,9 @@ object DactorTest {
 
   class DactorWithRelation(id: Int) extends Dactor(id) {
     import DactorWithRelation._
-    val testRelation: MutableRelation = RowRelation(TestRelation)
 
-    override protected val relations: Map[String, MutableRelation] = Map(TestRelation.name -> testRelation)
+    override protected val relationFromDef: Map[RelationDef, MutableRelation] =
+      Dactor.createAsRowRelations(Seq(TestRelation))
 
     override def receive: Receive = Actor.emptyBehavior
   }
