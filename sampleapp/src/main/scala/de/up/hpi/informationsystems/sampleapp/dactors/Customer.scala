@@ -68,13 +68,8 @@ object Customer {
 class Customer(id: Int) extends Dactor(id) {
   import Customer._
 
-  val customerInfo = RowRelation(CustomerInfo)
-  val storeVisits = RowRelation(StoreVisits)
-  val password = RowRelation(Password)
-
-  override protected val relations: Map[String, MutableRelation] = Map(CustomerInfo.name -> customerInfo) ++
-    Map(StoreVisits.name -> storeVisits) ++
-    Map(Password.name -> password)
+  override protected val relations: Map[RelationDef, MutableRelation] =
+    Dactor.createAsRowRelations(Seq(CustomerInfo, StoreVisits, Password))
 
   override def receive: Receive = {
     case GetCustomerInfo.Request() =>
@@ -96,10 +91,10 @@ class Customer(id: Int) extends Dactor(id) {
       }
   }
 
-  def getCustomerInfo(): Try[Seq[Record]] = customerInfo.records
+  def getCustomerInfo(): Try[Seq[Record]] = relations(CustomerInfo).records
 
   def addStoreVisit(storeId: Int, time: LocalDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double): Try[Record] =
-    storeVisits.insert(StoreVisits.newRecord(
+    relations(StoreVisits).insert(StoreVisits.newRecord(
       StoreVisits.storeId ~> storeId
         & StoreVisits.timestamp ~> time
         & StoreVisits.amount ~> amount
@@ -108,7 +103,7 @@ class Customer(id: Int) extends Dactor(id) {
     ).build())
 
   def authenticate(passwordHash: String): Boolean = {
-    val res = password.where[String](Password.encryptedPassword -> {
+    val res = relations(Password).where[String](Password.encryptedPassword -> {
       _.equals(passwordHash)
     }).records
     res.isFailure || res.get.length == 1

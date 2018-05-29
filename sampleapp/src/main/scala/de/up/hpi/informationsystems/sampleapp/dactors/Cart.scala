@@ -52,11 +52,8 @@ object Cart {
 class Cart(id: Int) extends Dactor(id) {
   import Cart._
 
-  val cartInfo = RowRelation(CartInfo)
-  val cartPurchases = RowRelation(CartPurchases)
-
-  override protected val relations: Map[String, MutableRelation] =
-    Map(CartInfo.name -> cartInfo) ++ Map(CartPurchases.name -> cartPurchases)
+  override protected val relations: Map[RelationDef, MutableRelation] =
+    Dactor.createAsRowRelations(Seq(CartInfo, CartPurchases))
 
   override def receive: Receive = {
     case AddItems.Request(_, _) => sender() ! AddItems.Failure(new NotImplementedError)
