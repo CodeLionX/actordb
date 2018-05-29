@@ -25,7 +25,7 @@ object Cart {
 
   }
 
-  object CartInfoDef extends RelationDef {
+  object CartInfo extends RelationDef {
     val cartId: ColumnDef[Int] = ColumnDef("c_id")
     val storeId: ColumnDef[Int] = ColumnDef("store_id")
     val sessionId: ColumnDef[Int] = ColumnDef("session_id")
@@ -34,7 +34,7 @@ object Cart {
     override val name: String = "cart_info"
   }
 
-  object CartPurchasesDef extends RelationDef {
+  object CartPurchases extends RelationDef {
     val sectionId: ColumnDef[Int] = ColumnDef("sec_id")
     val sessionId: ColumnDef[Int] = ColumnDef("session_id")
     val inventoryId: ColumnDef[Int] = ColumnDef("i_id")
@@ -52,11 +52,11 @@ object Cart {
 class Cart(id: Int) extends Dactor(id) {
   import Cart._
 
-  val CartInfo = RowRelation(CartInfoDef)
-  val CartPurchases = RowRelation(CartPurchasesDef)
+  val cartInfo = RowRelation(CartInfo)
+  val cartPurchases = RowRelation(CartPurchases)
 
   override protected val relations: Map[String, MutableRelation] =
-    Map(CartInfoDef.name -> CartInfo) ++ Map(CartPurchasesDef.name -> CartPurchases)
+    Map(CartInfo.name -> cartInfo) ++ Map(CartPurchases.name -> cartPurchases)
 
   override def receive: Receive = {
     case AddItems.Request(_, _) => sender() ! AddItems.Failure(new NotImplementedError)

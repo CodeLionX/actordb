@@ -19,7 +19,7 @@ object GroupManager {
 
   }
 
-  object DiscountsDef extends RelationDef {
+  object Discounts extends RelationDef {
     val id: ColumnDef[Int] = ColumnDef("i_id")
     val fixedDisc: ColumnDef[Double] = ColumnDef("fixed_disc")
 
@@ -31,9 +31,9 @@ object GroupManager {
 class GroupManager(id: Int) extends Dactor(id) {
   import GroupManager._
 
-  val Discounts = RowRelation(DiscountsDef)
+  val discounts = RowRelation(Discounts)
 
-  override protected val relations: Map[String, MutableRelation] = Map(DiscountsDef.name -> Discounts)
+  override protected val relations: Map[String, MutableRelation] = Map(Discounts.name -> discounts)
 
   override def receive: Receive = {
     case GetFixedDiscounts.Request(ids) =>
@@ -44,8 +44,8 @@ class GroupManager(id: Int) extends Dactor(id) {
   }
 
   def getFixedDiscounts(ids: Seq[Int]): Try[Seq[Record]] =
-    Discounts
-      .where(DiscountsDef.id -> { id: Int => ids.contains(id) })
+    discounts
+      .where(Discounts.id -> { id: Int => ids.contains(id) })
       .records
 
 }

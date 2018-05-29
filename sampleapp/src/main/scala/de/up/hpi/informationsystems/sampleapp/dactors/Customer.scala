@@ -37,7 +37,7 @@ object Customer {
 
   }
 
-  object CustomerInfoDef extends RelationDef {
+  object CustomerInfo extends RelationDef {
     val custName: ColumnDef[String] = ColumnDef("cust_name")
     val custGroupId: ColumnDef[Int] = ColumnDef("c_g_id")
 
@@ -45,7 +45,7 @@ object Customer {
     override val name: String = "customer_info"
   }
 
-  object StoreVisitsDef extends RelationDef {
+  object StoreVisits extends RelationDef {
     val storeId: ColumnDef[Int] = ColumnDef("store_id")
     val timestamp: ColumnDef[LocalDateTime] = ColumnDef("time")
     val amount: ColumnDef[Double] = ColumnDef("amount")
@@ -56,7 +56,7 @@ object Customer {
     override val name: String = "store_visits"
   }
 
-  object PasswordDef extends RelationDef /* with Encryption */ {
+  object Password extends RelationDef /* with Encryption */ {
     val encryptedPassword: ColumnDef[String] = ColumnDef("enc_passwd")
 
     override val columns: Set[UntypedColumnDef] = Set(encryptedPassword)
@@ -68,13 +68,13 @@ object Customer {
 class Customer(id: Int) extends Dactor(id) {
   import Customer._
 
-  val CustomerInfo = RowRelation(CustomerInfoDef)
-  val StoreVisits = RowRelation(StoreVisitsDef)
-  val Password = RowRelation(PasswordDef)
+  val customerInfo = RowRelation(CustomerInfo)
+  val storeVisits = RowRelation(StoreVisits)
+  val password = RowRelation(Password)
 
-  override protected val relations: Map[String, MutableRelation] = Map(CustomerInfoDef.name -> CustomerInfo) ++
-    Map(StoreVisitsDef.name -> StoreVisits) ++
-    Map(PasswordDef.name -> Password)
+  override protected val relations: Map[String, MutableRelation] = Map(CustomerInfo.name -> customerInfo) ++
+    Map(StoreVisits.name -> storeVisits) ++
+    Map(Password.name -> password)
 
   override def receive: Receive = {
     case GetCustomerInfo.Request() =>
@@ -96,19 +96,19 @@ class Customer(id: Int) extends Dactor(id) {
       }
   }
 
-  def getCustomerInfo(): Try[Seq[Record]] = CustomerInfo.records
+  def getCustomerInfo(): Try[Seq[Record]] = customerInfo.records
 
   def addStoreVisit(storeId: Int, time: LocalDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double): Try[Record] =
-    StoreVisits.insert(StoreVisitsDef.newRecord(
-      StoreVisitsDef.storeId ~> storeId
-        & StoreVisitsDef.timestamp ~> time
-        & StoreVisitsDef.amount ~> amount
-        & StoreVisitsDef.fixedDiscount ~> fixedDiscount
-        & StoreVisitsDef.varDiscount ~> varDiscount
+    storeVisits.insert(StoreVisits.newRecord(
+      StoreVisits.storeId ~> storeId
+        & StoreVisits.timestamp ~> time
+        & StoreVisits.amount ~> amount
+        & StoreVisits.fixedDiscount ~> fixedDiscount
+        & StoreVisits.varDiscount ~> varDiscount
     ).build())
 
   def authenticate(passwordHash: String): Boolean = {
-    val res = Password.where[String](PasswordDef.encryptedPassword -> {
+    val res = password.where[String](Password.encryptedPassword -> {
       _.equals(passwordHash)
     }).records
     res.isFailure || res.get.length == 1
