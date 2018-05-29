@@ -12,10 +12,10 @@ object RowRelation {
     * Use like the following:
     *
     * @example {{{
-    *           object MyRelationDef extends RelationDef {
+    *           object MyRelation extends RelationDef {
     *             ...
     *           }
-    *           val store: MutableRelation = RowRelation(MyRelationDef)
+    *           val myRelation: MutableRelation = RowRelation(MyRelation)
     * }}}
     *
     * @see [[de.up.hpi.informationsystems.adbms.definition.RelationDef]]

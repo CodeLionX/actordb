@@ -6,7 +6,7 @@ import de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilder
   * Can be used for defining relations.
   *
   * @example {{{
-  *           object TestRelationDef extends RelationDef {
+  *           object TestRelation extends RelationDef {
   *             override val name: String = "testrelation"
   *
   *             val col1: ColumnDef[Int] = ColumnDef("col1")
@@ -17,11 +17,11 @@ import de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilder
   *           }
   *
   *           // `RowRelation` can be replaced by any other relational store
-  *           val testRelStore: MutableRelation = RowRelation(TestRelationDef)
-  *           testRelStore.insert(
-  *             TestRelationDef.newRecord.build()
+  *           val testRelation: MutableRelation = RowRelation(TestRelation)
+  *           testRelation.insert(
+  *             TestRelation.newRecord.build()
   *           )
-  *           val records: Relation = testRelStore.where(TestRelationDef.col1 -> { _ == 1 })
+  *           val records: Relation = testRelation.where(TestRelation.col1 -> { _ == 1 })
   *          }}}
   */
 trait RelationDef {
