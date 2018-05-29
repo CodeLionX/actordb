@@ -1,10 +1,13 @@
 package de.up.hpi.informationsystems.adbms
 
 import akka.actor.Status.{Failure, Success}
-import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, ActorSelection, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, ActorSelection, ActorSystem, Props}
+import akka.util.Timeout
 import de.up.hpi.informationsystems.adbms.definition.{MutableRelation, Record}
-import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol
+import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessagingProtocol, RequestResponseProtocol}
 
+import scala.concurrent.Future
+import scala.reflect.ClassTag
 import scala.util.Try
 
 object Dactor {
@@ -22,7 +25,7 @@ object Dactor {
 
   /**
     * Looks up the path to a Dactor and returns the `ActorSelection`.
-    * @note lookup is global to the system, i.e. /user/$dactorName
+    * @note lookup is global to the system, i.e. /user/`dactorName`
     * @param clazz class of the Dactor
     * @param id id of the Dactor
     * @return ActorSelection of the lookup
@@ -39,6 +42,28 @@ object Dactor {
     */
   def nameOf(clazz: Class[_ <: Dactor], id: Int): String = s"${clazz.getSimpleName}-$id"
 
+
+  private def ask[ResultMsgType <: RequestResponseProtocol.Success](
+                                                                     system: ActorSystem,
+                                                                     dactorClass: Class[_ <: Dactor],
+                                                                     messages: Map[Int, RequestResponseProtocol.Request]
+                                                                   )(
+                                                                     implicit ev: ClassTag[ResultMsgType],
+                                                                     timeout: Timeout
+                                                                   ): Future[Seq[Record]] = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    val results =  messages.keys
+      .map(dactorId => {
+        val msg = messages(dactorId)
+        val answer: Future[Any] = akka.pattern.ask(dactorSelection(system, dactorClass, dactorId), msg)(timeout)
+        answer
+          .mapTo[ResultMsgType](ev)
+          .map(_.result)
+      })
+
+    Future.sequence(results).map(_.flatten.toSeq)
+  }
 }
 
 abstract class Dactor(id: Int) extends Actor with ActorLogging {
