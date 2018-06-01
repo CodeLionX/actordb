@@ -180,16 +180,13 @@ class Cart(id: Int) extends Dactor(id) {
 
   private val timeout: Timeout = Timeout(2.seconds)
 
-  val cartInfo = RowRelation(CartInfo)
-  val cartPurchases = RowRelation(CartPurchases)
-
-  override protected val relations: Map[String, MutableRelation] =
-    Map(CartInfo.name -> cartInfo) ++ Map(CartPurchases.name -> cartPurchases)
+  override protected val relations: Map[RelationDef, MutableRelation] =
+    Dactor.createAsRowRelations(Seq(CartInfo, CartPurchases))
 
   override def receive: Receive = {
     case AddItems.Request(orders, customerId) => AddItemsHelper(context.system, self, timeout).help(orders, customerId, sender())
 
-    case AddItemsHelper.Success(records, replyTo) => cartPurchases.insertAll(records) match {
+    case AddItemsHelper.Success(records, replyTo) => relations(CartPurchases).insertAll(records) match {
       case Success(_) => replyTo ! AddItems.Success(currentSessionId)
       case Failure(e) => replyTo ! AddItems.Failure(e)
     }

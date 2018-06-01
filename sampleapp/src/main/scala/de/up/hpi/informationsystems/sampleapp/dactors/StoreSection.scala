@@ -56,12 +56,8 @@ object StoreSection {
 class StoreSection(id: Int) extends Dactor(id) {
   import StoreSection._
 
-  val inventory = RowRelation(Inventory)
-  val purchaseHistory = RowRelation(PurchaseHistory)
-
-  override protected val relations: Map[String, MutableRelation] =
-    Map(Inventory.name -> inventory) ++
-    Map(PurchaseHistory.name -> purchaseHistory)
+  override protected val relations: Map[RelationDef, MutableRelation] =
+    Dactor.createAsRowRelations(Seq(Inventory, PurchaseHistory))
 
   override def receive: Receive = {
     case GetPrice.Request(inventoryIds) =>
@@ -76,7 +72,7 @@ class StoreSection(id: Int) extends Dactor(id) {
 
   def getPrice(inventoryIds: Seq[Int]): Try[Seq[Record]] = {
     val resultSchema = Set(Inventory.price, Inventory.minPrice)
-    inventory
+    relations(Inventory)
       .project(resultSchema)
       .where[Int](Inventory.inventoryId -> { id => inventoryIds.contains(id) })
       .records
