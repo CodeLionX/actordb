@@ -16,7 +16,15 @@ object Customer {
   object GetCustomerInfo {
 
     case class Request()
-    case class Success(results: Seq[Record])
+    case class Success(result: Record)
+    case class Failure(e: Throwable)
+
+  }
+
+  object GetCustomerGroupId {
+
+    case class Request()
+    case class Success(result: Int)
     case class Failure(e: Throwable)
 
   }
@@ -73,9 +81,15 @@ class Customer(id: Int) extends Dactor(id) {
 
   override def receive: Receive = {
     case GetCustomerInfo.Request() =>
-      getCustomerInfo() match {
-        case Success(records) => sender() ! GetCustomerInfo.Success(records)
+      getCustomerInfo match {
+        case Success(record) => sender() ! GetCustomerInfo.Success(record)
         case Failure(e) => sender() ! GetCustomerInfo.Failure(e)
+      }
+
+    case GetCustomerGroupId.Request() =>
+      getCustomerGroupId match {
+        case Success(groupId) => sender() ! GetCustomerGroupId.Success(groupId)
+        case Failure(e) => sender() ! GetCustomerGroupId.Failure(e)
       }
 
     case AddStoreVisit.Request(storeId: Int, time: LocalDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double) =>
@@ -85,13 +99,28 @@ class Customer(id: Int) extends Dactor(id) {
       }
 
     case Authenticate.Request(passwordHash) =>
-      authenticate(passwordHash) match {
-        case true => sender() ! Authenticate.Success()
-        case false => sender() ! Authenticate.Failure()
+      if (authenticate(passwordHash)) {
+        sender() ! Authenticate.Success()
+      } else {
+        sender() ! Authenticate.Failure()
       }
   }
 
-  def getCustomerInfo(): Try[Seq[Record]] = relations(CustomerInfo).records
+  def getCustomerInfo: Try[Record] = {
+    val rowCount = relations(CustomerInfo).records.get.size
+    if (rowCount > 1) {
+      throw InconsistentStateException(s"this relation was expected to contain at maximum 1 row, but contained $rowCount")
+    }
+    Try(customerInfo.records.get.head)
+  }
+
+  def getCustomerGroupId: Try[Int] = {
+    val rowCount = relations(CustomerInfo).records.get.size
+    if (rowCount > 1) {
+      throw InconsistentStateException(s"this relation was expected to contain at maximum 1 row, but contained $rowCount")
+    }
+    Try(relations(CustomerInfo).records.get.head.get(CustomerInfo.custGroupId).get)
+  }
 
   def addStoreVisit(storeId: Int, time: LocalDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double): Try[Record] =
     relations(StoreVisits).insert(StoreVisits.newRecord(
