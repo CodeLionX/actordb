@@ -186,7 +186,7 @@ class Cart(id: Int) extends Dactor(id) {
   override def receive: Receive = {
     case AddItems.Request(orders, customerId) => AddItemsHelper(context.system, self, timeout).help(orders, customerId, sender())
 
-    case AddItemsHelper.Success(records, replyTo) => cartPurchases.insertAll(records) match {
+    case AddItemsHelper.Success(records, replyTo) => relations(CartPurchases).insertAll(records) match {
       case Success(_) => replyTo ! AddItems.Success(currentSessionId)
       case Failure(e) => replyTo ! AddItems.Failure(e)
     }

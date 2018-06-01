@@ -111,7 +111,7 @@ class Customer(id: Int) extends Dactor(id) {
     if (rowCount > 1) {
       throw InconsistentStateException(s"this relation was expected to contain at maximum 1 row, but contained $rowCount")
     }
-    Try(customerInfo.records.get.head)
+    Try(relations(CustomerInfo).records.get.head)
   }
 
   def getCustomerGroupId: Try[Int] = {
