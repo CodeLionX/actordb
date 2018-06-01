@@ -36,19 +36,16 @@ object Customer {
     case class Failure()
 
   }
-}
 
-class Customer(id: Int) extends Dactor(id) {
-  import Customer._
-
-  object CustomerInfo extends RowRelation {
+  object CustomerInfo extends RelationDef {
     val custName: ColumnDef[String] = ColumnDef("cust_name")
     val custGroupId: ColumnDef[Int] = ColumnDef("c_g_id")
 
     override val columns: Set[UntypedColumnDef] = Set(custName, custGroupId)
+    override val name: String = "customer_info"
   }
 
-  object StoreVisits extends RowRelation {
+  object StoreVisits extends RelationDef {
     val storeId: ColumnDef[Int] = ColumnDef("store_id")
     val timestamp: ColumnDef[LocalDateTime] = ColumnDef("time")
     val amount: ColumnDef[Double] = ColumnDef("amount")
@@ -56,16 +53,28 @@ class Customer(id: Int) extends Dactor(id) {
     val varDiscount: ColumnDef[Double] = ColumnDef("var_disc")
 
     override val columns: Set[UntypedColumnDef] = Set(storeId, timestamp, amount, fixedDiscount, varDiscount)
+    override val name: String = "store_visits"
   }
 
-  object Password extends RowRelation /* with Encryption */ {
+  object Password extends RelationDef /* with Encryption */ {
     val encryptedPassword: ColumnDef[String] = ColumnDef("enc_passwd")
 
     override val columns: Set[UntypedColumnDef] = Set(encryptedPassword)
+    override val name: String = "passwd"
   }
 
-  override protected val relations: Map[String, MutableRelation] =
-    Map("customer_info" -> CustomerInfo) ++ Map("store_visits" -> StoreVisits) ++ Map("passwd" -> Password)
+}
+
+class Customer(id: Int) extends Dactor(id) {
+  import Customer._
+
+  val customerInfo = RowRelation(CustomerInfo)
+  val storeVisits = RowRelation(StoreVisits)
+  val password = RowRelation(Password)
+
+  override protected val relations: Map[String, MutableRelation] = Map(CustomerInfo.name -> customerInfo) ++
+    Map(StoreVisits.name -> storeVisits) ++
+    Map(Password.name -> password)
 
   override def receive: Receive = {
     case GetCustomerInfo.Request() =>
@@ -87,19 +96,21 @@ class Customer(id: Int) extends Dactor(id) {
       }
   }
 
-  def getCustomerInfo(): Try[Seq[Record]] = CustomerInfo.records
+  def getCustomerInfo(): Try[Seq[Record]] = customerInfo.records
 
   def addStoreVisit(storeId: Int, time: LocalDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double): Try[Record] =
-    StoreVisits.insert(StoreVisits.newRecord(
+    storeVisits.insert(StoreVisits.newRecord(
       StoreVisits.storeId ~> storeId
-      & StoreVisits.timestamp ~> time
-      & StoreVisits.amount ~> amount
-      & StoreVisits.fixedDiscount ~> fixedDiscount
-      & StoreVisits.varDiscount ~> varDiscount
+        & StoreVisits.timestamp ~> time
+        & StoreVisits.amount ~> amount
+        & StoreVisits.fixedDiscount ~> fixedDiscount
+        & StoreVisits.varDiscount ~> varDiscount
     ).build())
 
   def authenticate(passwordHash: String): Boolean = {
-    val res = Password.where[String](Password.encryptedPassword -> { _.equals(passwordHash) }).records
+    val res = password.where[String](Password.encryptedPassword -> {
+      _.equals(passwordHash)
+    }).records
     res.isFailure || res.get.length == 1
   }
 }

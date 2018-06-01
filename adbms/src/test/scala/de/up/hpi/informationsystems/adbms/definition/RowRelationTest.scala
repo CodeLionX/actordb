@@ -8,13 +8,15 @@ class RowRelationTest extends WordSpec with Matchers {
 
   "A row relation" should {
 
-    object Customer extends RowRelation {
+    object Customer extends RelationDef {
       val colFirstname: ColumnDef[String] = ColumnDef("Firstname")
       val colLastname: ColumnDef[String] = ColumnDef("Lastname")
       val colAge: ColumnDef[Int] = ColumnDef("Age")
 
       override val columns: Set[UntypedColumnDef] = Set(colFirstname, colLastname, colAge)
+      override val name: String = "customer"
     }
+    val customer = RowRelation(Customer)
 
     val record1 = Record(Customer.columns)
       .withCellContent(Customer.colFirstname)("Test")
@@ -40,9 +42,9 @@ class RowRelationTest extends WordSpec with Matchers {
       .build()
 
     "insert records with and without missing values correctly" in {
-      val inserted1 = Customer.insert(record1)
-      val inserted2 = Customer.insert(record2)
-      val inserted3 = Customer.insert(record3)
+      val inserted1 = customer.insert(record1)
+      val inserted2 = customer.insert(record2)
+      val inserted3 = customer.insert(record3)
 
       inserted1 should equal (Success(record1))
       inserted2 should equal (Success(record2))
@@ -50,149 +52,157 @@ class RowRelationTest extends WordSpec with Matchers {
     }
 
     "allow for batch insert of records with and without missing values correctly" in {
-      val inserted = Customer.insertAll(Seq(record1, record2, record3))
+      val inserted = customer.insertAll(Seq(record1, record2, record3))
       inserted should equal (Success(Seq(record1, record2, record3)))
     }
 
     "fail to insert records that do not adhere to the relations schema" in {
-      Customer.insert(record4).isFailure should equal (true)
+      customer.insert(record4).isFailure should equal (true)
     }
 
     "fail to batch insert records with at least one that does not adhere to the relations schema" in {
-      Customer.insertAll(Seq(record1, record2, record3, record4)).isFailure should equal (true)
+      customer.insertAll(Seq(record1, record2, record3, record4)).isFailure should equal (true)
     }
 
     "allow updating records with simple where" in {
-      object Test extends RowRelation {
+      object Test extends RelationDef {
         val col1: ColumnDef[Int] = ColumnDef("ID")
         val col2: ColumnDef[String] = ColumnDef("Firstname")
         val col3: ColumnDef[String] = ColumnDef("Lastname")
 
         override val columns: Set[UntypedColumnDef] = Set(col1, col2, col3)
+        override val name: String = "test"
       }
+      val test = RowRelation(Test)
 
       import Test._
       import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
-      Test.insertAll(Seq(
-        Test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
-        Test.newRecord(col1 ~> 1 & col2 ~> "Firstname1" & col3 ~> "Lastname1").build(),
-        Test.newRecord(col1 ~> 2 & col2 ~> "Firstname2" & col3 ~> "Lastname2").build(),
-        Test.newRecord(col1 ~> 3 & col2 ~> "Firstname3" & col3 ~> "Lastname3").build(),
-        Test.newRecord(col1 ~> 4 & col2 ~> "Firstname4" & col3 ~> "Lastname4").build()
+      test.insertAll(Seq(
+        test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
+        test.newRecord(col1 ~> 1 & col2 ~> "Firstname1" & col3 ~> "Lastname1").build(),
+        test.newRecord(col1 ~> 2 & col2 ~> "Firstname2" & col3 ~> "Lastname2").build(),
+        test.newRecord(col1 ~> 3 & col2 ~> "Firstname3" & col3 ~> "Lastname3").build(),
+        test.newRecord(col1 ~> 4 & col2 ~> "Firstname4" & col3 ~> "Lastname4").build()
       ))
 
-      val result = Test.update(col2 ~> "Hans" & col3 ~> "Maier")
+      val result = test.update(col2 ~> "Hans" & col3 ~> "Maier")
         .where[Int](col1 -> { _ % 2 == 0 })
       result shouldBe Success(3)
 
-      Test.records shouldBe Success(Seq(
-        Test.newRecord(col1 ~> 0 & col2 ~> "Hans" & col3 ~> "Maier").build(),
-        Test.newRecord(col1 ~> 1 & col2 ~> "Firstname1" & col3 ~> "Lastname1").build(),
-        Test.newRecord(col1 ~> 2 & col2 ~> "Hans" & col3 ~> "Maier").build(),
-        Test.newRecord(col1 ~> 3 & col2 ~> "Firstname3" & col3 ~> "Lastname3").build(),
-        Test.newRecord(col1 ~> 4 & col2 ~> "Hans" & col3 ~> "Maier").build()
+      test.records shouldBe Success(Seq(
+        test.newRecord(col1 ~> 0 & col2 ~> "Hans" & col3 ~> "Maier").build(),
+        test.newRecord(col1 ~> 1 & col2 ~> "Firstname1" & col3 ~> "Lastname1").build(),
+        test.newRecord(col1 ~> 2 & col2 ~> "Hans" & col3 ~> "Maier").build(),
+        test.newRecord(col1 ~> 3 & col2 ~> "Firstname3" & col3 ~> "Lastname3").build(),
+        test.newRecord(col1 ~> 4 & col2 ~> "Hans" & col3 ~> "Maier").build()
       ))
     }
 
     "allow updating records with multiple where conditions" in {
-      object Test extends RowRelation {
+      object Test extends RelationDef {
         val col1: ColumnDef[Int] = ColumnDef("ID")
         val col2: ColumnDef[String] = ColumnDef("Firstname")
         val col3: ColumnDef[String] = ColumnDef("Lastname")
 
         override val columns: Set[UntypedColumnDef] = Set(col1, col2, col3)
+        override val name: String = "test"
       }
+      val test = RowRelation(Test)
 
       import Test._
       import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
-      Test.insertAll(Seq(
-        Test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
-        Test.newRecord(col1 ~> 1 & col2 ~> "Firstname1" & col3 ~> "Lastname1").build(),
-        Test.newRecord(col1 ~> 2 & col2 ~> "Firstname2" & col3 ~> "Lastname2").build(),
-        Test.newRecord(col1 ~> 3 & col2 ~> "Firstname3" & col3 ~> "Lastname3").build(),
-        Test.newRecord(col1 ~> 4 & col2 ~> "Firstname4" & col3 ~> "Lastname4").build()
+      test.insertAll(Seq(
+        test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
+        test.newRecord(col1 ~> 1 & col2 ~> "Firstname1" & col3 ~> "Lastname1").build(),
+        test.newRecord(col1 ~> 2 & col2 ~> "Firstname2" & col3 ~> "Lastname2").build(),
+        test.newRecord(col1 ~> 3 & col2 ~> "Firstname3" & col3 ~> "Lastname3").build(),
+        test.newRecord(col1 ~> 4 & col2 ~> "Firstname4" & col3 ~> "Lastname4").build()
       ))
 
-      val result = Test.update(col2 ~> "Hans" & col3 ~> "Maier")
+      val result = test.update(col2 ~> "Hans" & col3 ~> "Maier")
         .whereAll(
           Map(col1.untyped -> { id: Any => id.asInstanceOf[Int] % 2 == 0 }) ++
           Map(col2.untyped -> { firstname: Any => firstname.asInstanceOf[String] == "Firstname2" })
         )
       result shouldBe Success(1)
 
-      Test.records shouldBe Success(Seq(
-        Test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
-        Test.newRecord(col1 ~> 1 & col2 ~> "Firstname1" & col3 ~> "Lastname1").build(),
-        Test.newRecord(col1 ~> 2 & col2 ~> "Hans" & col3 ~> "Maier").build(),
-        Test.newRecord(col1 ~> 3 & col2 ~> "Firstname3" & col3 ~> "Lastname3").build(),
-        Test.newRecord(col1 ~> 4 & col2 ~> "Firstname4" & col3 ~> "Lastname4").build()
+      test.records shouldBe Success(Seq(
+        test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
+        test.newRecord(col1 ~> 1 & col2 ~> "Firstname1" & col3 ~> "Lastname1").build(),
+        test.newRecord(col1 ~> 2 & col2 ~> "Hans" & col3 ~> "Maier").build(),
+        test.newRecord(col1 ~> 3 & col2 ~> "Firstname3" & col3 ~> "Lastname3").build(),
+        test.newRecord(col1 ~> 4 & col2 ~> "Firstname4" & col3 ~> "Lastname4").build()
       ))
     }
 
     "allow deletion of records" in {
-      object Test extends RowRelation {
+      object Test extends RelationDef {
         val col1: ColumnDef[Int] = ColumnDef("ID")
         val col2: ColumnDef[String] = ColumnDef("Firstname")
         val col3: ColumnDef[String] = ColumnDef("Lastname")
 
         override val columns: Set[UntypedColumnDef] = Set(col1, col2, col3)
+        override val name: String = "test"
       }
+      val test = RowRelation(Test)
 
       import Test._
       import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
-      Test.insertAll(Seq(
-        Test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
-        Test.newRecord(col1 ~> 1 & col2 ~> "Firstname1" & col3 ~> "Lastname1").build(),
-        Test.newRecord(col1 ~> 2 & col2 ~> "Firstname2" & col3 ~> "Lastname2").build(),
-        Test.newRecord(col1 ~> 3 & col2 ~> "Firstname3" & col3 ~> "Lastname3").build(),
-        Test.newRecord(col1 ~> 4 & col2 ~> "Firstname4" & col3 ~> "Lastname4").build()
+      test.insertAll(Seq(
+        test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
+        test.newRecord(col1 ~> 1 & col2 ~> "Firstname1" & col3 ~> "Lastname1").build(),
+        test.newRecord(col1 ~> 2 & col2 ~> "Firstname2" & col3 ~> "Lastname2").build(),
+        test.newRecord(col1 ~> 3 & col2 ~> "Firstname3" & col3 ~> "Lastname3").build(),
+        test.newRecord(col1 ~> 4 & col2 ~> "Firstname4" & col3 ~> "Lastname4").build()
       ))
 
-      val record2Delete = Test.newRecord(col1 ~> 2 & col2 ~> "Firstname2" & col3 ~> "Lastname2").build()
-      val result = Test.delete(record2Delete)
+      val record2Delete = test.newRecord(col1 ~> 2 & col2 ~> "Firstname2" & col3 ~> "Lastname2").build()
+      val result = test.delete(record2Delete)
       result shouldBe Success(record2Delete)
 
-      Test.records shouldBe Success(Seq(
-        Test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
-        Test.newRecord(col1 ~> 1 & col2 ~> "Firstname1" & col3 ~> "Lastname1").build(),
-        Test.newRecord(col1 ~> 3 & col2 ~> "Firstname3" & col3 ~> "Lastname3").build(),
-        Test.newRecord(col1 ~> 4 & col2 ~> "Firstname4" & col3 ~> "Lastname4").build()
+      test.records shouldBe Success(Seq(
+        test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
+        test.newRecord(col1 ~> 1 & col2 ~> "Firstname1" & col3 ~> "Lastname1").build(),
+        test.newRecord(col1 ~> 3 & col2 ~> "Firstname3" & col3 ~> "Lastname3").build(),
+        test.newRecord(col1 ~> 4 & col2 ~> "Firstname4" & col3 ~> "Lastname4").build()
       ))
     }
 
     "throw error when trying to delete non-existing record" in {
-      object Test extends RowRelation {
+      object Test extends RelationDef {
         val col1: ColumnDef[Int] = ColumnDef("ID")
         val col2: ColumnDef[String] = ColumnDef("Firstname")
         val col3: ColumnDef[String] = ColumnDef("Lastname")
 
         override val columns: Set[UntypedColumnDef] = Set(col1, col2, col3)
+        override val name: String = "test"
       }
+      val test = RowRelation(Test)
 
       import Test._
       import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
-      Test.insertAll(Seq(
-        Test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
-        Test.newRecord(col1 ~> 1 & col2 ~> "Firstname1" & col3 ~> "Lastname1").build(),
-        Test.newRecord(col1 ~> 2 & col2 ~> "Firstname2" & col3 ~> "Lastname2").build(),
-        Test.newRecord(col1 ~> 3 & col2 ~> "Firstname3" & col3 ~> "Lastname3").build(),
-        Test.newRecord(col1 ~> 4 & col2 ~> "Firstname4" & col3 ~> "Lastname4").build()
+      test.insertAll(Seq(
+        test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
+        test.newRecord(col1 ~> 1 & col2 ~> "Firstname1" & col3 ~> "Lastname1").build(),
+        test.newRecord(col1 ~> 2 & col2 ~> "Firstname2" & col3 ~> "Lastname2").build(),
+        test.newRecord(col1 ~> 3 & col2 ~> "Firstname3" & col3 ~> "Lastname3").build(),
+        test.newRecord(col1 ~> 4 & col2 ~> "Firstname4" & col3 ~> "Lastname4").build()
       ))
 
-      val record2Delete = Test.newRecord(col1 ~> -1 & col2 ~> "" & col3 ~> "").build()
-      val result = Test.delete(record2Delete)
+      val record2Delete = test.newRecord(col1 ~> -1 & col2 ~> "" & col3 ~> "").build()
+      val result = test.delete(record2Delete)
       result.isFailure shouldBe true
       result.failed.get match {
         case RecordNotFoundException(e) => e.contains("this relation does not contain the record") shouldBe true
         case t => fail(s"the wrong exception was thrown\nexpected: RecordNotFoundExcpetion\nfound: $t")
       }
 
-      Test.records shouldBe Success(Seq(
-        Test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
-        Test.newRecord(col1 ~> 1 & col2 ~> "Firstname1" & col3 ~> "Lastname1").build(),
-        Test.newRecord(col1 ~> 2 & col2 ~> "Firstname2" & col3 ~> "Lastname2").build(),
-        Test.newRecord(col1 ~> 3 & col2 ~> "Firstname3" & col3 ~> "Lastname3").build(),
-        Test.newRecord(col1 ~> 4 & col2 ~> "Firstname4" & col3 ~> "Lastname4").build()
+      test.records shouldBe Success(Seq(
+        test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
+        test.newRecord(col1 ~> 1 & col2 ~> "Firstname1" & col3 ~> "Lastname1").build(),
+        test.newRecord(col1 ~> 2 & col2 ~> "Firstname2" & col3 ~> "Lastname2").build(),
+        test.newRecord(col1 ~> 3 & col2 ~> "Firstname3" & col3 ~> "Lastname3").build(),
+        test.newRecord(col1 ~> 4 & col2 ~> "Firstname4" & col3 ~> "Lastname4").build()
       ))
     }
   }
