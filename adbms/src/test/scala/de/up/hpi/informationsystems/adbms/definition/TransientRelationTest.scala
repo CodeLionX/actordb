@@ -53,10 +53,11 @@ class TransientRelationTest extends WordSpec with Matchers {
         )).records shouldEqual Success(Seq.empty)
       }
 
-      "return an empty result set when joined with itself" in {
+      "fail when joined with itself" in {
         emptyRelation
           .crossJoin(emptyRelation, (colFirstname, colFirstname))
-          .records shouldEqual Success(Seq.empty)
+          .records
+          .isFailure shouldBe true
       }
     }
 
@@ -97,18 +98,19 @@ class TransientRelationTest extends WordSpec with Matchers {
         fullRelation
           .project(Set(ColumnDef[Int]("bad-col")))
           .records
-          .isFailure should equal (true)
+          .isFailure shouldBe true
 
         fullRelation
           .project(columns + ColumnDef[Int]("bad-col"))
           .records
-          .isFailure should equal (true)
+          .isFailure shouldBe true
       }
 
-      "return an empty result set when joined with an empty relation" in {
+      "fail when joined with an empty relation" in {
         fullRelation
           .crossJoin(TransientRelation(Seq.empty), (colFirstname, colFirstname))
-          .records shouldEqual Success(Seq.empty)
+          .records
+          .isFailure shouldBe true
       }
 
       "return an appropriate result for join with itself with different columns" in {
@@ -150,6 +152,18 @@ class TransientRelationTest extends WordSpec with Matchers {
           record1 ++ otherRecord1,
           record1 ++ otherRecord2
         ))
+      }
+
+      "fail to join on wrong column definition" in {
+        val joined1 = fullRelation
+          .crossJoin(fullRelation, (ColumnDef[String]("something"), colFirstname))
+          .records
+        val joined2 = fullRelation
+          .crossJoin(fullRelation, (colFirstname, ColumnDef[String]("something")))
+          .records
+
+        joined1.isFailure shouldBe true
+        joined2.isFailure shouldBe true
       }
     }
 

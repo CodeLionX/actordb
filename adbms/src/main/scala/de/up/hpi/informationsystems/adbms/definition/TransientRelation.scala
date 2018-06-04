@@ -67,26 +67,33 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
       ))
 
   /** @inheritdoc */
+  override def crossJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
+    if(isFailure)
+      this
+    else
+      TransientRelation(Try{
+        if(!columns.contains(on._1))
+          throw IncompatibleColumnDefinitionException(s"this relation does not contain the specified column {${on._1}}")
+        else if(!other.columns.contains(on._2))
+          throw IncompatibleColumnDefinitionException(s"the other relation does not contain the specified column {${on._2}}")
+        else
+          internal_data.flatMap(record => {
+            val onKey: T = record.get(on._1).get
+
+            val matchingRecords = other.where[T](on._2 -> {
+              _ == onKey
+            }).records.get
+            matchingRecords.map(otherRecord =>
+              record ++ otherRecord
+            )
+          })
+      })
+
+  /** @inheritdoc */
   override def records: Try[Seq[Record]] = data
 
 
   /** @inheritdoc */
   override def toString: String = s"${this.getClass.getSimpleName}:\n" + Util.prettyTable(columns, internal_data)
-
-  /** @inheritdoc */
-  override def crossJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
-    if(isFailure)
-      this
-    else
-    TransientRelation(Try(
-      internal_data.flatMap( record => {
-        val onKey: T = record.get(on._1).get
-
-        val matchingRecords = other.where[T](on._2 -> { _ == onKey }).records.get
-        matchingRecords.map( otherRecord =>
-          record ++ otherRecord
-        )
-      })
-    ))
 
 }
