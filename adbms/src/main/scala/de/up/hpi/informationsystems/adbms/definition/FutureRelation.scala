@@ -41,20 +41,21 @@ object FutureRelation {
       FutureRelation(data.map(_.project(columnDefs)))
 
     /** @inheritdoc */
-    // FIXME NOT IMPLEMENTED
-    override def innerJoin(other: Relation, on: (Record, Record) => Boolean): Relation = ???
+    override def innerJoin(other: Relation, on: (Record, Record) => Boolean): Relation =
+      FutureRelation(data.map(_.innerJoin(other, on)))
 
     /** @inheritdoc */
-    // FIXME NOT IMPLEMENTED
-    override def outerJoin(other: Relation, on: (Record, Record) => Boolean): Relation = ???
+    override def outerJoin(other: Relation, on: (Record, Record) => Boolean): Relation =
+      FutureRelation(data.map(_.outerJoin(other, on)))
 
     /** @inheritdoc */
-    // FIXME NOT IMPLEMENTED
-    override def leftJoin(other: Relation, on: (Record, Record) => Boolean): Relation = ???
+    override def leftJoin(other: Relation, on: (Record, Record) => Boolean): Relation =
+      FutureRelation(data.map(_.leftJoin(other, on)))
 
     /** @inheritdoc */
-    // FIXME NOT IMPLEMENTED
-    override def rightJoin(other: Relation, on: (Record, Record) => Boolean): Relation = ???
+    override def rightJoin(other: Relation, on: (Record, Record) => Boolean): Relation =
+      FutureRelation(data.map(_.rightJoin(other, on)))
+
     /**
       * Blocks until all Futures are complete
       * and afterwards converts this Relation to a sequence of Records.
