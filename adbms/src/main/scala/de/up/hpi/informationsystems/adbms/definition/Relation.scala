@@ -38,6 +38,30 @@ trait Relation {
     */
   def project(columnDefs: Set[UntypedColumnDef]): Relation
 
+  // FIXME: Add scaladoc
+  /**
+    * @note wip
+    */
+  def innerJoin(other: Relation, on: (Record, Record) => Boolean): Relation
+
+  // FIXME: Add scaladoc
+  /**
+    * @note wip
+    */
+  def outerJoin(other: Relation, on: (Record, Record) => Boolean): Relation
+
+  // FIXME: Add scaladoc
+  /**
+    * @note wip
+    */
+  def leftJoin(other: Relation, on: (Record, Record) => Boolean): Relation
+
+  // FIXME: Add scaladoc
+  /**
+    * @note wip
+    */
+  def rightJoin(other: Relation, on: (Record, Record) => Boolean): Relation
+
   /**
     * Converts this Relation to a sequence of Records.
     * @note Depending on the underlying Relation, this operation can be very costly!

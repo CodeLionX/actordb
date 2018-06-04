@@ -3,7 +3,7 @@ package de.up.hpi.informationsystems.adbms.definition
 import java.util.Objects
 
 import scala.collection.{MapLike, mutable}
-import scala.util.Try
+import scala.util.{Success, Try}
 
 class Record private (cells: Map[UntypedColumnDef, Any])
   extends MapLike[UntypedColumnDef, Any, Record]
@@ -45,6 +45,35 @@ class Record private (cells: Map[UntypedColumnDef, Any])
       new Record(data.filterKeys(columnDefs.contains))
     else
       throw IncompatibleColumnDefinitionException(s"this record does not contain all specified columns {$columnDefs}")
+
+  /**
+    * Concatenates the columns and column contents of two records.
+    * If `this` and `other` have overlapping `ColumnDef`s, only those
+    * contents from `this` will prevail.
+    * @note This call will only keep the data from `this`, i.e. `left`
+    *       if there are equal `ColumnDef`s in both records. The result
+    *       record's columns are the union of the columns of `this` and
+    *       `other`.
+    * @param other record which's columns and content are to be appended
+    *              to `this`
+    * @return A new record made up of `this` and `other`
+    */
+  def concat(other: Record): Try[Record] = Try({
+    var builder = Record(this.columns.union(other.columns))
+    other.columns
+      .foreach(colDef => {
+        val value = other.get(colDef.asInstanceOf[ColumnDef[colDef.value]])
+        if (value.isDefined)
+          builder = builder.withCellContent(colDef.asInstanceOf[ColumnDef[colDef.value]])(value.get)
+    })
+    this.columns
+      .foreach(colDef => {
+        val value = this.get(colDef.asInstanceOf[ColumnDef[colDef.value]])
+        if (value.isDefined)
+          builder = builder.withCellContent(colDef.asInstanceOf[ColumnDef[colDef.value]])(value.get)
+      })
+    builder.build()
+  })
 
   // from MapLike
   override def empty: Record = new Record(Map.empty)

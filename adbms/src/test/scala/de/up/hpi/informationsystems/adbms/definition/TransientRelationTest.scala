@@ -77,7 +77,6 @@ class TransientRelationTest extends WordSpec with Matchers {
       }
 
       "return selected columns only from project" in {
-        // deduce correctness of Relation.project from correctness of Record.project
         fullRelation.project(Set(colFirstname)).records shouldEqual
           Success(Seq(
             record1.project(Set(colFirstname)).get,
@@ -95,6 +94,162 @@ class TransientRelationTest extends WordSpec with Matchers {
           .project(columns + ColumnDef[Int]("bad-col"))
           .records
           .isFailure should equal (true)
+      }
+    }
+
+    "joining with other TransientRelations" should {
+      // FIXME the SSN column is never needed until now
+      val colSSN: ColumnDef[String] = ColumnDef("SSN")
+      val otherColumns: Set[UntypedColumnDef] = Set(colFirstname, colLastname, colSSN)
+
+      val colOrderId: ColumnDef[Int] = ColumnDef("OrderId")
+      val colOrderdate: ColumnDef[String] = ColumnDef("Orderdate")
+      val colCustomerId: ColumnDef[Int] = ColumnDef("CustomerId")
+      val colFullname: ColumnDef[String] = ColumnDef("Fullname")
+      val colCountry: ColumnDef[String] = ColumnDef("Country")
+
+      val orderColumns: Set[UntypedColumnDef] = Set(colOrderId, colOrderdate, colCustomerId)
+      val customerColumns: Set[UntypedColumnDef] = Set(colCustomerId, colFullname, colCountry)
+
+      val orderRecord1 = Record(orderColumns)
+        .withCellContent(colOrderId)(504)
+        .withCellContent(colOrderdate)("05/06/07")
+        .withCellContent(colCustomerId)(14)
+        .build()
+
+      val orderRecord2 = Record(orderColumns)
+        .withCellContent(colOrderId)(505)
+        .withCellContent(colOrderdate)("08/06/07")
+        .withCellContent(colCustomerId)(14)
+        .build()
+
+      val orderRecord3 = Record(orderColumns)
+        .withCellContent(colOrderId)(504)
+        .withCellContent(colOrderdate)("17/06/07")
+        .withCellContent(colCustomerId)(6)
+        .build()
+
+      val customerRecord1 = Record(customerColumns)
+        .withCellContent(colCustomerId)(14)
+        .withCellContent(colFullname)("Max Mustermann")
+        .withCellContent(colCountry)("Germany")
+        .build()
+
+      val customerRecord2 = Record(customerColumns)
+        .withCellContent(colCustomerId)(7)
+        .withCellContent(colFullname)("Omari Wesson")
+        .withCellContent(colCountry)("USA")
+        .build()
+
+      val orders: Relation = TransientRelation(Seq(orderRecord1, orderRecord2, orderRecord3))
+      val customers: Relation = TransientRelation(Seq(customerRecord1, customerRecord2))
+
+      "return the appropriate result set for a leftJoin" in {
+        orders
+          .leftJoin(customers, (left, right) => left.get(colCustomerId) == right.get(colCustomerId))
+          .records shouldEqual
+          Success(Seq(
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colOrderId)(504)
+              .withCellContent(colOrderdate)("05/06/07")
+              .withCellContent(colCustomerId)(14)
+              .withCellContent(colFullname)("Max Mustermann")
+              .withCellContent(colCountry)("Germany")
+              .build(),
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colOrderId)(505)
+              .withCellContent(colOrderdate)("08/06/07")
+              .withCellContent(colCustomerId)(14)
+              .withCellContent(colFullname)("Max Mustermann")
+              .withCellContent(colCountry)("Germany")
+              .build(),
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colOrderId)(504)
+              .withCellContent(colOrderdate)("17/06/07")
+              .withCellContent(colCustomerId)(6)
+              .build()
+          ))
+      }
+
+      "return the appropriate result set for a rightJoin" in {
+        orders
+          .rightJoin(customers, (left, right) => left.get(colCustomerId) == right.get(colCustomerId))
+          .records shouldEqual
+          Success(Seq(
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colCustomerId)(14)
+              .withCellContent(colFullname)("Max Mustermann")
+              .withCellContent(colCountry)("Germany")
+              .withCellContent(colOrderId)(504)
+              .withCellContent(colOrderdate)("05/06/07")
+              .build(),
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colCustomerId)(14)
+              .withCellContent(colFullname)("Max Mustermann")
+              .withCellContent(colCountry)("Germany")
+              .withCellContent(colOrderId)(505)
+              .withCellContent(colOrderdate)("08/06/07")
+              .build(),
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colCustomerId)(7)
+              .withCellContent(colFullname)("Omari Wesson")
+              .withCellContent(colCountry)("USA")
+              .build()
+          ))
+      }
+
+      "return the appropriate result set for an innerJoin" in {
+        orders
+          .innerJoin(customers, (left, right) => left.get(colCustomerId) == right.get(colCustomerId))
+          .records shouldEqual
+          Success(Seq(
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colCustomerId)(14)
+              .withCellContent(colFullname)("Max Mustermann")
+              .withCellContent(colCountry)("Germany")
+              .withCellContent(colOrderId)(504)
+              .withCellContent(colOrderdate)("05/06/07")
+              .build(),
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colCustomerId)(14)
+              .withCellContent(colFullname)("Max Mustermann")
+              .withCellContent(colCountry)("Germany")
+              .withCellContent(colOrderId)(505)
+              .withCellContent(colOrderdate)("08/06/07")
+              .build()
+          ))
+      }
+
+      "return the appropriate result set for an outerJoin" in {
+        orders
+          .outerJoin(customers, (left, right) => left.get(colCustomerId) == right.get(colCustomerId))
+          .records shouldEqual
+          Success(Seq(
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colCustomerId)(14)
+              .withCellContent(colFullname)("Max Mustermann")
+              .withCellContent(colCountry)("Germany")
+              .withCellContent(colOrderId)(504)
+              .withCellContent(colOrderdate)("05/06/07")
+              .build(),
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colCustomerId)(14)
+              .withCellContent(colFullname)("Max Mustermann")
+              .withCellContent(colCountry)("Germany")
+              .withCellContent(colOrderId)(505)
+              .withCellContent(colOrderdate)("08/06/07")
+              .build(),
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colOrderId)(504)
+              .withCellContent(colOrderdate)("17/06/07")
+              .withCellContent(colCustomerId)(6)
+              .build(),
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colCustomerId)(7)
+              .withCellContent(colFullname)("Omari Wesson")
+              .withCellContent(colCountry)("USA")
+              .build()
+          ))
       }
     }
 

@@ -67,6 +67,47 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
       ))
 
   /** @inheritdoc */
+  override def innerJoin(other: Relation, on: (Record, Record) => Boolean): Relation = {
+    if(isFailure)
+      this
+    else
+      TransientRelation(Try(
+        for {
+          lside <- internal_data
+          rside <- other.records.get
+          if on(rside, lside)
+        } yield lside.concat(rside).get
+      ))
+  }
+
+  /** @inheritdoc */
+  // FIXME do a left outer join!
+  override def leftJoin(other: Relation, on: (Record, Record) => Boolean): Relation = {
+    val empty = Record.empty
+    if(isFailure)
+      this
+    else
+      TransientRelation(Try(
+        internal_data.flatMap(rec => {
+          val res = other.records.get
+            .filter(on.curried(rec))
+            .map(rside => rec.concat(rside).get)
+          if (res.isEmpty)
+            Seq(rec.concat(Record(other.columns).build()).get)
+          else res
+        })
+      ))
+  }
+
+  /** @inheritdoc */
+  override def rightJoin(other: Relation, on: (Record, Record) => Boolean): Relation = other.leftJoin(this, on)
+
+  /** @inheritdoc */
+  override def outerJoin(other: Relation, on: (Record, Record) => Boolean): Relation = TransientRelation(Try(
+    this.leftJoin(other, on).records.get.union(this.rightJoin(other, on).records.get).distinct
+  ))
+
+  /** @inheritdoc */
   override def records: Try[Seq[Record]] = data
 
 
