@@ -39,6 +39,17 @@ trait Relation {
   def project(columnDefs: Set[UntypedColumnDef]): Relation
 
   /**
+    * Joins this relation with another one on the specified columns.
+    *
+    * @note Currently the column types of the join columns must be the same!
+    * @param other
+    * @param on
+    * @tparam T
+    * @return
+    */
+  def crossJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation
+
+  /**
     * Converts this Relation to a sequence of Records.
     * @note Depending on the underlying Relation, this operation can be very costly!
     * @return a sequence of Records if all
