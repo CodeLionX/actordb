@@ -48,7 +48,8 @@ object Dactor {
                                                                      dactorClass: Class[_ <: Dactor],
                                                                      messages: Map[Int, RequestResponseProtocol.Request]
                                                                    )(
-                                                                     implicit ev: ClassTag[ResultMsgType],
+                                                                     implicit
+                                                                     ev: ClassTag[ResultMsgType],
                                                                      timeout: Timeout
                                                                    ): FutureRelation = {
     import scala.concurrent.ExecutionContext.Implicits.global
