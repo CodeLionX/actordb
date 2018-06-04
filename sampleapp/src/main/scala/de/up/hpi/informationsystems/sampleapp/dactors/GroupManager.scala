@@ -31,9 +31,8 @@ object GroupManager {
 class GroupManager(id: Int) extends Dactor(id) {
   import GroupManager._
 
-  val discounts = RowRelation(Discounts)
-
-  override protected val relations: Map[String, MutableRelation] = Map(Discounts.name -> discounts)
+  override protected val relations: Map[RelationDef, MutableRelation] =
+    Dactor.createAsRowRelations(Seq(Discounts))
 
   override def receive: Receive = {
     case GetFixedDiscounts.Request(ids) =>
@@ -44,7 +43,7 @@ class GroupManager(id: Int) extends Dactor(id) {
   }
 
   def getFixedDiscounts(ids: Seq[Int]): Try[Seq[Record]] =
-    discounts
+    relations(Discounts)
       .where(Discounts.id -> { id: Int => ids.contains(id) })
       .records
 
