@@ -40,15 +40,23 @@ class TransientRelationTest extends WordSpec with Matchers {
     "empty" should {
       val emptyRelation = TransientRelation(Seq.empty)
 
-      "return an empty result set for any where or whereAll query" in {
+      "return an empty result set for any where query" in {
         emptyRelation
           .where(colFirstname, (_: String) => true)
           .records shouldEqual Success(Seq.empty)
+      }
 
+      "return an empty result set for any whereAll query" in {
         emptyRelation.whereAll(Map(
           colFirstname.untyped -> {_: Any => true},
           colAge.untyped -> {_: Any => true}
         )).records shouldEqual Success(Seq.empty)
+      }
+
+      "return an empty result set when joined with itself" in {
+        emptyRelation
+          .crossJoin(emptyRelation, (colFirstname, colFirstname))
+          .records shouldEqual Success(Seq.empty)
       }
     }
 
@@ -95,6 +103,53 @@ class TransientRelationTest extends WordSpec with Matchers {
           .project(columns + ColumnDef[Int]("bad-col"))
           .records
           .isFailure should equal (true)
+      }
+
+      "return an empty result set when joined with an empty relation" in {
+        fullRelation
+          .crossJoin(TransientRelation(Seq.empty), (colFirstname, colFirstname))
+          .records shouldEqual Success(Seq.empty)
+      }
+
+      "return an appropriate result for join with itself with different columns" in {
+        val diffColumnsJoined = fullRelation
+          .crossJoin(fullRelation, (colFirstname, colLastname))
+
+        diffColumnsJoined.columns shouldEqual columns
+        diffColumnsJoined.records shouldEqual Success(Seq(record1))
+      }
+
+      "return itself for join with itself on same column" in {
+        val sameColumnJoined = fullRelation
+          .crossJoin(fullRelation, (colFirstname, colFirstname))
+
+        sameColumnJoined.columns shouldEqual columns
+        sameColumnJoined.records shouldEqual Success(Seq(record1, record2))
+      }
+
+      "return appropriate result for join" in {
+        val colFirstname2 = ColumnDef[String]("Firstname2")
+        val col1 = ColumnDef[Double]("col1")
+
+        val otherRecord1 = Record(Set(colFirstname2, col1))
+          .withCellContent(colFirstname2)("Test")
+          .withCellContent(col1)(12.1)
+          .build()
+
+        val otherRecord2 = Record(Set(colFirstname2, col1))
+          .withCellContent(colFirstname2)("Test")
+          .withCellContent(col1)(916.93)
+          .build()
+
+        val otherRel = TransientRelation(Seq(otherRecord1, otherRecord2))
+        val sameColumnJoined = fullRelation
+          .crossJoin(otherRel, (colFirstname, colFirstname2))
+
+        sameColumnJoined.columns shouldEqual columns + colFirstname2 + col1
+        sameColumnJoined.records shouldEqual Success(Seq(
+          record1 ++ otherRecord1,
+          record1 ++ otherRecord2
+        ))
       }
     }
 
