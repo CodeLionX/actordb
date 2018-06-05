@@ -1,6 +1,7 @@
 package de.up.hpi.informationsystems.adbms.definition
 
 import de.up.hpi.informationsystems.adbms.Util
+import de.up.hpi.informationsystems.adbms.definition.Relation.RecordComparator
 
 import scala.util.Try
 
@@ -81,20 +82,20 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
     TransientRelation(data).crossJoin(other, on)
 
   /** @inheritdoc */
-  // FIXME NOT IMPLEMENTED
-  override def innerJoin(other: Relation, on: (Record, Record) => Boolean): Relation = ???
+  override def innerJoin(other: Relation, on: RecordComparator): Relation =
+    TransientRelation(records).innerJoin(other, on)
 
   /** @inheritdoc */
-  // FIXME NOT IMPLEMENTED
-  override def outerJoin(other: Relation, on: (Record, Record) => Boolean): Relation = ???
+  override def outerJoin(other: Relation, on: RecordComparator): Relation =
+    TransientRelation(records).outerJoin(other, on)
 
   /** @inheritdoc */
-  // FIXME NOT IMPLEMENTED
-  override def leftJoin(other: Relation, on: (Record, Record) => Boolean): Relation = ???
+  override def leftJoin(other: Relation, on: RecordComparator): Relation =
+    TransientRelation(records).leftJoin(other, on)
 
   /** @inheritdoc */
-  // FIXME NOT IMPLEMENTED
-  override def rightJoin(other: Relation, on: (Record, Record) => Boolean): Relation = ???
+  override def rightJoin(other: Relation, on: RecordComparator): Relation =
+    TransientRelation(records).rightJoin(other, on)
 
   /** @inheritdoc */
   override def records: Try[Seq[Record]] = Try(data)

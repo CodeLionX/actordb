@@ -81,7 +81,6 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
   }
 
   /** @inheritdoc */
-  // FIXME do a left outer join!
   override def leftJoin(other: Relation, on: Relation.RecordComparator): Relation = {
     val empty = Record.empty
     if(isFailure)
