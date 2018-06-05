@@ -67,7 +67,7 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
       ))
 
   /** @inheritdoc */
-  override def innerJoin(other: Relation, on: (Record, Record) => Boolean): Relation = {
+  override def innerJoin(other: Relation, on: Relation.RecordComparator): Relation = {
     if(isFailure)
       this
     else
@@ -82,7 +82,7 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
 
   /** @inheritdoc */
   // FIXME do a left outer join!
-  override def leftJoin(other: Relation, on: (Record, Record) => Boolean): Relation = {
+  override def leftJoin(other: Relation, on: Relation.RecordComparator): Relation = {
     val empty = Record.empty
     if(isFailure)
       this
@@ -100,10 +100,10 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
   }
 
   /** @inheritdoc */
-  override def rightJoin(other: Relation, on: (Record, Record) => Boolean): Relation = other.leftJoin(this, on)
+  override def rightJoin(other: Relation, on: Relation.RecordComparator): Relation = other.leftJoin(this, on)
 
   /** @inheritdoc */
-  override def outerJoin(other: Relation, on: (Record, Record) => Boolean): Relation = TransientRelation(Try(
+  override def outerJoin(other: Relation, on: Relation.RecordComparator): Relation = TransientRelation(Try(
     this.leftJoin(other, on).records.get.union(this.rightJoin(other, on).records.get).distinct
   ))
 

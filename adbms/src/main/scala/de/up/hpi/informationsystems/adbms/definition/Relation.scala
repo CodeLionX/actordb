@@ -4,6 +4,10 @@ import de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilder
 
 import scala.util.Try
 
+object Relation {
+  type RecordComparator = (Record, Record) => Boolean
+}
+
 trait Relation {
 
   /**
@@ -42,25 +46,25 @@ trait Relation {
   /**
     * @note wip
     */
-  def innerJoin(other: Relation, on: (Record, Record) => Boolean): Relation
+  def innerJoin(other: Relation, on: Relation.RecordComparator): Relation
 
   // FIXME: Add scaladoc
   /**
     * @note wip
     */
-  def outerJoin(other: Relation, on: (Record, Record) => Boolean): Relation
+  def outerJoin(other: Relation, on: Relation.RecordComparator): Relation
 
   // FIXME: Add scaladoc
   /**
     * @note wip
     */
-  def leftJoin(other: Relation, on: (Record, Record) => Boolean): Relation
+  def leftJoin(other: Relation, on: Relation.RecordComparator): Relation
 
   // FIXME: Add scaladoc
   /**
     * @note wip
     */
-  def rightJoin(other: Relation, on: (Record, Record) => Boolean): Relation
+  def rightJoin(other: Relation, on: Relation.RecordComparator): Relation
 
   /**
     * Joins this relation with another one on the specified columns.
