@@ -107,7 +107,7 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
     this.leftJoin(other, on).records.get.union(this.rightJoin(other, on).records.get).distinct
   ))
 
-  ** @inheritdoc */
+  /** @inheritdoc */
   override def crossJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
     if(isFailure)
       this
