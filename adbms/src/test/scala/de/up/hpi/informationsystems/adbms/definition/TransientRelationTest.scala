@@ -37,6 +37,45 @@ class TransientRelationTest extends WordSpec with Matchers {
       .withCellContent(colAge)(2)
       .build()
 
+    val colOrderId: ColumnDef[Int] = ColumnDef("OrderId")
+    val colOrderdate: ColumnDef[String] = ColumnDef("Orderdate")
+    val colCustomerId: ColumnDef[Int] = ColumnDef("CustomerId")
+    val colFullname: ColumnDef[String] = ColumnDef("Fullname")
+    val colCountry: ColumnDef[String] = ColumnDef("Country")
+
+    val orderColumns: Set[UntypedColumnDef] = Set(colOrderId, colOrderdate, colCustomerId)
+    val customerColumns: Set[UntypedColumnDef] = Set(colCustomerId, colFullname, colCountry)
+
+    val orderRecord1 = Record(orderColumns)
+      .withCellContent(colOrderId)(504)
+      .withCellContent(colOrderdate)("05/06/07")
+      .withCellContent(colCustomerId)(14)
+      .build()
+
+    val orderRecord2 = Record(orderColumns)
+      .withCellContent(colOrderId)(505)
+      .withCellContent(colOrderdate)("08/06/07")
+      .withCellContent(colCustomerId)(14)
+      .build()
+
+    val orderRecord3 = Record(orderColumns)
+      .withCellContent(colOrderId)(504)
+      .withCellContent(colOrderdate)("17/06/07")
+      .withCellContent(colCustomerId)(6)
+      .build()
+
+    val customerRecord1 = Record(customerColumns)
+      .withCellContent(colCustomerId)(14)
+      .withCellContent(colFullname)("Max Mustermann")
+      .withCellContent(colCountry)("Germany")
+      .build()
+
+    val customerRecord2 = Record(customerColumns)
+      .withCellContent(colCustomerId)(7)
+      .withCellContent(colFullname)("Omari Wesson")
+      .withCellContent(colCountry)("USA")
+      .build()
+
     "empty" should {
       val emptyRelation = TransientRelation(Seq.empty)
 
@@ -168,113 +207,125 @@ class TransientRelationTest extends WordSpec with Matchers {
         joined2.isFailure shouldBe true
       }
 
-      /* Inner-join */
+      /* innerJoin */
 
-      "return an appropriate result for inner-join with itself using different column values" in {
+      "return an appropriate result for innerJoin with itself using different column values" in {
         val diffColumnsJoined = fullRelation
-          .innerJoin(fullRelation, (lside, rside) => lside.get(colFirstname) == rside.get(colLastname))
+          .innerJoin(fullRelation, (lside, rside) => lside.get(colFirstname).get == rside.get(colLastname).get)
 
         diffColumnsJoined.columns shouldEqual columns
         diffColumnsJoined.records shouldEqual Success(Seq(record1))
       }
 
-      "return itself for inner-join with itself using the same column values" in {
+      "return itself for innerJoin with itself using the same column values" in {
         val sameColumnJoined = fullRelation
-          .innerJoin(fullRelation, (left, right) => left.get(colFirstname) == right.get(colFirstname))
+          .innerJoin(fullRelation, (left, right) => left.get(colFirstname).get == right.get(colFirstname).get)
 
         sameColumnJoined.columns shouldEqual columns
         sameColumnJoined.records shouldEqual Success(Seq(record1, record2))
       }
 
-      "return appropriate result for inner-join" in {
-        val colFirstname2 = ColumnDef[String]("Firstname2")
-        val col1 = ColumnDef[Double]("col1")
+      "return the appropriate result for an innerJoin" in {
+        val orders: Relation = TransientRelation(Seq(orderRecord1, orderRecord2, orderRecord3))
+        val customers: Relation = TransientRelation(Seq(customerRecord1, customerRecord2))
 
-        val otherRecord1 = Record(Set(colFirstname2, col1))
-          .withCellContent(colFirstname2)("Test")
-          .withCellContent(col1)(12.1)
-          .build()
+        val joined = orders
+          .innerJoin(customers, (left, right) => left.get(colCustomerId) == right.get(colCustomerId))
 
-        val otherRecord2 = Record(Set(colFirstname2, col1))
-          .withCellContent(colFirstname2)("Test")
-          .withCellContent(col1)(916.93)
-          .build()
-
-        val otherRel = TransientRelation(Seq(otherRecord1, otherRecord2))
-        val sameColumnJoined = fullRelation
-          .innerJoin(otherRel, (left, right) => left.get(colFirstname) == right.get(colFirstname2))
-
-        sameColumnJoined.columns shouldEqual columns + colFirstname2 + col1
-        sameColumnJoined.records shouldEqual Success(Seq(
-          record1 ++ otherRecord1,
-          record1 ++ otherRecord2
-        ))
+        joined.columns shouldEqual orders.columns ++ customers.columns
+        joined.records shouldEqual
+          Success(Seq(
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colCustomerId)(14)
+              .withCellContent(colFullname)("Max Mustermann")
+              .withCellContent(colCountry)("Germany")
+              .withCellContent(colOrderId)(504)
+              .withCellContent(colOrderdate)("05/06/07")
+              .build(),
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colCustomerId)(14)
+              .withCellContent(colFullname)("Max Mustermann")
+              .withCellContent(colCountry)("Germany")
+              .withCellContent(colOrderId)(505)
+              .withCellContent(colOrderdate)("08/06/07")
+              .build()
+          ))
       }
 
-      "fail to inner-join on wrong column definition" in {
+      "fail to innerJoin on wrong column definition" in {
         val joined1 = fullRelation
-          .innerJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")) == right.get(colFirstname))
+          .innerJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")).get == right.get(colFirstname).get)
           .records
         val joined2 = fullRelation
-          .innerJoin(fullRelation, (left, right) => left.get(colFirstname) == right.get(ColumnDef[String]("something")))
+          .innerJoin(fullRelation, (left, right) => left.get(colFirstname).get == right.get(ColumnDef[String]("something")).get)
           .records
 
         joined1.isFailure shouldBe true
         joined2.isFailure shouldBe true
       }
-    }
 
-    "joining with other TransientRelations" should {
-      // FIXME the SSN column is never needed until now
-      val colSSN: ColumnDef[String] = ColumnDef("SSN")
-      val otherColumns: Set[UntypedColumnDef] = Set(colFirstname, colLastname, colSSN)
+      /* outerJoin */
 
-      val colOrderId: ColumnDef[Int] = ColumnDef("OrderId")
-      val colOrderdate: ColumnDef[String] = ColumnDef("Orderdate")
-      val colCustomerId: ColumnDef[Int] = ColumnDef("CustomerId")
-      val colFullname: ColumnDef[String] = ColumnDef("Fullname")
-      val colCountry: ColumnDef[String] = ColumnDef("Country")
+      "return the appropriate result for an outerJoin" in {
+        val orders: Relation = TransientRelation(Seq(orderRecord1, orderRecord2, orderRecord3))
+        val customers: Relation = TransientRelation(Seq(customerRecord1, customerRecord2))
 
-      val orderColumns: Set[UntypedColumnDef] = Set(colOrderId, colOrderdate, colCustomerId)
-      val customerColumns: Set[UntypedColumnDef] = Set(colCustomerId, colFullname, colCountry)
+        val joined = orders
+          .outerJoin(customers, (left, right) => left.get(colCustomerId) == right.get(colCustomerId))
 
-      val orderRecord1 = Record(orderColumns)
-        .withCellContent(colOrderId)(504)
-        .withCellContent(colOrderdate)("05/06/07")
-        .withCellContent(colCustomerId)(14)
-        .build()
+        joined.columns shouldEqual orders.columns ++ customers.columns
+        joined.records shouldEqual
+          Success(Seq(
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colCustomerId)(14)
+              .withCellContent(colFullname)("Max Mustermann")
+              .withCellContent(colCountry)("Germany")
+              .withCellContent(colOrderId)(504)
+              .withCellContent(colOrderdate)("05/06/07")
+              .build(),
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colCustomerId)(14)
+              .withCellContent(colFullname)("Max Mustermann")
+              .withCellContent(colCountry)("Germany")
+              .withCellContent(colOrderId)(505)
+              .withCellContent(colOrderdate)("08/06/07")
+              .build(),
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colOrderId)(504)
+              .withCellContent(colOrderdate)("17/06/07")
+              .withCellContent(colCustomerId)(6)
+              .build(),
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colCustomerId)(7)
+              .withCellContent(colFullname)("Omari Wesson")
+              .withCellContent(colCountry)("USA")
+              .build()
+          ))
+      }
 
-      val orderRecord2 = Record(orderColumns)
-        .withCellContent(colOrderId)(505)
-        .withCellContent(colOrderdate)("08/06/07")
-        .withCellContent(colCustomerId)(14)
-        .build()
+      "fail to outerJoin on wrong column definition" in {
+        val joined1 = fullRelation
+          .outerJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")).get == right.get(colFirstname).get)
+          .records
+        val joined2 = fullRelation
+          .outerJoin(fullRelation, (left, right) => left.get(colFirstname).get == right.get(ColumnDef[String]("something")).get)
+          .records
 
-      val orderRecord3 = Record(orderColumns)
-        .withCellContent(colOrderId)(504)
-        .withCellContent(colOrderdate)("17/06/07")
-        .withCellContent(colCustomerId)(6)
-        .build()
+        joined1.isFailure shouldBe true
+        joined2.isFailure shouldBe true
+      }
 
-      val customerRecord1 = Record(customerColumns)
-        .withCellContent(colCustomerId)(14)
-        .withCellContent(colFullname)("Max Mustermann")
-        .withCellContent(colCountry)("Germany")
-        .build()
-
-      val customerRecord2 = Record(customerColumns)
-        .withCellContent(colCustomerId)(7)
-        .withCellContent(colFullname)("Omari Wesson")
-        .withCellContent(colCountry)("USA")
-        .build()
-
-      val orders: Relation = TransientRelation(Seq(orderRecord1, orderRecord2, orderRecord3))
-      val customers: Relation = TransientRelation(Seq(customerRecord1, customerRecord2))
+      /* leftJoin */
 
       "return the appropriate result set for a leftJoin" in {
-        orders
+        val orders: Relation = TransientRelation(Seq(orderRecord1, orderRecord2, orderRecord3))
+        val customers: Relation = TransientRelation(Seq(customerRecord1, customerRecord2))
+
+        val joined = orders
           .leftJoin(customers, (left, right) => left.get(colCustomerId) == right.get(colCustomerId))
-          .records shouldEqual
+
+        joined.columns shouldEqual orders.columns ++ customers.columns
+        joined.records shouldEqual
           Success(Seq(
             Record(orderColumns ++ customerColumns)
               .withCellContent(colOrderId)(504)
@@ -297,11 +348,30 @@ class TransientRelationTest extends WordSpec with Matchers {
               .build()
           ))
       }
+
+      "fail to leftJoin on wrong column definition" in {
+        val joined1 = fullRelation
+          .leftJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")).get == right.get(colFirstname).get)
+          .records
+        val joined2 = fullRelation
+          .leftJoin(fullRelation, (left, right) => left.get(colFirstname).get == right.get(ColumnDef[String]("something")).get)
+          .records
+
+        joined1.isFailure shouldBe true
+        joined2.isFailure shouldBe true
+      }
+
+      /* rightJoin */
 
       "return the appropriate result set for a rightJoin" in {
-        orders
+        val orders: Relation = TransientRelation(Seq(orderRecord1, orderRecord2, orderRecord3))
+        val customers: Relation = TransientRelation(Seq(customerRecord1, customerRecord2))
+
+        val joined = orders
           .rightJoin(customers, (left, right) => left.get(colCustomerId) == right.get(colCustomerId))
-          .records shouldEqual
+
+        joined.columns shouldEqual orders.columns ++ customers.columns
+        joined.records shouldEqual
           Success(Seq(
             Record(orderColumns ++ customerColumns)
               .withCellContent(colCustomerId)(14)
@@ -325,58 +395,16 @@ class TransientRelationTest extends WordSpec with Matchers {
           ))
       }
 
-      "return the appropriate result set for an innerJoin" in {
-        orders
-          .innerJoin(customers, (left, right) => left.get(colCustomerId) == right.get(colCustomerId))
-          .records shouldEqual
-          Success(Seq(
-            Record(orderColumns ++ customerColumns)
-              .withCellContent(colCustomerId)(14)
-              .withCellContent(colFullname)("Max Mustermann")
-              .withCellContent(colCountry)("Germany")
-              .withCellContent(colOrderId)(504)
-              .withCellContent(colOrderdate)("05/06/07")
-              .build(),
-            Record(orderColumns ++ customerColumns)
-              .withCellContent(colCustomerId)(14)
-              .withCellContent(colFullname)("Max Mustermann")
-              .withCellContent(colCountry)("Germany")
-              .withCellContent(colOrderId)(505)
-              .withCellContent(colOrderdate)("08/06/07")
-              .build()
-          ))
-      }
+      "fail to rightJoin on wrong column definition" in {
+        val joined1 = fullRelation
+          .rightJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")).get == right.get(colFirstname).get)
+          .records
+        val joined2 = fullRelation
+          .rightJoin(fullRelation, (left, right) => left.get(colFirstname).get == right.get(ColumnDef[String]("something")).get)
+          .records
 
-      "return the appropriate result set for an outerJoin" in {
-        orders
-          .outerJoin(customers, (left, right) => left.get(colCustomerId) == right.get(colCustomerId))
-          .records shouldEqual
-          Success(Seq(
-            Record(orderColumns ++ customerColumns)
-              .withCellContent(colCustomerId)(14)
-              .withCellContent(colFullname)("Max Mustermann")
-              .withCellContent(colCountry)("Germany")
-              .withCellContent(colOrderId)(504)
-              .withCellContent(colOrderdate)("05/06/07")
-              .build(),
-            Record(orderColumns ++ customerColumns)
-              .withCellContent(colCustomerId)(14)
-              .withCellContent(colFullname)("Max Mustermann")
-              .withCellContent(colCountry)("Germany")
-              .withCellContent(colOrderId)(505)
-              .withCellContent(colOrderdate)("08/06/07")
-              .build(),
-            Record(orderColumns ++ customerColumns)
-              .withCellContent(colOrderId)(504)
-              .withCellContent(colOrderdate)("17/06/07")
-              .withCellContent(colCustomerId)(6)
-              .build(),
-            Record(orderColumns ++ customerColumns)
-              .withCellContent(colCustomerId)(7)
-              .withCellContent(colFullname)("Omari Wesson")
-              .withCellContent(colCountry)("USA")
-              .build()
-          ))
+        joined1.isFailure shouldBe true
+        joined2.isFailure shouldBe true
       }
     }
 
