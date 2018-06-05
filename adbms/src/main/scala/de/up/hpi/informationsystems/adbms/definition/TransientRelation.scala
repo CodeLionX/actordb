@@ -76,7 +76,7 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
           lside <- internal_data
           rside <- other.records.get
           if on(rside, lside)
-        } yield lside.concat(rside).get
+        } yield rside ++ lside
       ))
   }
 
@@ -91,9 +91,9 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
         internal_data.flatMap(rec => {
           val res = other.records.get
             .filter(on.curried(rec))
-            .map(rside => rec.concat(rside).get)
+            .map(rside => rside ++ rec)
           if (res.isEmpty)
-            Seq(rec.concat(Record(other.columns).build()).get)
+            Seq(Record(other.columns).build() ++ rec)
           else res
         })
       ))
