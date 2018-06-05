@@ -105,14 +105,17 @@ class TransientRelationTest extends WordSpec with Matchers {
           .isFailure shouldBe true
       }
 
-      "fail when joined with an empty relation" in {
+      /* Joins */
+      /* Cross-join */
+
+      "fail when cross-joined with an empty relation" in {
         fullRelation
           .crossJoin(TransientRelation(Seq.empty), (colFirstname, colFirstname))
           .records
           .isFailure shouldBe true
       }
 
-      "return an appropriate result for join with itself with different columns" in {
+      "return an appropriate result for cross-join with itself with different columns" in {
         val diffColumnsJoined = fullRelation
           .crossJoin(fullRelation, (colFirstname, colLastname))
 
@@ -128,7 +131,7 @@ class TransientRelationTest extends WordSpec with Matchers {
         sameColumnJoined.records shouldEqual Success(Seq(record1, record2))
       }
 
-      "return appropriate result for join" in {
+      "return appropriate result for cross-join" in {
         val colFirstname2 = ColumnDef[String]("Firstname2")
         val col1 = ColumnDef[Double]("col1")
 
@@ -153,12 +156,67 @@ class TransientRelationTest extends WordSpec with Matchers {
         ))
       }
 
-      "fail to join on wrong column definition" in {
+      "fail to cross-join on wrong column definition" in {
         val joined1 = fullRelation
           .crossJoin(fullRelation, (ColumnDef[String]("something"), colFirstname))
           .records
         val joined2 = fullRelation
           .crossJoin(fullRelation, (colFirstname, ColumnDef[String]("something")))
+          .records
+
+        joined1.isFailure shouldBe true
+        joined2.isFailure shouldBe true
+      }
+
+      /* Inner-join */
+
+      "return an appropriate result for inner-join with itself using different column values" in {
+        val diffColumnsJoined = fullRelation
+          .innerJoin(fullRelation, (lside, rside) => lside.get(colFirstname) == rside.get(colLastname))
+
+        diffColumnsJoined.columns shouldEqual columns
+        diffColumnsJoined.records shouldEqual Success(Seq(record1))
+      }
+
+      "return itself for inner-join with itself using the same column values" in {
+        val sameColumnJoined = fullRelation
+          .innerJoin(fullRelation, (left, right) => left.get(colFirstname) == right.get(colFirstname))
+
+        sameColumnJoined.columns shouldEqual columns
+        sameColumnJoined.records shouldEqual Success(Seq(record1, record2))
+      }
+
+      "return appropriate result for inner-join" in {
+        val colFirstname2 = ColumnDef[String]("Firstname2")
+        val col1 = ColumnDef[Double]("col1")
+
+        val otherRecord1 = Record(Set(colFirstname2, col1))
+          .withCellContent(colFirstname2)("Test")
+          .withCellContent(col1)(12.1)
+          .build()
+
+        val otherRecord2 = Record(Set(colFirstname2, col1))
+          .withCellContent(colFirstname2)("Test")
+          .withCellContent(col1)(916.93)
+          .build()
+
+        val otherRel = TransientRelation(Seq(otherRecord1, otherRecord2))
+        val sameColumnJoined = fullRelation
+          .innerJoin(otherRel, (left, right) => left.get(colFirstname) == right.get(colFirstname2))
+
+        sameColumnJoined.columns shouldEqual columns + colFirstname2 + col1
+        sameColumnJoined.records shouldEqual Success(Seq(
+          record1 ++ otherRecord1,
+          record1 ++ otherRecord2
+        ))
+      }
+
+      "fail to inner-join on wrong column definition" in {
+        val joined1 = fullRelation
+          .innerJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")) == right.get(colFirstname))
+          .records
+        val joined2 = fullRelation
+          .innerJoin(fullRelation, (left, right) => left.get(colFirstname) == right.get(ColumnDef[String]("something")))
           .records
 
         joined1.isFailure shouldBe true

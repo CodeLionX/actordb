@@ -75,7 +75,7 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
         for {
           lside <- internal_data
           rside <- other.records.get
-          if on(rside, lside)
+          if on(lside, rside)
         } yield rside ++ lside
       ))
   }
