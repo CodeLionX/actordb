@@ -42,38 +42,60 @@ trait Relation {
     */
   def project(columnDefs: Set[UntypedColumnDef]): Relation
 
-  // FIXME: Add scaladoc
   /**
-    * @note wip
+    * Performs an inner join with another relation on a comparator function.
+    *
+    * @param other relation to join with
+    * @param on `RecordComparator`, i.e. (Record, Record) => Boolean, which determines which
+    *          pairs of records from the respective relations are in the result set. The
+    *          result set contains exactly the records made up of the pairs of records for
+    *          which `on` returns `true`.
+    * @return a new relation comprised of the joined records from `this` and `other`
     */
   def innerJoin(other: Relation, on: Relation.RecordComparator): Relation
 
-  // FIXME: Add scaladoc
   /**
-    * @note wip
+    * Performs an outer join with another relation on a comparator function.
+    * @param other relation to join with
+    * @param on `RecordComparator`, i.e. (Record, Record) => Boolean, which determines which
+    *          pairs of records from the respective relations are in the result set. The
+    *          result set contains exactly the records made up of the pairs of records for
+    *          which `on` returns `true`.
+    * @return a new relation comprised of the joined records from `this` and `other`
     */
   def outerJoin(other: Relation, on: Relation.RecordComparator): Relation
 
-  // FIXME: Add scaladoc
   /**
-    * @note wip
+    * Performs an left join with another relation on a comparator function.
+    * @param other relation to join with
+    * @param on `RecordComparator`, i.e. (Record, Record) => Boolean, which determines which
+    *          pairs of records from the respective relations are in the result set. The
+    *          result set contains exactly the records made up of the pairs of records for
+    *          which `on` returns `true`.
+    * @return a new relation comprised of the joined records from `this` and `other`
     */
   def leftJoin(other: Relation, on: Relation.RecordComparator): Relation
 
-  // FIXME: Add scaladoc
   /**
-    * @note wip
+    * Performs an right join with another relation on a comparator function.
+    * @param other relation to join with
+    * @param on `RecordComparator`, i.e. (Record, Record) => Boolean, which determines which
+    *          pairs of records from the respective relations are in the result set. The
+    *          result set contains exactly the records made up of the pairs of records for
+    *          which `on` returns `true`.
+    * @return a new relation comprised of the joined records from `this` and `other`
     */
   def rightJoin(other: Relation, on: Relation.RecordComparator): Relation
 
   /**
-    * Joins this relation with another one on the specified columns.
+    * Performs an equality join of this relation with another one on the specified columns.
     *
     * @note Currently the column types of the join columns must be the same!
-    * @param other
-    * @param on
+    * @param other relation to join with
+    * @param on tuple of `ColumnDef[T]`s which determine which columns' attributes are
+    *           compared for the equality join
     * @tparam T
-    * @return
+    * @return a new relation comprised of the joined records from `this` and `other`
     */
   def crossJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation
 
