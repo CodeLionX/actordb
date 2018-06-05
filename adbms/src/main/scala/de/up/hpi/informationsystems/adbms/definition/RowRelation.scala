@@ -76,6 +76,10 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
   /** @inheritdoc */
   override def project(columnDefs: Set[UntypedColumnDef]): Relation = TransientRelation(data).project(columnDefs)
 
+  /** @inheritdoc*/
+  override def crossJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
+    TransientRelation(data).crossJoin(other, on)
+
   /** @inheritdoc */
   // FIXME NOT IMPLEMENTED
   override def innerJoin(other: Relation, on: (Record, Record) => Boolean): Relation = ???

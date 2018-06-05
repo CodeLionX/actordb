@@ -2,8 +2,9 @@ package de.up.hpi.informationsystems.adbms.definition
 
 import java.util.Objects
 
-import scala.collection.{MapLike, mutable}
+import scala.collection.{GenTraversableOnce, MapLike, mutable}
 import scala.util.{Success, Try}
+
 
 class Record private (cells: Map[UntypedColumnDef, Any])
   extends MapLike[UntypedColumnDef, Any, Record]
@@ -91,7 +92,11 @@ class Record private (cells: Map[UntypedColumnDef, Any])
 
   override def +[V1 >: Any](kv: (UntypedColumnDef, V1)): Record = new Record(data.+(kv))
 
-  override def -(key: UntypedColumnDef): Record = new Record(data - key)
+  override def -(key: UntypedColumnDef): Record = new Record(data.-(key))
+
+  override def ++[V1 >: Any](xs: GenTraversableOnce[(UntypedColumnDef, V1)]): Record = new Record(data.++(xs))
+
+  override def --(xs: GenTraversableOnce[UntypedColumnDef]): Record = new Record(data.--(xs))
 
   /** A new record containing the updated column/value mapping.
     *  @param    column the key

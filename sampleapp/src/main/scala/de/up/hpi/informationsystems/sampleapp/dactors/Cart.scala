@@ -144,23 +144,23 @@ object Cart {
       val (sectionId, orders) = inp
       val inventoryIds = orders.map(_.inventoryId)
 
-//      val answer = dactorSelection(system, classOf[StoreSection], sectionId) ? StoreSection.GetPrice.Request(inventoryIds)
-//
-//      answer
-//        .mapTo[StoreSection.GetPrice.Success]                        // map to success response to fail fast
-//        .map( getPriceSuccess =>
-//          getPriceSuccess.result.map( r => {  // build result set
-//            PricePartialResult(
-//              sectionId = sectionId,
-//              inventoryId = r.get(ColumnDef[Int]("i_id")).get,
-//              price = r.get(ColumnDef[Double]("i_price")).get,
-//              minPrice = r.get(ColumnDef[Double]("i_min_price")).get
-//            )
-//          })
-//        )
+      val answer = dactorSelection(system, classOf[StoreSection], sectionId) ? StoreSection.GetPrice.Request(inventoryIds)
 
-      val answer: FutureRelation = Dactor.askDactor[StoreSection.GetPrice.Success](system, classOf[StoreSection], Map(sectionId -> StoreSection.GetPrice.Request(inventoryIds)))
-      scala.concurrent.Await.result(answer, 5 seconds).map(_.map( PricePartialResult.forSection(sectionId) ))
+      answer
+        .mapTo[StoreSection.GetPrice.Success]                        // map to success response to fail fast
+        .map( getPriceSuccess =>
+          getPriceSuccess.result.map( r => {  // build result set
+            PricePartialResult(
+              sectionId = sectionId,
+              inventoryId = r.get(ColumnDef[Int]("i_id")).get,
+              price = r.get(ColumnDef[Double]("i_price")).get,
+              minPrice = r.get(ColumnDef[Double]("i_min_price")).get
+            )
+          })
+        )
+
+//      val answer: FutureRelation = Dactor.askDactor[StoreSection.GetPrice.Success](system, classOf[StoreSection], Map(sectionId -> StoreSection.GetPrice.Request(inventoryIds)))
+//      scala.concurrent.Await.result(answer, 5 seconds).map(_.map( PricePartialResult.forSection(sectionId) ))
     }
 
     private def askCustomerForGroupId(custId: Int): Future[Int] = {
@@ -191,16 +191,13 @@ class Cart(id: Int) extends Dactor(id) {
 
   private val timeout: Timeout = Timeout(2.seconds)
 
-  val cartInfo = RowRelation(CartInfo)
-  val cartPurchases = RowRelation(CartPurchases)
-
-  override protected val relations: Map[String, MutableRelation] =
-    Map(CartInfo.name -> cartInfo) ++ Map(CartPurchases.name -> cartPurchases)
+  override protected val relations: Map[RelationDef, MutableRelation] =
+    Dactor.createAsRowRelations(Seq(CartInfo, CartPurchases))
 
   override def receive: Receive = {
     case AddItems.Request(orders, customerId) => AddItemsHelper(context.system, self, timeout).help(orders, customerId, sender())
 
-    case AddItemsHelper.Success(records, replyTo) => cartPurchases.insertAll(records) match {
+    case AddItemsHelper.Success(records, replyTo) => relations(CartPurchases).insertAll(records) match {
       case Success(_) => replyTo ! AddItems.Success(currentSessionId)
       case Failure(e) => replyTo ! AddItems.Failure(e)
     }

@@ -63,6 +63,17 @@ trait Relation {
   def rightJoin(other: Relation, on: (Record, Record) => Boolean): Relation
 
   /**
+    * Joins this relation with another one on the specified columns.
+    *
+    * @note Currently the column types of the join columns must be the same!
+    * @param other
+    * @param on
+    * @tparam T
+    * @return
+    */
+  def crossJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation
+
+  /**
     * Converts this Relation to a sequence of Records.
     * @note Depending on the underlying Relation, this operation can be very costly!
     * @return a sequence of Records if all

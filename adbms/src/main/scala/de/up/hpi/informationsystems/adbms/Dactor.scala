@@ -3,7 +3,7 @@ package de.up.hpi.informationsystems.adbms
 import akka.actor.Status.{Failure, Success}
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, ActorSelection, ActorSystem, Props}
 import akka.util.Timeout
-import de.up.hpi.informationsystems.adbms.definition.{FutureRelation, MutableRelation, Record}
+import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessagingProtocol, RequestResponseProtocol}
 
 import scala.concurrent.Future
@@ -42,7 +42,6 @@ object Dactor {
     */
   def nameOf(clazz: Class[_ <: Dactor], id: Int): String = s"${clazz.getSimpleName}-$id"
 
-
   def askDactor[ResultMsgType <: RequestResponseProtocol.Success](
                                                                      system: ActorSystem,
                                                                      dactorClass: Class[_ <: Dactor],
@@ -65,15 +64,35 @@ object Dactor {
 
     FutureRelation.fromRecordSeq(Future.sequence(results).map(_.flatten.toSeq))
   }
+
+  /**
+    * Constructs a mapping of relation definitions and corresponding relational stores using
+    * [[de.up.hpi.informationsystems.adbms.definition.RowRelation]] als base relation.
+    * @param relDefs sequence of relation definitions
+    * @return mapping of relation definition and corresponding relational row store
+    */
+  def createAsRowRelations(relDefs: Seq[RelationDef]): Map[RelationDef, MutableRelation] =
+    relDefs.map( relDef =>
+      relDef -> RowRelation(relDef)
+    ).toMap
+
 }
 
 abstract class Dactor(id: Int) extends Actor with ActorLogging {
 
   /**
-    * Returns all relations of this actor mapped with their name.
-    * @return map of relation name and relation store
+    * Returns a map of relation definition and corresponding relational store.
+    * @return map of relation definition and corresponding relational store
     */
-  protected val relations: Map[String, MutableRelation]
+  protected val relations: Map[RelationDef, MutableRelation]
+
+  /**
+    * Returns all relations of this actor mapped with their name.
+    * @return map of relation name and relational store
+    */
+  protected def relationFromName: Map[String, MutableRelation] = relations.map(mapping => {
+    mapping._1.name -> mapping._2
+  })
 
   /**
     * Creates a new Dactor of type `clazz` with id `id` in the same context as this Dactor and returns its ActorRef.
@@ -114,6 +133,6 @@ abstract class Dactor(id: Int) extends Actor with ActorLogging {
     * @return either number of successfully inserted records or a `Throwable` describing the failure
     */
   private def handleGenericInsert(relationName: String, records: Seq[Record]): Try[Int] = Try {
-    relations(relationName).insertAll(records).map(_.count(_ => true))
+    relationFromName(relationName).insertAll(records).map(_.count(_ => true))
   }.flatten
 }

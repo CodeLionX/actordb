@@ -21,6 +21,7 @@ object FutureRelation {
   def apply(data: Future[Relation]): FutureRelation = apply(data, defaultTimeout)
   def apply(data: Future[Relation], timeout: Duration) = new FutureRelationImpl(data, timeout)
 
+
   private[FutureRelation] class FutureRelationImpl(pData: Future[Relation], defaultTimeout: Duration) extends FutureRelation {
 
     private val data: Future[Relation] = pData
@@ -55,6 +56,10 @@ object FutureRelation {
     /** @inheritdoc */
     override def rightJoin(other: Relation, on: (Record, Record) => Boolean): Relation =
       FutureRelation(data.map(_.rightJoin(other, on)))
+
+    /** @inheritdoc */
+    override def crossJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
+      FutureRelation(data.map(_.crossJoin(other, on)))
 
     /**
       * Blocks until all Futures are complete
