@@ -207,6 +207,7 @@ class RowRelationTest extends WordSpec with Matchers {
     }
   }
 
-  // queries on data from RowRelation are performed in TransientRelation and therefore tested in its test suite
+  // queries on and joins with data from RowRelation are performed in TransientRelation and therefore tested in its test
+  // suite
 
 }
