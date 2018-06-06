@@ -10,7 +10,11 @@ import scala.util.Try
 
 
 trait FutureRelation extends Relation with Immutable with Awaitable[Try[Seq[Record]]] {
+
   def pipeTo(actor: ActorRef): Unit
+
+  def future: Future[Try[Seq[Record]]]
+
 }
 
 object FutureRelation {
@@ -95,6 +99,8 @@ object FutureRelation {
     override def pipeTo(actor: ActorRef): Unit = {
       akka.pattern.pipe(data).pipeTo(actor)
     }
+
+    override def future: Future[Try[Seq[Record]]] = data.map(_.records)
   }
 }
 
