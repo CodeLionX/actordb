@@ -15,7 +15,7 @@ object StoreSection {
   object GetPrice {
 
     case class Request(inventoryIds: Seq[Int]) extends RequestResponseProtocol.Request
-    // result: i_price, i_min_price
+    // result: i_id, i_price, i_min_price
     case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
     val Failure: RequestResponseProtocol.Failure.type = RequestResponseProtocol.Failure
 
@@ -71,7 +71,7 @@ class StoreSection(id: Int) extends Dactor(id) {
   }
 
   def getPrice(inventoryIds: Seq[Int]): Try[Seq[Record]] = {
-    val resultSchema = Set(Inventory.price, Inventory.minPrice)
+    val resultSchema = Set(Inventory.inventoryId, Inventory.price, Inventory.minPrice)
     relations(Inventory)
       .project(resultSchema)
       .where[Int](Inventory.inventoryId -> { id => inventoryIds.contains(id) })
