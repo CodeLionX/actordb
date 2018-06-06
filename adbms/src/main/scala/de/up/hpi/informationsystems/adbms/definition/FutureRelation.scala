@@ -11,6 +11,8 @@ import scala.util.Try
 
 trait FutureRelation extends Relation with Immutable with Awaitable[Try[Seq[Record]]] {
 
+  override def innerJoin(other: Relation, on: Relation.RecordComparator): FutureRelation
+
   def pipeTo(actor: ActorRef): Unit
 
   def future: Future[Try[Seq[Record]]]

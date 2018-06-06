@@ -5,17 +5,16 @@ import akka.pattern.{ask, pipe}
 import akka.util.Timeout
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition._
+import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 object Cart {
 
   def props(id: Int): Props = Props(new Cart(id))
-
-  private var currentSessionId = 0
 
   object AddItems {
     case class Order(inventoryId: Int, sectionId: Int, quantity: Int)
@@ -33,11 +32,11 @@ object Cart {
   }
 
   object CartInfo extends RelationDef {
-    val cartId: ColumnDef[Int] = ColumnDef("c_id")
+    val customerId: ColumnDef[Int] = ColumnDef("c_id")
     val storeId: ColumnDef[Int] = ColumnDef("store_id")
     val sessionId: ColumnDef[Int] = ColumnDef("session_id")
 
-    override val columns: Set[UntypedColumnDef] = Set(cartId, storeId, sessionId)
+    override val columns: Set[UntypedColumnDef] = Set(customerId, storeId, sessionId)
     override val name: String = "cart_info"
   }
 
@@ -59,18 +58,18 @@ object Cart {
     def apply(system: ActorSystem, backTo: ActorRef, askTimeout: Timeout): AddItemsHelper =
       new AddItemsHelper(system, backTo, askTimeout)
 
-    case class Success(results: Seq[Record], replyTo: ActorRef)
+    case class Success(results: Seq[Record], customerId: Int, newSessionId: Int, replyTo: ActorRef)
     case class Failure(e: Throwable, replyTo: ActorRef)
 
     private[AddItemsHelper] case class PriceDiscountPartialResult(sectionId: Int, inventoryId: Int, price: Double, minPrice: Double, fixedDiscount: Double)
     private[AddItemsHelper] object PricePartialResult {
       def forSection(id: Int): Record => PricePartialResult = r =>
-          PricePartialResult(
-            sectionId = id,
-            inventoryId = r.get(ColumnDef[Int]("i_id")).get,
-            price = r.get(ColumnDef[Double]("i_price")).get,
-            minPrice = r.get(ColumnDef[Double]("i_min_price")).get
-          )
+        PricePartialResult(
+          sectionId = id,
+          inventoryId = r.get(ColumnDef[Int]("i_id")).get,
+          price = r.get(ColumnDef[Double]("i_price")).get,
+          minPrice = r.get(ColumnDef[Double]("i_min_price")).get
+        )
     }
     private[AddItemsHelper] case class PricePartialResult(sectionId: Int, inventoryId: Int, price: Double, minPrice: Double)
     private[AddItemsHelper] case class DiscountsPartialResult(inventoryId: Int, fixedDiscount: Double) {
@@ -80,11 +79,108 @@ object Cart {
 
   private class AddItemsHelper(system: ActorSystem, recipient: ActorRef, implicit val askTimeout: Timeout) {
     import Dactor._
-    import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
     import de.up.hpi.informationsystems.sampleapp.dactors.Cart.AddItems.Order
     import de.up.hpi.informationsystems.sampleapp.dactors.Cart.AddItemsHelper.{DiscountsPartialResult, PriceDiscountPartialResult, PricePartialResult}
 
-    def help(orders: Seq[Order], customerId: Int, replyTo: ActorRef): Unit = {
+    def help(orders: Seq[Order], customerId: Int, currentSessionId: Int, replyTo: ActorRef): Unit = {
+      /////////////////////////
+      /*
+      orders_by_store_section = extract_arrange(orders);
+       */
+      val priceRequests = orders
+        .groupBy(_.sectionId)
+        .map{ case (sectionId, sectionOrders) =>
+          sectionId -> StoreSection.GetPrice.Request(sectionOrders.map(_.inventoryId))
+        }
+
+      /*
+      map<int, future> results;
+      for (section_order: orders_by_store_section) {
+        future res := actor<Store_Section>[section_order.sec_id].get_price(section_order.item_ids)
+        results.add(section_order.sec_id, res)
+      }
+       */
+      val priceList: FutureRelation = Dactor.askDactor[StoreSection.GetPrice.Success](system, classOf[StoreSection], priceRequests)
+      // FutureRelation: i_id, i_price, i_min_price
+      // FIXME: mapping from section (actorId = sectionId) to content (i_id, i_price, i_min_price) gets lost
+
+      /*
+      SELECT c_g_id INTO v_c_g_id
+        FROM actor<Customer>.get_customer_info()
+        WHERE name = o_c_id;
+       */
+      val groupIdRequest = Map(customerId -> Customer.GetCustomerGroupId.Request())
+      val groupId: Future[Int] = Dactor
+        .askDactor[Customer.GetCustomerGroupId.Success](system, classOf[Customer], groupIdRequest)
+        // full:
+        //        .future.map {
+        //          case Success(records) =>
+        //            if(records.size == 1)
+        //              records.head.get(ColumnDef[Int]("c_g_id")) match {
+        //                case Some(id) => id
+        //                case None => throw RuntimeException
+        //              }
+        //          case Failure(e) => throw e
+        //        }
+        // short:
+        .future.map(_.get.head.get(Customer.CustomerInfo.custGroupId).get)
+
+      /*
+      ordered_item_ids := extract_ids(orders);
+      future disc_res := actor<Group_manager>[v_c_g_id].get_fixed_discounts(ordered_item_ids);
+       */
+      val fixedDiscount: FutureRelation = groupId.map( id => {
+        val fixedDiscountRequest = Map(id -> GroupManager.GetFixedDiscounts.Request(orders.map(_.inventoryId)))
+        Dactor.askDactor(system, classOf[GroupManager], fixedDiscountRequest)
+      })
+      // FutureRelation: i_id, fixed_disc
+
+      /*
+      SELECT session_id + 1 INTO v_session_id FROM cart_info;
+      UPDATE cart_info
+        SET c_id = o_c_id, session_id = session_id + 1;
+       */
+      // done outside of helper
+
+      /*
+      list<tuple> discounts := disc_res.get();
+      results.value_list.when_all()
+       */
+//      val discounts = fixedDiscounts.records
+//      val prices = priceList.records
+
+      /*
+      foreach sec_id_res in results {
+        foreach i_p in sec_id_res.second.get() {
+          fixed_disc := lookup(discounts, i_p.i_id);
+          i_quantity := lookup(orders, i_p.i_id);
+          INSERT INTO cart_purchases
+            //      sec_id,           session_id,   i_id, i_quantity, i_fixed_disc, i_min_price,   i_price
+            VALUES (sec_id_res.first, v_session_id, i_id, i_quantity, fixed_disc,   i_p.min_price, i_ip.price);
+        }
+      }
+       */
+      val priceDisc: FutureRelation = priceList.innerJoin(fixedDiscount, (priceRec, discRec) =>
+        priceRec.get(CartPurchases.inventoryId) == discRec.get(CartPurchases.inventoryId)
+      )
+      // FutureRelation: i_id, i_price, i_min_price, fixed_disc
+
+      val orderRecordBuilder = Record(Set(CartPurchases.inventoryId, CartPurchases.sectionId, CartPurchases.quantity))
+      val orderRelation: Relation = FutureRelation.fromRecordSeq(Future{orders.map(order => orderRecordBuilder(
+        CartPurchases.inventoryId ~> order.inventoryId &
+          CartPurchases.sectionId ~> order.sectionId &
+          CartPurchases.quantity ~> order.quantity
+      ).build())})
+      val priceDiscOrder = priceDisc.innerJoin(orderRelation, (priceRec, orderRec) =>
+        priceRec.get(CartPurchases.inventoryId) == orderRec.get(CartPurchases.inventoryId)
+      )
+      // FutureRelation: i_id, i_price, i_min_price, fixed_disc, sec_id, i_quantity
+
+      priceDiscOrder.future
+        .map(records => AddItemsHelper.Success(records.get, customerId, currentSessionId, replyTo))
+        .pipeTo(recipient)
+      /////////////////////////
+
       val prices = Future.sequence(orders
         .groupBy(_.sectionId)
         .map(askStoreSectionForPrices))
@@ -114,7 +210,7 @@ object Cart {
         pricesWithDiscounts <- pricesWithDiscounts
       } yield joinPriceDiscountWithQuantities(pricesWithDiscounts, orderQuantities)
 
-      results.map(records => AddItemsHelper.Success(records, replyTo)).pipeTo(recipient)
+      results.map(records => AddItemsHelper.Success(records, customerId, currentSessionId, replyTo)).pipeTo(recipient)
     }
 
     private def joinPriceDiscountWithQuantities(pricesWithDiscounts: Seq[PriceDiscountPartialResult], quantityOfInventoryId: Map[Int, Int]): Seq[Record] =
@@ -149,18 +245,15 @@ object Cart {
       answer
         .mapTo[StoreSection.GetPrice.Success]                        // map to success response to fail fast
         .map( getPriceSuccess =>
-          getPriceSuccess.result.map( r => {  // build result set
-            PricePartialResult(
-              sectionId = sectionId,
-              inventoryId = r.get(ColumnDef[Int]("i_id")).get,
-              price = r.get(ColumnDef[Double]("i_price")).get,
-              minPrice = r.get(ColumnDef[Double]("i_min_price")).get
-            )
-          })
-        )
-
-//      val answer: FutureRelation = Dactor.askDactor[StoreSection.GetPrice.Success](system, classOf[StoreSection], Map(sectionId -> StoreSection.GetPrice.Request(inventoryIds)))
-//      scala.concurrent.Await.result(answer, 5 seconds).map(_.map( PricePartialResult.forSection(sectionId) ))
+        getPriceSuccess.result.map( r => {  // build result set
+          PricePartialResult(
+            sectionId = sectionId,
+            inventoryId = r.get(ColumnDef[Int]("i_id")).get,
+            price = r.get(ColumnDef[Double]("i_price")).get,
+            minPrice = r.get(ColumnDef[Double]("i_min_price")).get
+          )
+        })
+      )
     }
 
     private def askCustomerForGroupId(custId: Int): Future[Int] = {
@@ -194,17 +287,28 @@ class Cart(id: Int) extends Dactor(id) {
   override protected val relations: Map[RelationDef, MutableRelation] =
     Dactor.createAsRowRelations(Seq(CartInfo, CartPurchases))
 
-  override def receive: Receive = {
-    case AddItems.Request(orders, customerId) => AddItemsHelper(context.system, self, timeout).help(orders, customerId, sender())
+  private var currentSessionId = 0
 
-    case AddItemsHelper.Success(records, replyTo) => relations(CartPurchases).insertAll(records) match {
-      case Success(_) => replyTo ! AddItems.Success(currentSessionId)
-      case Failure(e) => replyTo ! AddItems.Failure(e)
-    }
-    case AddItemsHelper.Failure(e, replyTo) => replyTo ! AddItems.Failure(e)
+  override def receive: Receive = {
+    case AddItems.Request(orders, customerId) =>
+      AddItemsHelper(context.system, self, timeout).help(orders, customerId, currentSessionId, sender())
+
+    case AddItemsHelper.Success(records, customerId, newSessionId, replyTo) =>
+      updateAfterAddItems(records, customerId, newSessionId) match {
+        case Success(_) => replyTo ! AddItems.Success(newSessionId)
+        case Failure(e) => replyTo ! AddItems.Failure(e)
+      }
 
     case Checkout.Request(_) => sender() ! Checkout.Failure(new NotImplementedError)
   }
 
+  def updateAfterAddItems(records: Seq[Record], customerId: Int, newSessionId: Int): Try[Unit] = Try {
+    relations(CartPurchases)
+      .insertAll(records).get
+    relations(CartInfo)
+      .update(CartInfo.sessionId ~> newSessionId)
+      .where(CartInfo.customerId -> {
+        _ == customerId
+      }).get
+  }
 }
-
