@@ -67,6 +67,46 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
       ))
 
   /** @inheritdoc */
+  override def innerJoin(other: Relation, on: Relation.RecordComparator): Relation = {
+    if(isFailure)
+      this
+    else
+      TransientRelation(Try(
+        for {
+          lside <- internal_data
+          rside <- other.records.get
+          if on(lside, rside)
+        } yield rside ++ lside
+      ))
+  }
+
+  /** @inheritdoc */
+  override def leftJoin(other: Relation, on: Relation.RecordComparator): Relation = {
+    val empty = Record.empty
+    if(isFailure)
+      this
+    else
+      TransientRelation(Try(
+        internal_data.flatMap(rec => {
+          val res = other.records.get
+            .filter(on.curried(rec))
+            .map(rside => rside ++ rec)
+          if (res.isEmpty)
+            Seq(Record(other.columns).build() ++ rec)
+          else res
+        })
+      ))
+  }
+
+  /** @inheritdoc */
+  override def rightJoin(other: Relation, on: Relation.RecordComparator): Relation = other.leftJoin(this, on)
+
+  /** @inheritdoc */
+  override def outerJoin(other: Relation, on: Relation.RecordComparator): Relation = TransientRelation(Try(
+    this.leftJoin(other, on).records.get.union(this.rightJoin(other, on).records.get).distinct
+  ))
+
+  /** @inheritdoc */
   override def crossJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
     if(isFailure)
       this

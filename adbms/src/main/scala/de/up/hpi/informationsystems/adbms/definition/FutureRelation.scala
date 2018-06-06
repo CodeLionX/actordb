@@ -42,6 +42,22 @@ object FutureRelation {
       FutureRelation(data.map(_.project(columnDefs)))
 
     /** @inheritdoc */
+    override def innerJoin(other: Relation, on: Relation.RecordComparator): Relation =
+      FutureRelation(data.map(_.innerJoin(other, on)))
+
+    /** @inheritdoc */
+    override def outerJoin(other: Relation, on: Relation.RecordComparator): Relation =
+      FutureRelation(data.map(_.outerJoin(other, on)))
+
+    /** @inheritdoc */
+    override def leftJoin(other: Relation, on: Relation.RecordComparator): Relation =
+      FutureRelation(data.map(_.leftJoin(other, on)))
+
+    /** @inheritdoc */
+    override def rightJoin(other: Relation, on: Relation.RecordComparator): Relation =
+      FutureRelation(data.map(_.rightJoin(other, on)))
+
+    /** @inheritdoc */
     override def crossJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
       FutureRelation(data.map(_.crossJoin(other, on)))
 
