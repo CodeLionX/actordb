@@ -1,6 +1,6 @@
 package de.up.hpi.informationsystems.adbms.definition
 
-import org.scalatest.{AsyncWordSpec, Matchers, WordSpec}
+import org.scalatest.{Matchers, WordSpec}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future

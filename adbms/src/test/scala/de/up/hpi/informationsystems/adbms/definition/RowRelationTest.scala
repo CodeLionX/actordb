@@ -2,7 +2,7 @@ package de.up.hpi.informationsystems.adbms.definition
 
 import org.scalatest.{Matchers, WordSpec}
 
-import scala.util.{Failure, Success}
+import scala.util.Success
 
 class RowRelationTest extends WordSpec with Matchers {
 

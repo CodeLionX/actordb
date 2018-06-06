@@ -2,7 +2,7 @@ package de.up.hpi.informationsystems.adbms.definition
 
 import org.scalatest.{Matchers, WordSpec}
 
-import scala.reflect.{ClassTag, classTag}
+import scala.reflect.classTag
 
 class ColumnDefTest extends WordSpec with Matchers{
 

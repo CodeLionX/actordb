@@ -3,8 +3,7 @@ package de.up.hpi.informationsystems.adbms.definition
 import java.util.Objects
 
 import scala.collection.{GenTraversableOnce, MapLike, mutable}
-import scala.util.{Success, Try}
-
+import scala.util.Try
 
 class Record private (cells: Map[UntypedColumnDef, Any])
   extends MapLike[UntypedColumnDef, Any, Record]
