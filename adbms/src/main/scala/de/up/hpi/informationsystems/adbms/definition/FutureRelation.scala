@@ -38,35 +38,35 @@ object FutureRelation {
       scala.concurrent.Await.result(data, defaultTimeout).columns
 
     /** @inheritdoc */
-    override def where[T](f: (ColumnDef[T], T => Boolean)): Relation =
+    override def where[T](f: (ColumnDef[T], T => Boolean)): FutureRelation =
       FutureRelation(data.map(_.where(f)))
 
     /** @inheritdoc */
-    override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation =
+    override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): FutureRelation =
       FutureRelation(data.map(_.whereAll(fs)))
 
     /** @inheritdoc */
-    override def project(columnDefs: Set[UntypedColumnDef]): Relation =
+    override def project(columnDefs: Set[UntypedColumnDef]): FutureRelation =
       FutureRelation(data.map(_.project(columnDefs)))
 
     /** @inheritdoc */
-    override def innerJoin(other: Relation, on: Relation.RecordComparator): Relation =
+    override def innerJoin(other: Relation, on: Relation.RecordComparator): FutureRelation =
       FutureRelation(data.map(_.innerJoin(other, on)))
 
     /** @inheritdoc */
-    override def outerJoin(other: Relation, on: Relation.RecordComparator): Relation =
+    override def outerJoin(other: Relation, on: Relation.RecordComparator): FutureRelation =
       FutureRelation(data.map(_.outerJoin(other, on)))
 
     /** @inheritdoc */
-    override def leftJoin(other: Relation, on: Relation.RecordComparator): Relation =
+    override def leftJoin(other: Relation, on: Relation.RecordComparator): FutureRelation =
       FutureRelation(data.map(_.leftJoin(other, on)))
 
     /** @inheritdoc */
-    override def rightJoin(other: Relation, on: Relation.RecordComparator): Relation =
+    override def rightJoin(other: Relation, on: Relation.RecordComparator): FutureRelation =
       FutureRelation(data.map(_.rightJoin(other, on)))
 
     /** @inheritdoc */
-    override def crossJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
+    override def crossJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): FutureRelation =
       FutureRelation(data.map(_.crossJoin(other, on)))
 
     /**
@@ -87,6 +87,7 @@ object FutureRelation {
     }
 
     override def result(atMost: Duration)(implicit permit: CanAwait): Try[Seq[Record]] = data.result(atMost)(permit).records
+
   }
 }
 
