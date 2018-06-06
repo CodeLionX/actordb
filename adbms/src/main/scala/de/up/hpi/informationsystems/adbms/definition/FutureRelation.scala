@@ -1,5 +1,7 @@
 package de.up.hpi.informationsystems.adbms.definition
 
+import akka.actor.ActorRef
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Awaitable, CanAwait, Future}
@@ -7,7 +9,9 @@ import scala.language.postfixOps
 import scala.util.Try
 
 
-trait FutureRelation extends Relation with Immutable with Awaitable[Try[Seq[Record]]]
+trait FutureRelation extends Relation with Immutable with Awaitable[Try[Seq[Record]]] {
+  def pipeTo(actor: ActorRef): Unit
+}
 
 object FutureRelation {
 
@@ -88,6 +92,9 @@ object FutureRelation {
 
     override def result(atMost: Duration)(implicit permit: CanAwait): Try[Seq[Record]] = data.result(atMost)(permit).records
 
+    override def pipeTo(actor: ActorRef): Unit = {
+      akka.pattern.pipe(data).pipeTo(actor)
+    }
   }
 }
 
