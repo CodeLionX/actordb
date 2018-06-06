@@ -158,9 +158,11 @@ class FutureRelationTest extends WordSpec with Matchers {
         val customers: Relation = FutureRelation.fromRecordSeq(futureCustomers)
 
         "return the appropriate result set for a leftJoin" in {
-          orders
+          val joined = orders
             .leftJoin(customers, (left, right) => left.get(colCustomerId) == right.get(colCustomerId))
-            .records shouldEqual
+
+          joined.columns shouldEqual orders.columns ++ customers.columns
+          joined.records shouldEqual
             Success(Seq(
               Record(orderColumns ++ customerColumns)
                 .withCellContent(colOrderId)(504)

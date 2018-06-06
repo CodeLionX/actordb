@@ -26,8 +26,16 @@ object FutureRelation {
 
     private val data: Future[Relation] = pData
 
-    /** @inheritdoc */
-    override val columns: Set[UntypedColumnDef] = Set.empty // FIXME: find a good way to represent this
+    /**
+      * Blocks until all Futures are complete
+      * and afterwards returns the wrapped relations columns.
+      *
+      * @note behaves the same way as: `val res: Set[UntypedColumnDef] = scala.concurrent.Await.result(FutureRelation.columns)`
+      * @return a set of UntypedColumnDefs
+      * @see [[scala.concurrent.Await#result]]
+      */
+    override val columns: Set[UntypedColumnDef] =
+      scala.concurrent.Await.result(data, defaultTimeout).columns
 
     /** @inheritdoc */
     override def where[T](f: (ColumnDef[T], T => Boolean)): Relation =
