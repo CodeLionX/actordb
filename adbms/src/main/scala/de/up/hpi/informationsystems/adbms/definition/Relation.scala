@@ -100,6 +100,13 @@ trait Relation {
   def crossJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation
 
   /**
+    * Performs a union with another relation, iff the relations have the same schema definition.
+    * @param other relation to join with
+    * @return a new relation containing the records from both relations
+    */
+  def union(other: Relation): Relation
+
+  /**
     * Converts this Relation to a sequence of Records.
     * @note Depending on the underlying Relation, this operation can be very costly!
     * @return a sequence of Records if all

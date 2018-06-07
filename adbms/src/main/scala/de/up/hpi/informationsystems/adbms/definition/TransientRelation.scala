@@ -130,6 +130,18 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
       })
 
   /** @inheritdoc */
+  override def union(other: Relation): Relation =
+    if(isFailure)
+      this
+    else
+      TransientRelation(Try{
+        if(!this.columns.equals(other.columns))
+          throw IncompatibleColumnDefinitionException(s"the columns of this and the other relation does not match\nthis: $columns\nother: ${other.columns}")
+        else
+          internal_data ++ other.records.get
+      })
+
+  /** @inheritdoc */
   override def records: Try[Seq[Record]] = data
 
 

@@ -23,6 +23,8 @@ trait FutureRelation extends Relation with Immutable with Awaitable[Try[Seq[Reco
 
 object FutureRelation {
 
+  type BinRelationOp = (Relation, Relation) => Relation
+
   val defaultTimeout: Duration = 5 seconds
 
   def fromRecordSeq(data: Future[Seq[Record]]): FutureRelation =
@@ -63,23 +65,27 @@ object FutureRelation {
 
     /** @inheritdoc */
     override def innerJoin(other: Relation, on: Relation.RecordComparator): FutureRelation =
-      FutureRelation(data.map(_.innerJoin(other, on)))
+      futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.innerJoin(rel2, on))
 
     /** @inheritdoc */
     override def outerJoin(other: Relation, on: Relation.RecordComparator): FutureRelation =
-      FutureRelation(data.map(_.outerJoin(other, on)))
+      futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.outerJoin(rel2, on))
 
     /** @inheritdoc */
     override def leftJoin(other: Relation, on: Relation.RecordComparator): FutureRelation =
-      FutureRelation(data.map(_.leftJoin(other, on)))
+      futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.leftJoin(rel2, on))
 
     /** @inheritdoc */
     override def rightJoin(other: Relation, on: Relation.RecordComparator): FutureRelation =
-      FutureRelation(data.map(_.rightJoin(other, on)))
+      futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.rightJoin(rel2, on))
 
     /** @inheritdoc */
     override def crossJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): FutureRelation =
-      FutureRelation(data.map(_.crossJoin(other, on)))
+      futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.crossJoin(rel2, on))
+
+    /** @inheritdoc*/
+    override def union(other: Relation): Relation =
+      futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.union(rel2))
 
     /**
       * Blocks until all Futures are complete
@@ -108,6 +114,18 @@ object FutureRelation {
 
     override def transform(f: Relation => Relation): FutureRelation =
       FutureRelation(data.map(f))
+
+    private def futureCheckedBinaryTransformation(other: Relation, op: BinRelationOp): FutureRelation =
+      FutureRelation(
+        other match {
+          case fr: FutureRelationImpl => for {
+              rel1 <- data
+              rel2 <- fr.data
+            } yield op(rel1, rel2)
+
+          case otherRel => data.map(rel => op(rel, otherRel))
+        }
+      )
   }
 }
 
