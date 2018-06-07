@@ -113,7 +113,7 @@ object Cart {
     import de.up.hpi.informationsystems.sampleapp.dactors.Cart.AddItemsHelper.{DiscountsPartialResult, PriceDiscountPartialResult, PricePartialResult}
       future disc_res := actor<Group_manager>[v_c_g_id].get_fixed_discounts(ordered_item_ids);
        */
-      val fixedDiscount: FutureRelation = groupId.transform( groupId => {
+      val fixedDiscount: FutureRelation = groupId.flatTransform( groupId => {
         val id = groupId.records.get.head.get(Customer.CustomerInfo.custGroupId).get
         val fixedDiscountRequest = Map(id -> GroupManager.GetFixedDiscounts.Request(orders.map(_.inventoryId)))
         Dactor.askDactor(system, classOf[GroupManager], fixedDiscountRequest)
@@ -158,7 +158,7 @@ object Cart {
       // FutureRelation: i_id, i_price, i_min_price, fixed_disc, sec_id, i_quantity
 
       priceDiscOrder.future
-        .map(records => AddItemsHelper.Success(records.get, customerId, currentSessionId, replyTo))
+        .map(relation => AddItemsHelper.Success(relation.records.get, customerId, currentSessionId, replyTo))
         .pipeTo(recipient)
     }
   }

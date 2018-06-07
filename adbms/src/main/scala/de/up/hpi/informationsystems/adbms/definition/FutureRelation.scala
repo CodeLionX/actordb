@@ -15,9 +15,11 @@ trait FutureRelation extends Relation with Immutable with Awaitable[Try[Seq[Reco
 
   def pipeTo(actor: ActorRef): Unit
 
-  def future: Future[Try[Seq[Record]]]
+  def future: Future[Relation]
 
   def transform(f: Relation => Relation): FutureRelation
+
+  def flatTransform(f: Relation => FutureRelation): FutureRelation
 
 }
 
@@ -110,17 +112,20 @@ object FutureRelation {
       akka.pattern.pipe(data).pipeTo(actor)
     }
 
-    override def future: Future[Try[Seq[Record]]] = data.map(_.records)
+    override def future: Future[Relation] = data
 
     override def transform(f: Relation => Relation): FutureRelation =
       FutureRelation(data.map(f))
 
+    override def flatTransform(f: Relation => FutureRelation): FutureRelation =
+      FutureRelation(data.flatMap(rel => f(rel).future))
+
     private def futureCheckedBinaryTransformation(other: Relation, op: BinRelationOp): FutureRelation =
       FutureRelation(
         other match {
-          case fr: FutureRelationImpl => for {
+          case fr: FutureRelation => for {
               rel1 <- data
-              rel2 <- fr.data
+              rel2 <- fr.future
             } yield op(rel1, rel2)
 
           case otherRel => data.map(rel => op(rel, otherRel))
