@@ -26,7 +26,7 @@ object Customer {
 
     case class Request() extends RequestResponseProtocol.Request
     case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
-    val Failure: RequestResponseProtocol.Failure.type = RequestResponseProtocol.Failure
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
 
   }
 

@@ -12,5 +12,7 @@ object RequestResponseProtocol {
     def result: Seq[Record]
   }
 
-  case class Failure(e: Throwable) extends Response
+  trait Failure extends Response {
+    def e: Throwable
+  }
 }

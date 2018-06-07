@@ -16,7 +16,7 @@ object GroupManager {
     case class Request(ids: Seq[Int]) extends RequestResponseProtocol.Request
     // results: i_id, fixed_disc
     case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
-    val Failure: RequestResponseProtocol.Failure.type = RequestResponseProtocol.Failure
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
 
   }
 

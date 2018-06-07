@@ -17,7 +17,7 @@ object StoreSection {
     case class Request(inventoryIds: Seq[Int]) extends RequestResponseProtocol.Request
     // result: i_id, i_price, i_min_price
     case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
-    val Failure: RequestResponseProtocol.Failure.type = RequestResponseProtocol.Failure
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
 
   }
 

@@ -1,16 +1,15 @@
 package de.up.hpi.informationsystems.sampleapp.dactors
 
 import akka.actor.{ActorRef, ActorSystem, Props}
-import akka.pattern.{ask, pipe}
 import akka.util.Timeout
 import de.up.hpi.informationsystems.adbms.Dactor
-import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
+import de.up.hpi.informationsystems.adbms.definition._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 
 object Cart {
 
