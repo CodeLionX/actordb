@@ -1,5 +1,7 @@
 package de.up.hpi.informationsystems.sampleapp.dactors
 
+import java.time.{LocalDateTime, ZoneId, ZoneOffset, ZonedDateTime}
+
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.util.Timeout
 import de.up.hpi.informationsystems.adbms.Dactor
@@ -53,19 +55,19 @@ object Cart {
     override val name: String = "cart_purchases"
   }
 
-  private object AddItemsHelper {
-    def apply(system: ActorSystem, backTo: ActorRef, askTimeout: Timeout): AddItemsHelper =
-      new AddItemsHelper(system, backTo, askTimeout)
+  private object CartHelper {
+    def apply(system: ActorSystem, backTo: ActorRef, askTimeout: Timeout): CartHelper =
+      new CartHelper(system, backTo, askTimeout)
 
-    case class Success(results: Seq[Record], newSessionId: Int, replyTo: ActorRef)
+    case class HandledAddItems(results: Seq[Record], newSessionId: Int, replyTo: ActorRef)
     case class Failure(e: Throwable, replyTo: ActorRef)
 
   }
 
-  private class AddItemsHelper(system: ActorSystem, recipient: ActorRef, implicit val askTimeout: Timeout) {
+  private class CartHelper(system: ActorSystem, recipient: ActorRef, implicit val askTimeout: Timeout) {
     import de.up.hpi.informationsystems.sampleapp.dactors.Cart.AddItems.Order
 
-    def help(orders: Seq[Order], customerId: Int, currentSessionId: Int, replyTo: ActorRef): Unit = {
+    def handleAddItems(orders: Seq[Order], customerId: Int, currentSessionId: Int, replyTo: ActorRef): Unit = {
 
       val priceRequests = orders
         .groupBy(_.sectionId)
@@ -105,7 +107,20 @@ object Cart {
       val result = FutureRelation.fromRecordSeq(priceDiscOrder.future.map(_.records.get.map( (rec: Record) => rec + (CartPurchases.sessionId -> currentSessionId))))
       // FutureRelation: i_id, i_price, i_min_price, fixed_disc, sec_id, i_quantity, session_id
 
-      result.pipeAsMessageTo(relation => AddItemsHelper.Success(relation.records.get, currentSessionId, replyTo), recipient)
+      result.pipeAsMessageTo(relation => CartHelper.HandledAddItems(relation.records.get, currentSessionId, replyTo), recipient)
+    }
+
+    def handleCheckout(customerId: Int, sectionIds: Seq[Int], allCartItems: Relation, recipient: ActorRef): Unit = {
+      val purchaseRequests = sectionIds.map( sectionId => {
+        val cartItems: Relation = allCartItems.where(CartPurchases.sectionId -> { _ == sectionId })
+
+        sectionId -> StoreSection.GetVariableDiscountUpdateInventory.Request(
+          customerId,
+          ZonedDateTime.now(ZoneOffset.UTC),
+          cartItems
+        )
+      }).toMap
+      val variableDiscounts: FutureRelation = Dactor.askDactor(system, classOf[StoreSection], purchaseRequests)
     }
   }
 }
@@ -114,6 +129,7 @@ class Cart(id: Int) extends Dactor(id) {
   import Cart._
 
   private val timeout: Timeout = Timeout(2.seconds)
+  private val helper: CartHelper = CartHelper(context.system, self, timeout)
 
   override protected val relations: Map[RelationDef, MutableRelation] =
     Dactor.createAsRowRelations(Seq(CartInfo, CartPurchases))
@@ -126,15 +142,36 @@ class Cart(id: Int) extends Dactor(id) {
       relations(CartInfo)
         .update(CartInfo.sessionId ~> currentSessionId)
         .where[Int](CartInfo.customerId -> { _ == customerId })
-      AddItemsHelper(context.system, self, timeout).help(orders, customerId, currentSessionId, sender())
+      helper.handleAddItems(orders, customerId, currentSessionId, sender())
     }
 
-    case AddItemsHelper.Success(records, newSessionId, replyTo) =>
+    case CartHelper.HandledAddItems(records, newSessionId, replyTo) =>
       relations(CartPurchases).insertAll(records) match {
         case Success(_) => replyTo ! AddItems.Success(newSessionId)
         case Failure(e) => replyTo ! AddItems.Failure(e)
       }
 
-    case Checkout.Request(_) => sender() ! Checkout.Failure(new NotImplementedError)
+    case Checkout.Request(sessionId) => {
+      val customerId: Int = relations(CartInfo)
+        .project(Set(CartInfo.customerId))
+        .records.get
+        .map(_.get(CartInfo.customerId).get).head
+
+      val sections: Seq[Int] = relations(CartPurchases)
+        .where(CartPurchases.sessionId -> { _ == sessionId })
+        .project(Set(CartPurchases.sectionId))
+        .records.get.map(_.get(CartPurchases.sectionId).get).distinct
+
+      val cartItems: Relation = relations(CartPurchases)
+        .whereAll(
+          Map(CartPurchases.sessionId.untyped -> { sesId: Any => sesId.asInstanceOf[Int] == sessionId}) ++
+            Map(CartPurchases.sectionId.untyped -> { secId: Any => sections.contains(secId.asInstanceOf[Int]) })
+        ).project(Set(
+        CartPurchases.inventoryId, CartPurchases.quantity, CartPurchases.price,
+        CartPurchases.fixedDiscount, CartPurchases.minPrice
+      ))
+
+      helper.handleCheckout(customerId, sections, cartItems, sender())
+    }
   }
 }
