@@ -114,7 +114,7 @@ object Cart {
     def handleCheckout(customerId: Int, storeId: Int, sectionIds: Seq[Int], time: ZonedDateTime, allCartItems: Relation, replyTo: ActorRef): Unit = {
       // request variable discounts and get sums of storeSections
       val purchaseRequests = sectionIds.map( sectionId => {
-        val cartItems: Relation = allCartItems.where(CartPurchases.sectionId -> { _ == sectionId })
+        val cartItems: Relation = allCartItems.where[Int](CartPurchases.sectionId -> { _ == sectionId })
 
         sectionId -> StoreSection.GetVariableDiscountUpdateInventory.Request(
           customerId,
@@ -144,7 +144,7 @@ object Cart {
       // notify customer
       val result = variableDiscountSum.transform( relation => {
         val record = relation.records.get.head
-        val msg = Customer.AddStoreVisit(
+        val msg = Customer.AddStoreVisit.Request(
           storeId,
           time,
           record.get(amountCol).get,
@@ -201,7 +201,7 @@ class Cart(id: Int) extends Dactor(id) {
         .map(_.get(CartInfo.storeId).get).head
 
       val sections: Seq[Int] = relations(CartPurchases)
-        .where(CartPurchases.sessionId -> { _ == sessionId })
+        .where[Int](CartPurchases.sessionId -> { _ == sessionId })
         .project(Set(CartPurchases.sectionId))
         .records.get.map(_.get(CartPurchases.sectionId).get).distinct
 
