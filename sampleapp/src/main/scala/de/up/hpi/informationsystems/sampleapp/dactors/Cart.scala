@@ -61,20 +61,6 @@ object Cart {
     case class Success(results: Seq[Record], customerId: Int, newSessionId: Int, replyTo: ActorRef)
     case class Failure(e: Throwable, replyTo: ActorRef)
 
-    private[AddItemsHelper] case class PriceDiscountPartialResult(sectionId: Int, inventoryId: Int, price: Double, minPrice: Double, fixedDiscount: Double)
-    private[AddItemsHelper] object PricePartialResult {
-      def forSection(id: Int): Record => PricePartialResult = r =>
-        PricePartialResult(
-          sectionId = id,
-          inventoryId = r.get(ColumnDef[Int]("i_id")).get,
-          price = r.get(ColumnDef[Double]("i_price")).get,
-          minPrice = r.get(ColumnDef[Double]("i_min_price")).get
-        )
-    }
-    private[AddItemsHelper] case class PricePartialResult(sectionId: Int, inventoryId: Int, price: Double, minPrice: Double)
-    private[AddItemsHelper] case class DiscountsPartialResult(inventoryId: Int, fixedDiscount: Double) {
-      def toInventoryDiscountTuple: (Int, Double) = (inventoryId, fixedDiscount)
-    }
   }
 
   private class AddItemsHelper(system: ActorSystem, recipient: ActorRef, implicit val askTimeout: Timeout) {
