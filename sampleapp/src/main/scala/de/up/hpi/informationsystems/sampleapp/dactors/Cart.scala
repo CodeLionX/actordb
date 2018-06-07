@@ -78,12 +78,9 @@ object Cart {
   }
 
   private class AddItemsHelper(system: ActorSystem, recipient: ActorRef, implicit val askTimeout: Timeout) {
-    import Dactor._
     import de.up.hpi.informationsystems.sampleapp.dactors.Cart.AddItems.Order
-    import de.up.hpi.informationsystems.sampleapp.dactors.Cart.AddItemsHelper.{DiscountsPartialResult, PriceDiscountPartialResult, PricePartialResult}
 
     def help(orders: Seq[Order], customerId: Int, currentSessionId: Int, replyTo: ActorRef): Unit = {
-      /////////////////////////
       /*
       orders_by_store_section = extract_arrange(orders);
        */
@@ -110,7 +107,7 @@ object Cart {
         WHERE name = o_c_id;
        */
       val groupIdRequest = Map(customerId -> Customer.GetCustomerGroupId.Request())
-      val groupId: Future[Int] = Dactor
+      val groupId: FutureRelation = Dactor
         .askDactor[Customer.GetCustomerGroupId.Success](system, classOf[Customer], groupIdRequest)
         // full:
         //        .future.map {
@@ -123,13 +120,15 @@ object Cart {
         //          case Failure(e) => throw e
         //        }
         // short:
-        .future.map(_.get.head.get(Customer.CustomerInfo.custGroupId).get)
+        //.future.map(_.get.head.get(Customer.CustomerInfo.custGroupId).get)
 
       /*
       ordered_item_ids := extract_ids(orders);
+    import de.up.hpi.informationsystems.sampleapp.dactors.Cart.AddItemsHelper.{DiscountsPartialResult, PriceDiscountPartialResult, PricePartialResult}
       future disc_res := actor<Group_manager>[v_c_g_id].get_fixed_discounts(ordered_item_ids);
        */
-      val fixedDiscount: FutureRelation = groupId.map( id => {
+      val fixedDiscount: FutureRelation = groupId.transform( groupId => {
+        val id = groupId.records.get.head.get(Customer.CustomerInfo.custGroupId).get
         val fixedDiscountRequest = Map(id -> GroupManager.GetFixedDiscounts.Request(orders.map(_.inventoryId)))
         Dactor.askDactor(system, classOf[GroupManager], fixedDiscountRequest)
       })
@@ -145,11 +144,7 @@ object Cart {
       /*
       list<tuple> discounts := disc_res.get();
       results.value_list.when_all()
-       */
-//      val discounts = fixedDiscounts.records
-//      val prices = priceList.records
 
-      /*
       foreach sec_id_res in results {
         foreach i_p in sec_id_res.second.get() {
           fixed_disc := lookup(discounts, i_p.i_id);
@@ -179,102 +174,6 @@ object Cart {
       priceDiscOrder.future
         .map(records => AddItemsHelper.Success(records.get, customerId, currentSessionId, replyTo))
         .pipeTo(recipient)
-      /////////////////////////
-
-      val prices = Future.sequence(orders
-        .groupBy(_.sectionId)
-        .map(askStoreSectionForPrices))
-        .map(_.flatten)
-
-      val customerGroupId = askCustomerForGroupId(customerId)
-
-      val inventoryIdsAndGroupId = for {
-        prices <- prices
-        customerGroupId <- customerGroupId
-      } yield (prices.map(_.inventoryId), customerGroupId)
-
-      val fixedDiscounts = inventoryIdsAndGroupId.flatMap{
-        case (inventoryIds, groupId) => askGroupManagerForDiscount(inventoryIds.toSeq, groupId)
-      }
-
-      val pricesWithDiscounts = for {
-        prices <- prices
-        fixedDiscounts <- fixedDiscounts
-      } yield joinPriceAndDisc(prices.toSeq, fixedDiscounts)
-
-      val orderQuantities = orders.map{ order =>
-        order.inventoryId -> order.quantity
-      }.toMap
-
-      val results = for {
-        pricesWithDiscounts <- pricesWithDiscounts
-      } yield joinPriceDiscountWithQuantities(pricesWithDiscounts, orderQuantities)
-
-      results.map(records => AddItemsHelper.Success(records, customerId, currentSessionId, replyTo)).pipeTo(recipient)
-    }
-
-    private def joinPriceDiscountWithQuantities(pricesWithDiscounts: Seq[PriceDiscountPartialResult], quantityOfInventoryId: Map[Int, Int]): Seq[Record] =
-      pricesWithDiscounts map {
-        case PriceDiscountPartialResult(sectionId, inventoryId, price, minPrice, fixedDiscount) =>
-          CartPurchases.newRecord(
-            CartPurchases.sessionId ~> currentSessionId &
-            CartPurchases.sectionId ~> sectionId &
-            CartPurchases.inventoryId ~> inventoryId &
-            CartPurchases.quantity ~> quantityOfInventoryId.getOrElse(inventoryId, 0) &
-            CartPurchases.price ~> price &
-            CartPurchases.minPrice ~> minPrice &
-            CartPurchases.fixedDiscount ~> fixedDiscount
-          ).build()
-      }
-
-    private def joinPriceAndDisc(ppr: Seq[PricePartialResult], dpr: Seq[DiscountsPartialResult]): Seq[PriceDiscountPartialResult] = {
-      val discountForInventoryId = dpr.map(_.toInventoryDiscountTuple).toMap
-
-      ppr.map({
-        case PricePartialResult(sectionId, inventoryId, price, minPrice) =>
-          PriceDiscountPartialResult(sectionId, inventoryId, price, minPrice, discountForInventoryId.getOrElse(inventoryId, 0))
-      })
-    }
-
-    private def askStoreSectionForPrices(inp: (Int, Seq[Order])): Future[Seq[PricePartialResult]] = {
-      val (sectionId, orders) = inp
-      val inventoryIds = orders.map(_.inventoryId)
-
-      val answer = dactorSelection(system, classOf[StoreSection], sectionId) ? StoreSection.GetPrice.Request(inventoryIds)
-
-      answer
-        .mapTo[StoreSection.GetPrice.Success]                        // map to success response to fail fast
-        .map( getPriceSuccess =>
-        getPriceSuccess.result.map( r => {  // build result set
-          PricePartialResult(
-            sectionId = sectionId,
-            inventoryId = r.get(ColumnDef[Int]("i_id")).get,
-            price = r.get(ColumnDef[Double]("i_price")).get,
-            minPrice = r.get(ColumnDef[Double]("i_min_price")).get
-          )
-        })
-      )
-    }
-
-    private def askCustomerForGroupId(custId: Int): Future[Int] = {
-      val answer = dactorSelection(system, classOf[Customer], custId) ? Customer.GetCustomerGroupId.Request()
-
-      answer
-        .mapTo[Customer.GetCustomerGroupId.Success]
-        .map(_.result)
-    }
-
-    private def askGroupManagerForDiscount(inventoryIds: Seq[Int], groupId: Int): Future[Seq[DiscountsPartialResult]] = {
-      val answer = dactorSelection(system, classOf[GroupManager], groupId) ? GroupManager.GetFixedDiscounts.Request(inventoryIds)
-
-      answer
-        .mapTo[GroupManager.GetFixedDiscounts.Success]
-        .map(_.results.map( r =>
-          DiscountsPartialResult(
-            inventoryId = r.get(ColumnDef[Int]("i_id")).get,
-            fixedDiscount = r.get(ColumnDef[Double]("fixed_disc")).get
-          )
-        ))
     }
   }
 }
@@ -307,7 +206,7 @@ class Cart(id: Int) extends Dactor(id) {
       .insertAll(records).get
     relations(CartInfo)
       .update(CartInfo.sessionId ~> newSessionId)
-      .where(CartInfo.customerId -> {
+      .where[Int](CartInfo.customerId -> {
         _ == customerId
       }).get
   }
