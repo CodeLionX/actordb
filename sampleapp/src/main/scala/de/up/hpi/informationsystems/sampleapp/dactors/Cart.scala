@@ -66,52 +66,19 @@ object Cart {
     import de.up.hpi.informationsystems.sampleapp.dactors.Cart.AddItems.Order
 
     def help(orders: Seq[Order], customerId: Int, currentSessionId: Int, replyTo: ActorRef): Unit = {
-      /*
-      orders_by_store_section = extract_arrange(orders);
-       */
+
       val priceRequests = orders
         .groupBy(_.sectionId)
         .map{ case (sectionId, sectionOrders) =>
           sectionId -> StoreSection.GetPrice.Request(sectionOrders.map(_.inventoryId))
         }
-
-      /*
-      map<int, future> results;
-      for (section_order: orders_by_store_section) {
-        future res := actor<Store_Section>[section_order.sec_id].get_price(section_order.item_ids)
-        results.add(section_order.sec_id, res)
-      }
-       */
       val priceList: FutureRelation = Dactor.askDactor[StoreSection.GetPrice.Success](system, classOf[StoreSection], priceRequests)
       // FutureRelation: i_id, i_price, i_min_price
-      // FIXME: mapping from section (actorId = sectionId) to content (i_id, i_price, i_min_price) gets lost
 
-      /*
-      SELECT c_g_id INTO v_c_g_id
-        FROM actor<Customer>.get_customer_info()
-        WHERE name = o_c_id;
-       */
       val groupIdRequest = Map(customerId -> Customer.GetCustomerGroupId.Request())
       val groupId: FutureRelation = Dactor
         .askDactor[Customer.GetCustomerGroupId.Success](system, classOf[Customer], groupIdRequest)
-        // full:
-        //        .future.map {
-        //          case Success(records) =>
-        //            if(records.size == 1)
-        //              records.head.get(ColumnDef[Int]("c_g_id")) match {
-        //                case Some(id) => id
-        //                case None => throw RuntimeException
-        //              }
-        //          case Failure(e) => throw e
-        //        }
-        // short:
-        //.future.map(_.get.head.get(Customer.CustomerInfo.custGroupId).get)
 
-      /*
-      ordered_item_ids := extract_ids(orders);
-    import de.up.hpi.informationsystems.sampleapp.dactors.Cart.AddItemsHelper.{DiscountsPartialResult, PriceDiscountPartialResult, PricePartialResult}
-      future disc_res := actor<Group_manager>[v_c_g_id].get_fixed_discounts(ordered_item_ids);
-       */
       val fixedDiscount: FutureRelation = groupId.flatTransform( groupId => {
         val id = groupId.records.get.head.get(Customer.CustomerInfo.custGroupId).get
         val fixedDiscountRequest = Map(id -> GroupManager.GetFixedDiscounts.Request(orders.map(_.inventoryId)))
@@ -119,43 +86,24 @@ object Cart {
       })
       // FutureRelation: i_id, fixed_disc
 
-      /*
-      SELECT session_id + 1 INTO v_session_id FROM cart_info;
-      UPDATE cart_info
-        SET c_id = o_c_id, session_id = session_id + 1;
-       */
-      // done outside helper
-
-      /*
-      list<tuple> discounts := disc_res.get();
-      results.value_list.when_all()
-
-      foreach sec_id_res in results {
-        foreach i_p in sec_id_res.second.get() {
-          fixed_disc := lookup(discounts, i_p.i_id);
-          i_quantity := lookup(orders, i_p.i_id);
-          INSERT INTO cart_purchases
-            //      sec_id,           session_id,   i_id, i_quantity, i_fixed_disc, i_min_price,   i_price
-            VALUES (sec_id_res.first, v_session_id, i_id, i_quantity, fixed_disc,   i_p.min_price, i_ip.price);
-        }
-      }
-       */
       val priceDisc: FutureRelation = priceList.innerJoin(fixedDiscount, (priceRec, discRec) =>
         priceRec.get(CartPurchases.inventoryId) == discRec.get(CartPurchases.inventoryId)
       )
       // FutureRelation: i_id, i_price, i_min_price, fixed_disc
 
       val orderRecordBuilder = Record(Set(CartPurchases.inventoryId, CartPurchases.sectionId, CartPurchases.quantity))
-      val orderRelation: Relation = FutureRelation.fromRecordSeq(Future{orders.map(order => orderRecordBuilder(
+      val orderRelation = FutureRelation.fromRecordSeq(Future{orders.map(order => orderRecordBuilder(
         CartPurchases.inventoryId ~> order.inventoryId &
           CartPurchases.sectionId ~> order.sectionId &
           CartPurchases.quantity ~> order.quantity
       ).build())})
-      val priceDiscOrder = priceDisc.innerJoin(orderRelation, (priceRec, orderRec) =>
+      val priceDiscOrder: FutureRelation = priceDisc.innerJoin(orderRelation, (priceRec, orderRec) =>
         priceRec.get(CartPurchases.inventoryId) == orderRec.get(CartPurchases.inventoryId)
       )
       // FutureRelation: i_id, i_price, i_min_price, fixed_disc, sec_id, i_quantity
+
       val result = FutureRelation.fromRecordSeq(priceDiscOrder.future.map(_.records.get.map( (rec: Record) => rec + (CartPurchases.sessionId -> currentSessionId))))
+      // FutureRelation: i_id, i_price, i_min_price, fixed_disc, sec_id, i_quantity, session_id
 
       result.pipeAsMessageTo(relation => AddItemsHelper.Success(relation.records.get, currentSessionId, replyTo), recipient)
     }
