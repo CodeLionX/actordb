@@ -6,6 +6,7 @@ import akka.actor.Props
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
+import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 
 import scala.util.{Failure, Success, Try}
 
@@ -23,9 +24,9 @@ object Customer {
 
   object GetCustomerGroupId {
 
-    case class Request()
-    case class Success(result: Int)
-    case class Failure(e: Throwable)
+    case class Request() extends RequestResponseProtocol.Request
+    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
 
   }
 
@@ -114,12 +115,14 @@ class Customer(id: Int) extends Dactor(id) {
     Try(relations(CustomerInfo).records.get.head)
   }
 
-  def getCustomerGroupId: Try[Int] = {
+  def getCustomerGroupId: Try[Seq[Record]] = {
     val rowCount = relations(CustomerInfo).records.get.size
     if (rowCount > 1) {
       throw InconsistentStateException(s"this relation was expected to contain at maximum 1 row, but contained $rowCount")
     }
-    Try(relations(CustomerInfo).records.get.head.get(CustomerInfo.custGroupId).get)
+    relations(CustomerInfo)
+      .project(Set(CustomerInfo.custGroupId))
+      .records
   }
 
   def addStoreVisit(storeId: Int, time: LocalDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double): Try[Record] =

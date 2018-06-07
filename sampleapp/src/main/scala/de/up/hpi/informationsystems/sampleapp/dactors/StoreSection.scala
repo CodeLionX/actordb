@@ -7,17 +7,17 @@ import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition._
 
 import scala.util.{Failure, Success, Try}
-
+import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 object StoreSection {
 
   def props(id: Int): Props = Props(new StoreSection(id))
 
   object GetPrice {
 
-    case class Request(inventoryIds: Seq[Int])
-    // result: i_price, i_min_price
-    case class Success(result: Seq[Record])
-    case class Failure(e: Throwable)
+    case class Request(inventoryIds: Seq[Int]) extends RequestResponseProtocol.Request
+    // result: i_id, i_price, i_min_price
+    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
 
   }
 
@@ -71,7 +71,7 @@ class StoreSection(id: Int) extends Dactor(id) {
   }
 
   def getPrice(inventoryIds: Seq[Int]): Try[Seq[Record]] = {
-    val resultSchema = Set(Inventory.price, Inventory.minPrice)
+    val resultSchema: Set[UntypedColumnDef] = Set(Inventory.inventoryId, Inventory.price, Inventory.minPrice)
     relations(Inventory)
       .project(resultSchema)
       .where[Int](Inventory.inventoryId -> { id => inventoryIds.contains(id) })

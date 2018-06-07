@@ -37,18 +37,66 @@ class TransientRelationTest extends WordSpec with Matchers {
       .withCellContent(colAge)(2)
       .build()
 
+    val colOrderId: ColumnDef[Int] = ColumnDef("OrderId")
+    val colOrderdate: ColumnDef[String] = ColumnDef("Orderdate")
+    val colCustomerId: ColumnDef[Int] = ColumnDef("CustomerId")
+    val colFullname: ColumnDef[String] = ColumnDef("Fullname")
+    val colCountry: ColumnDef[String] = ColumnDef("Country")
+
+    val orderColumns: Set[UntypedColumnDef] = Set(colOrderId, colOrderdate, colCustomerId)
+    val customerColumns: Set[UntypedColumnDef] = Set(colCustomerId, colFullname, colCountry)
+
+    val orderRecord1 = Record(orderColumns)
+      .withCellContent(colOrderId)(504)
+      .withCellContent(colOrderdate)("05/06/07")
+      .withCellContent(colCustomerId)(14)
+      .build()
+
+    val orderRecord2 = Record(orderColumns)
+      .withCellContent(colOrderId)(505)
+      .withCellContent(colOrderdate)("08/06/07")
+      .withCellContent(colCustomerId)(14)
+      .build()
+
+    val orderRecord3 = Record(orderColumns)
+      .withCellContent(colOrderId)(504)
+      .withCellContent(colOrderdate)("17/06/07")
+      .withCellContent(colCustomerId)(6)
+      .build()
+
+    val customerRecord1 = Record(customerColumns)
+      .withCellContent(colCustomerId)(14)
+      .withCellContent(colFullname)("Max Mustermann")
+      .withCellContent(colCountry)("Germany")
+      .build()
+
+    val customerRecord2 = Record(customerColumns)
+      .withCellContent(colCustomerId)(7)
+      .withCellContent(colFullname)("Omari Wesson")
+      .withCellContent(colCountry)("USA")
+      .build()
+
     "empty" should {
       val emptyRelation = TransientRelation(Seq.empty)
 
-      "return an empty result set for any where or whereAll query" in {
+      "return an empty result set for any where query" in {
         emptyRelation
           .where(colFirstname, (_: String) => true)
           .records shouldEqual Success(Seq.empty)
+      }
 
+      "return an empty result set for any whereAll query" in {
         emptyRelation.whereAll(Map(
           colFirstname.untyped -> {_: Any => true},
           colAge.untyped -> {_: Any => true}
         )).records shouldEqual Success(Seq.empty)
+      }
+
+      "fail when joined with itself" in {
+        emptyRelation
+          .innerEquiJoin(emptyRelation, (colFirstname, colFirstname))
+          .records
+          .isFailure shouldBe true
       }
     }
 
@@ -77,7 +125,6 @@ class TransientRelationTest extends WordSpec with Matchers {
       }
 
       "return selected columns only from project" in {
-        // deduce correctness of Relation.project from correctness of Record.project
         fullRelation.project(Set(colFirstname)).records shouldEqual
           Success(Seq(
             record1.project(Set(colFirstname)).get,
@@ -89,12 +136,275 @@ class TransientRelationTest extends WordSpec with Matchers {
         fullRelation
           .project(Set(ColumnDef[Int]("bad-col")))
           .records
-          .isFailure should equal (true)
+          .isFailure shouldBe true
 
         fullRelation
           .project(columns + ColumnDef[Int]("bad-col"))
           .records
-          .isFailure should equal (true)
+          .isFailure shouldBe true
+      }
+
+      /* Joins */
+      /* Cross-join */
+
+      "fail when inner-equi-joined with an empty relation" in {
+        fullRelation
+          .innerEquiJoin(TransientRelation(Seq.empty), (colFirstname, colFirstname))
+          .records
+          .isFailure shouldBe true
+      }
+
+      "return an appropriate result for inner-equi-join with itself with different columns" in {
+        val diffColumnsJoined = fullRelation
+          .innerEquiJoin(fullRelation, (colFirstname, colLastname))
+
+        diffColumnsJoined.columns shouldEqual columns
+        diffColumnsJoined.records shouldEqual Success(Seq(record1))
+      }
+
+      "return itself for join with itself on same column" in {
+        val sameColumnJoined = fullRelation
+          .innerEquiJoin(fullRelation, (colFirstname, colFirstname))
+
+        sameColumnJoined.columns shouldEqual columns
+        sameColumnJoined.records shouldEqual Success(Seq(record1, record2))
+      }
+
+      "return appropriate result for inner-equi-join" in {
+        val colFirstname2 = ColumnDef[String]("Firstname2")
+        val col1 = ColumnDef[Double]("col1")
+
+        val otherRecord1 = Record(Set(colFirstname2, col1))
+          .withCellContent(colFirstname2)("Test")
+          .withCellContent(col1)(12.1)
+          .build()
+
+        val otherRecord2 = Record(Set(colFirstname2, col1))
+          .withCellContent(colFirstname2)("Test")
+          .withCellContent(col1)(916.93)
+          .build()
+
+        val otherRel = TransientRelation(Seq(otherRecord1, otherRecord2))
+        val sameColumnJoined = fullRelation
+          .innerEquiJoin(otherRel, (colFirstname, colFirstname2))
+
+        sameColumnJoined.columns shouldEqual columns + colFirstname2 + col1
+        sameColumnJoined.records shouldEqual Success(Seq(
+          record1 ++ otherRecord1,
+          record1 ++ otherRecord2
+        ))
+      }
+
+      "fail to inner-equi-join on wrong column definition" in {
+        val joined1 = fullRelation
+          .innerEquiJoin(fullRelation, (ColumnDef[String]("something"), colFirstname))
+          .records
+        val joined2 = fullRelation
+          .innerEquiJoin(fullRelation, (colFirstname, ColumnDef[String]("something")))
+          .records
+
+        joined1.isFailure shouldBe true
+        joined2.isFailure shouldBe true
+      }
+
+      /* innerJoin */
+
+      "return an appropriate result for innerJoin with itself using different column values" in {
+        val diffColumnsJoined = fullRelation
+          .innerJoin(fullRelation, (lside, rside) => lside.get(colFirstname).get == rside.get(colLastname).get)
+
+        diffColumnsJoined.columns shouldEqual columns
+        diffColumnsJoined.records shouldEqual Success(Seq(record1))
+      }
+
+      "return itself for innerJoin with itself using the same column values" in {
+        val sameColumnJoined = fullRelation
+          .innerJoin(fullRelation, (left, right) => left.get(colFirstname).get == right.get(colFirstname).get)
+
+        sameColumnJoined.columns shouldEqual columns
+        sameColumnJoined.records shouldEqual Success(Seq(record1, record2))
+      }
+
+      "return the appropriate result for an innerJoin" in {
+        val orders: Relation = TransientRelation(Seq(orderRecord1, orderRecord2, orderRecord3))
+        val customers: Relation = TransientRelation(Seq(customerRecord1, customerRecord2))
+
+        val joined = orders
+          .innerJoin(customers, (left, right) => left.get(colCustomerId) == right.get(colCustomerId))
+
+        joined.columns shouldEqual orders.columns ++ customers.columns
+        joined.records shouldEqual
+          Success(Seq(
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colCustomerId)(14)
+              .withCellContent(colFullname)("Max Mustermann")
+              .withCellContent(colCountry)("Germany")
+              .withCellContent(colOrderId)(504)
+              .withCellContent(colOrderdate)("05/06/07")
+              .build(),
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colCustomerId)(14)
+              .withCellContent(colFullname)("Max Mustermann")
+              .withCellContent(colCountry)("Germany")
+              .withCellContent(colOrderId)(505)
+              .withCellContent(colOrderdate)("08/06/07")
+              .build()
+          ))
+      }
+
+      "fail to innerJoin on wrong column definition" in {
+        val joined1 = fullRelation
+          .innerJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")).get == right.get(colFirstname).get)
+          .records
+        val joined2 = fullRelation
+          .innerJoin(fullRelation, (left, right) => left.get(colFirstname).get == right.get(ColumnDef[String]("something")).get)
+          .records
+
+        joined1.isFailure shouldBe true
+        joined2.isFailure shouldBe true
+      }
+
+      /* outerJoin */
+
+      "return the appropriate result for an outerJoin" in {
+        val orders: Relation = TransientRelation(Seq(orderRecord1, orderRecord2, orderRecord3))
+        val customers: Relation = TransientRelation(Seq(customerRecord1, customerRecord2))
+
+        val joined = orders
+          .outerJoin(customers, (left, right) => left.get(colCustomerId) == right.get(colCustomerId))
+
+        joined.columns shouldEqual orders.columns ++ customers.columns
+        joined.records shouldEqual
+          Success(Seq(
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colCustomerId)(14)
+              .withCellContent(colFullname)("Max Mustermann")
+              .withCellContent(colCountry)("Germany")
+              .withCellContent(colOrderId)(504)
+              .withCellContent(colOrderdate)("05/06/07")
+              .build(),
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colCustomerId)(14)
+              .withCellContent(colFullname)("Max Mustermann")
+              .withCellContent(colCountry)("Germany")
+              .withCellContent(colOrderId)(505)
+              .withCellContent(colOrderdate)("08/06/07")
+              .build(),
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colOrderId)(504)
+              .withCellContent(colOrderdate)("17/06/07")
+              .withCellContent(colCustomerId)(6)
+              .build(),
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colCustomerId)(7)
+              .withCellContent(colFullname)("Omari Wesson")
+              .withCellContent(colCountry)("USA")
+              .build()
+          ))
+      }
+
+      "fail to outerJoin on wrong column definition" in {
+        val joined1 = fullRelation
+          .outerJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")).get == right.get(colFirstname).get)
+          .records
+        val joined2 = fullRelation
+          .outerJoin(fullRelation, (left, right) => left.get(colFirstname).get == right.get(ColumnDef[String]("something")).get)
+          .records
+
+        joined1.isFailure shouldBe true
+        joined2.isFailure shouldBe true
+      }
+
+      /* leftJoin */
+
+      "return the appropriate result set for a leftJoin" in {
+        val orders: Relation = TransientRelation(Seq(orderRecord1, orderRecord2, orderRecord3))
+        val customers: Relation = TransientRelation(Seq(customerRecord1, customerRecord2))
+
+        val joined = orders
+          .leftJoin(customers, (left, right) => left.get(colCustomerId) == right.get(colCustomerId))
+
+        joined.columns shouldEqual orders.columns ++ customers.columns
+        joined.records shouldEqual
+          Success(Seq(
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colOrderId)(504)
+              .withCellContent(colOrderdate)("05/06/07")
+              .withCellContent(colCustomerId)(14)
+              .withCellContent(colFullname)("Max Mustermann")
+              .withCellContent(colCountry)("Germany")
+              .build(),
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colOrderId)(505)
+              .withCellContent(colOrderdate)("08/06/07")
+              .withCellContent(colCustomerId)(14)
+              .withCellContent(colFullname)("Max Mustermann")
+              .withCellContent(colCountry)("Germany")
+              .build(),
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colOrderId)(504)
+              .withCellContent(colOrderdate)("17/06/07")
+              .withCellContent(colCustomerId)(6)
+              .build()
+          ))
+      }
+
+      "fail to leftJoin on wrong column definition" in {
+        val joined1 = fullRelation
+          .leftJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")).get == right.get(colFirstname).get)
+          .records
+        val joined2 = fullRelation
+          .leftJoin(fullRelation, (left, right) => left.get(colFirstname).get == right.get(ColumnDef[String]("something")).get)
+          .records
+
+        joined1.isFailure shouldBe true
+        joined2.isFailure shouldBe true
+      }
+
+      /* rightJoin */
+
+      "return the appropriate result set for a rightJoin" in {
+        val orders: Relation = TransientRelation(Seq(orderRecord1, orderRecord2, orderRecord3))
+        val customers: Relation = TransientRelation(Seq(customerRecord1, customerRecord2))
+
+        val joined = orders
+          .rightJoin(customers, (left, right) => left.get(colCustomerId) == right.get(colCustomerId))
+
+        joined.columns shouldEqual orders.columns ++ customers.columns
+        joined.records shouldEqual
+          Success(Seq(
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colCustomerId)(14)
+              .withCellContent(colFullname)("Max Mustermann")
+              .withCellContent(colCountry)("Germany")
+              .withCellContent(colOrderId)(504)
+              .withCellContent(colOrderdate)("05/06/07")
+              .build(),
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colCustomerId)(14)
+              .withCellContent(colFullname)("Max Mustermann")
+              .withCellContent(colCountry)("Germany")
+              .withCellContent(colOrderId)(505)
+              .withCellContent(colOrderdate)("08/06/07")
+              .build(),
+            Record(orderColumns ++ customerColumns)
+              .withCellContent(colCustomerId)(7)
+              .withCellContent(colFullname)("Omari Wesson")
+              .withCellContent(colCountry)("USA")
+              .build()
+          ))
+      }
+
+      "fail to rightJoin on wrong column definition" in {
+        val joined1 = fullRelation
+          .rightJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")).get == right.get(colFirstname).get)
+          .records
+        val joined2 = fullRelation
+          .rightJoin(fullRelation, (left, right) => left.get(colFirstname).get == right.get(ColumnDef[String]("something")).get)
+          .records
+
+        joined1.isFailure shouldBe true
+        joined2.isFailure shouldBe true
       }
     }
 
