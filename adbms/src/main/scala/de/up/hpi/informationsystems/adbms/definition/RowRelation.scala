@@ -98,6 +98,10 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
     TransientRelation(records).rightJoin(other, on)
 
   /** @inheritdoc */
+  override def union(other: Relation): Relation =
+    TransientRelation(records).union(other)
+
+  /** @inheritdoc */
   override def records: Try[Seq[Record]] = Try(data)
 
   /** @inheritdoc */
