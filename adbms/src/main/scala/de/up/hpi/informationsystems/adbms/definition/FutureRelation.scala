@@ -115,7 +115,7 @@ object FutureRelation {
       futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.crossJoin(rel2, on))
 
     /** @inheritdoc*/
-    override def union(other: Relation): Relation =
+    override def union(other: Relation): FutureRelation =
       futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.union(rel2))
 
     /**
