@@ -78,8 +78,8 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
   override def project(columnDefs: Set[UntypedColumnDef]): Relation = TransientRelation(data).project(columnDefs)
 
   /** @inheritdoc*/
-  override def equiJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
-    TransientRelation(data).equiJoin(other, on)
+  override def innerEquiJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
+    TransientRelation(data).innerEquiJoin(other, on)
 
   /** @inheritdoc */
   override def innerJoin(other: Relation, on: RecordComparator): Relation =

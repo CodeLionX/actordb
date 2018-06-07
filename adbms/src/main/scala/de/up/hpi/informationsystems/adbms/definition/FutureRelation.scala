@@ -46,7 +46,7 @@ trait FutureRelation extends Relation with Immutable with Awaitable[Try[Seq[Reco
   override def rightJoin(other: Relation, on: RecordComparator): FutureRelation
 
   /** @inheritdoc */
-  override def equiJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): FutureRelation
+  override def innerEquiJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): FutureRelation
 
   /** @inheritdoc */
   override def union(other: Relation): FutureRelation
@@ -111,8 +111,8 @@ object FutureRelation {
       futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.rightJoin(rel2, on))
 
     /** @inheritdoc */
-    override def equiJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): FutureRelation =
-      futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.equiJoin(rel2, on))
+    override def innerEquiJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): FutureRelation =
+      futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.innerEquiJoin(rel2, on))
 
     /** @inheritdoc*/
     override def union(other: Relation): FutureRelation =

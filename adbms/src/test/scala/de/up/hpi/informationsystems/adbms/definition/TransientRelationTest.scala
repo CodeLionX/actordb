@@ -94,7 +94,7 @@ class TransientRelationTest extends WordSpec with Matchers {
 
       "fail when joined with itself" in {
         emptyRelation
-          .equiJoin(emptyRelation, (colFirstname, colFirstname))
+          .innerEquiJoin(emptyRelation, (colFirstname, colFirstname))
           .records
           .isFailure shouldBe true
       }
@@ -147,16 +147,16 @@ class TransientRelationTest extends WordSpec with Matchers {
       /* Joins */
       /* Cross-join */
 
-      "fail when cross-joined with an empty relation" in {
+      "fail when inner-equi-joined with an empty relation" in {
         fullRelation
-          .equiJoin(TransientRelation(Seq.empty), (colFirstname, colFirstname))
+          .innerEquiJoin(TransientRelation(Seq.empty), (colFirstname, colFirstname))
           .records
           .isFailure shouldBe true
       }
 
-      "return an appropriate result for cross-join with itself with different columns" in {
+      "return an appropriate result for inner-equi-join with itself with different columns" in {
         val diffColumnsJoined = fullRelation
-          .equiJoin(fullRelation, (colFirstname, colLastname))
+          .innerEquiJoin(fullRelation, (colFirstname, colLastname))
 
         diffColumnsJoined.columns shouldEqual columns
         diffColumnsJoined.records shouldEqual Success(Seq(record1))
@@ -164,13 +164,13 @@ class TransientRelationTest extends WordSpec with Matchers {
 
       "return itself for join with itself on same column" in {
         val sameColumnJoined = fullRelation
-          .equiJoin(fullRelation, (colFirstname, colFirstname))
+          .innerEquiJoin(fullRelation, (colFirstname, colFirstname))
 
         sameColumnJoined.columns shouldEqual columns
         sameColumnJoined.records shouldEqual Success(Seq(record1, record2))
       }
 
-      "return appropriate result for cross-join" in {
+      "return appropriate result for inner-equi-join" in {
         val colFirstname2 = ColumnDef[String]("Firstname2")
         val col1 = ColumnDef[Double]("col1")
 
@@ -186,7 +186,7 @@ class TransientRelationTest extends WordSpec with Matchers {
 
         val otherRel = TransientRelation(Seq(otherRecord1, otherRecord2))
         val sameColumnJoined = fullRelation
-          .equiJoin(otherRel, (colFirstname, colFirstname2))
+          .innerEquiJoin(otherRel, (colFirstname, colFirstname2))
 
         sameColumnJoined.columns shouldEqual columns + colFirstname2 + col1
         sameColumnJoined.records shouldEqual Success(Seq(
@@ -195,12 +195,12 @@ class TransientRelationTest extends WordSpec with Matchers {
         ))
       }
 
-      "fail to cross-join on wrong column definition" in {
+      "fail to inner-equi-join on wrong column definition" in {
         val joined1 = fullRelation
-          .equiJoin(fullRelation, (ColumnDef[String]("something"), colFirstname))
+          .innerEquiJoin(fullRelation, (ColumnDef[String]("something"), colFirstname))
           .records
         val joined2 = fullRelation
-          .equiJoin(fullRelation, (colFirstname, ColumnDef[String]("something")))
+          .innerEquiJoin(fullRelation, (colFirstname, ColumnDef[String]("something")))
           .records
 
         joined1.isFailure shouldBe true

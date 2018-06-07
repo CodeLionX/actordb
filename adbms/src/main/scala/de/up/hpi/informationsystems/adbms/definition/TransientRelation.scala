@@ -107,7 +107,7 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
   ))
 
   /** @inheritdoc */
-  override def equiJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
+  override def innerEquiJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
     if(isFailure)
       this
     else
@@ -116,17 +116,15 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
           throw IncompatibleColumnDefinitionException(s"this relation does not contain the specified column {${on._1}}")
         else if(!other.columns.contains(on._2))
           throw IncompatibleColumnDefinitionException(s"the other relation does not contain the specified column {${on._2}}")
-        else
+        else {
+          val recMap = other.records.get.groupBy(_.get(on._2))
           internal_data.flatMap(record => {
-            val onKey: T = record.get(on._1).get
-
-            val matchingRecords = other.where[T](on._2 -> {
-              _ == onKey
-            }).records.get
+            val matchingRecords = recMap.getOrElse(record.get(on._1), Seq.empty)
             matchingRecords.map(otherRecord =>
               record ++ otherRecord
             )
           })
+        }
       })
 
   /** @inheritdoc */

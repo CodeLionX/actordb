@@ -97,7 +97,7 @@ trait Relation {
     * @tparam T
     * @return a new relation comprised of the joined records from `this` and `other`
     */
-  def equiJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation
+  def innerEquiJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation
 
   /**
     * Performs a union with another relation, iff the relations have the same schema definition.
