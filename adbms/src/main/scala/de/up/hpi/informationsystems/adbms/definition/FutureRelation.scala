@@ -25,7 +25,7 @@ trait FutureRelation extends Relation with Immutable with Awaitable[Try[Seq[Reco
 
 object FutureRelation {
 
-  type BinRelationOp = (Relation, Relation) => Relation
+  private type BinRelationOp = (Relation, Relation) => Relation
 
   val defaultTimeout: Duration = 5 seconds
 
