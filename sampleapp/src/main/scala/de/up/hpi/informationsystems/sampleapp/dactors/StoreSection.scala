@@ -1,13 +1,13 @@
 package de.up.hpi.informationsystems.sampleapp.dactors
 
-import java.time.LocalDateTime
+import java.time.ZonedDateTime
 
 import akka.actor.Props
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition._
+import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 
 import scala.util.{Failure, Success, Try}
-import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 object StoreSection {
 
   def props(id: Int): Props = Props(new StoreSection(id))
@@ -22,9 +22,12 @@ object StoreSection {
   }
 
   object GetVariableDiscountUpdateInventory {
+    val amountCol: ColumnDef[Long] = ColumnDef("amount")
+    val fixedDiscCol: ColumnDef[Double] = ColumnDef("fixed_disc")
+    val varDiscCol: ColumnDef[Double] = ColumnDef("var_disc")
 
     // order items: i_id, i_quantity, i_min_price, i_price, i_fixed_disc
-    case class Request(customerId: Int, cardId: Int, cartTime: LocalDateTime, orderItems: Seq[Record])
+    case class Request(customerId: Int, cartTime: ZonedDateTime, orderItems: Relation)
     // totals: amount, fixed_disc, var_disc
     case class Success(totals: Seq[Record])
     case class Failure(e: Throwable)
@@ -44,7 +47,7 @@ object StoreSection {
 
   object PurchaseHistory extends RelationDef {
     val inventoryId: ColumnDef[Int] = ColumnDef("i_id")
-    val time: ColumnDef[LocalDateTime] = ColumnDef("time")
+    val time: ColumnDef[ZonedDateTime] = ColumnDef("time")
     val quantity: ColumnDef[Long] = ColumnDef("i_quantity")
     val cartId: ColumnDef[Int] = ColumnDef("c_id")
 
