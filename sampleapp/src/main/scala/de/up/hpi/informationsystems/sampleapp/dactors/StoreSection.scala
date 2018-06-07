@@ -27,10 +27,10 @@ object StoreSection {
     val varDiscCol: ColumnDef[Double] = ColumnDef("var_disc")
 
     // order items: i_id, i_quantity, i_min_price, i_price, i_fixed_disc
-    case class Request(customerId: Int, cartTime: ZonedDateTime, orderItems: Relation)
-    // totals: amount, fixed_disc, var_disc
-    case class Success(totals: Seq[Record])
-    case class Failure(e: Throwable)
+    case class Request(customerId: Int, cartTime: ZonedDateTime, orderItems: Relation) extends RequestResponseProtocol.Request
+    // result: amount, fixed_disc, var_disc
+    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
 
   }
 
