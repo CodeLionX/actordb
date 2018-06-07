@@ -60,6 +60,7 @@ object Cart {
       new CartHelper(system, backTo, askTimeout)
 
     case class HandledAddItems(results: Seq[Record], newSessionId: Int, replyTo: ActorRef)
+    case class HandledCheckout(amount: Long, fixedDisc: Double, varDisc: Double, replyTo: ActorRef)
     case class Failure(e: Throwable, replyTo: ActorRef)
 
   }
@@ -110,7 +111,8 @@ object Cart {
       result.pipeAsMessageTo(relation => CartHelper.HandledAddItems(relation.records.get, currentSessionId, replyTo), recipient)
     }
 
-    def handleCheckout(customerId: Int, sectionIds: Seq[Int], allCartItems: Relation, recipient: ActorRef): Unit = {
+    def handleCheckout(customerId: Int, sectionIds: Seq[Int], allCartItems: Relation, replyTo: ActorRef): Unit = {
+      // request variable discounts and get sums of storeSections
       val purchaseRequests = sectionIds.map( sectionId => {
         val cartItems: Relation = allCartItems.where(CartPurchases.sectionId -> { _ == sectionId })
 
@@ -121,6 +123,34 @@ object Cart {
         )
       }).toMap
       val variableDiscounts: FutureRelation = Dactor.askDactor(system, classOf[StoreSection], purchaseRequests)
+
+      // sum all discounts up
+      val amountCol = StoreSection.GetVariableDiscountUpdateInventory.amountCol
+      val fixedDiscCol = StoreSection.GetVariableDiscountUpdateInventory.fixedDiscCol
+      val varDiscCol = StoreSection.GetVariableDiscountUpdateInventory.varDiscCol
+
+      val variableDiscountSum = variableDiscounts.transform(relation =>
+        Relation(Seq(
+          relation.records.get.reduce( (rec1, rec2) =>
+            Record(rec1.columns)(
+              amountCol ~> (rec1.get(amountCol).get + rec2.get(amountCol).get) &
+              fixedDiscCol ~> (rec1.get(fixedDiscCol).get + rec2.get(fixedDiscCol).get) &
+              varDiscCol ~> (rec1.get(varDiscCol).get + rec2.get(varDiscCol).get)
+            ).build()
+          )
+        ))
+      )
+
+      // wrap into message and send back to actor
+      variableDiscountSum.pipeAsMessageTo(relation => {
+        val record = relation.records.get.head
+        CartHelper.HandledCheckout(
+          record.get(amountCol).get,
+          record.get(fixedDiscCol).get,
+          record.get(varDiscCol).get,
+          replyTo
+        )
+      }, recipient)
     }
   }
 }
