@@ -1,6 +1,7 @@
 package de.up.hpi.informationsystems.adbms.definition
 
 import akka.actor.ActorRef
+import de.up.hpi.informationsystems.adbms.definition.Relation.RecordComparator
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -11,16 +12,44 @@ import scala.util.Try
 
 trait FutureRelation extends Relation with Immutable with Awaitable[Try[Seq[Record]]] {
 
-  override def innerJoin(other: Relation, on: Relation.RecordComparator): FutureRelation
-
+  /** @inheritdoc */
   def pipeAsMessageTo[B](mapping: Relation => B, receiver: ActorRef): Unit
 
+  /** @inheritdoc */
   def future: Future[Relation]
 
+  /** @inheritdoc */
   def transform(f: Relation => Relation): FutureRelation
 
+  /** @inheritdoc */
   def flatTransform(f: Relation => FutureRelation): FutureRelation
 
+  /** @inheritdoc */
+  override def where[T](f: (ColumnDef[T], T => Boolean)): FutureRelation
+
+  /** @inheritdoc */
+  override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): FutureRelation
+
+  /** @inheritdoc */
+  override def project(columnDefs: Set[UntypedColumnDef]): FutureRelation
+
+  /** @inheritdoc */
+  override def innerJoin(other: Relation, on: Relation.RecordComparator): FutureRelation
+
+  /** @inheritdoc */
+  override def outerJoin(other: Relation, on: RecordComparator): FutureRelation
+
+  /** @inheritdoc */
+  override def leftJoin(other: Relation, on: RecordComparator): FutureRelation
+
+  /** @inheritdoc */
+  override def rightJoin(other: Relation, on: RecordComparator): FutureRelation
+
+  /** @inheritdoc */
+  override def crossJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): FutureRelation
+
+  /** @inheritdoc */
+  override def union(other: Relation): FutureRelation
 }
 
 object FutureRelation {
