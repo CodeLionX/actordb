@@ -107,7 +107,7 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
   ))
 
   /** @inheritdoc */
-  override def crossJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
+  override def equiJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
     if(isFailure)
       this
     else
