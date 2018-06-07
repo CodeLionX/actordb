@@ -3,6 +3,7 @@ package de.up.hpi.informationsystems.sampleapp.dactors
 import akka.actor.Props
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition._
+import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 
 import scala.util.{Failure, Success, Try}
 
@@ -12,10 +13,10 @@ object GroupManager {
 
   object GetFixedDiscounts {
 
-    case class Request(ids: Seq[Int])
+    case class Request(ids: Seq[Int]) extends RequestResponseProtocol.Request
     // results: i_id, fixed_disc
-    case class Success(results: Seq[Record])
-    case class Failure(e: Throwable)
+    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    val Failure: RequestResponseProtocol.Failure.type = RequestResponseProtocol.Failure
 
   }
 
