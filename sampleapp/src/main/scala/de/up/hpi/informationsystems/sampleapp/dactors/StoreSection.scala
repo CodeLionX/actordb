@@ -71,7 +71,7 @@ class StoreSection(id: Int) extends Dactor(id) {
   }
 
   def getPrice(inventoryIds: Seq[Int]): Try[Seq[Record]] = {
-    val resultSchema = Set(Inventory.inventoryId, Inventory.price, Inventory.minPrice)
+    val resultSchema: Set[UntypedColumnDef] = Set(Inventory.inventoryId, Inventory.price, Inventory.minPrice)
     relations(Inventory)
       .project(resultSchema)
       .where[Int](Inventory.inventoryId -> { id => inventoryIds.contains(id) })
