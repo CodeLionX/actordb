@@ -59,9 +59,9 @@ object FutureRelation {
   val defaultTimeout: Duration = 5 seconds
 
   def fromRecordSeq(data: Future[Seq[Record]]): FutureRelation =
-    apply(data.map(d => TransientRelation(d)))
+    apply(data.map(d => Relation(d)))
   def fromRecordSeq(data: Future[Seq[Record]], timeout: Duration): FutureRelation =
-    apply(data.map(d => TransientRelation(d)), timeout)
+    apply(data.map(d => Relation(d)), timeout)
 
   def apply(data: Future[Relation]): FutureRelation = apply(data, defaultTimeout)
   def apply(data: Future[Relation], timeout: Duration) = new FutureRelationImpl(data, timeout)

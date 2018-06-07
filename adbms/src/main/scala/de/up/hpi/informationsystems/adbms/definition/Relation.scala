@@ -6,6 +6,10 @@ import scala.util.Try
 
 object Relation {
   type RecordComparator = (Record, Record) => Boolean
+
+  def apply(dataTry: Try[Seq[Record]]): Relation = new TransientRelation(dataTry)
+
+  def apply(data: Seq[Record]): Relation = new TransientRelation(Try(data))
 }
 
 trait Relation {

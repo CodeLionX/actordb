@@ -77,7 +77,7 @@ class TransientRelationTest extends WordSpec with Matchers {
       .build()
 
     "empty" should {
-      val emptyRelation = TransientRelation(Seq.empty)
+      val emptyRelation = Relation(Seq.empty)
 
       "return an empty result set for any where query" in {
         emptyRelation
@@ -101,7 +101,7 @@ class TransientRelationTest extends WordSpec with Matchers {
     }
 
     "full" should {
-      val fullRelation = TransientRelation(Seq(record1, record2))
+      val fullRelation = Relation(Seq(record1, record2))
 
       "return the appropriate result set for a where query including the empty result set" in {
         fullRelation
@@ -149,7 +149,7 @@ class TransientRelationTest extends WordSpec with Matchers {
 
       "fail when inner-equi-joined with an empty relation" in {
         fullRelation
-          .innerEquiJoin(TransientRelation(Seq.empty), (colFirstname, colFirstname))
+          .innerEquiJoin(Relation(Seq.empty), (colFirstname, colFirstname))
           .records
           .isFailure shouldBe true
       }
@@ -184,7 +184,7 @@ class TransientRelationTest extends WordSpec with Matchers {
           .withCellContent(col1)(916.93)
           .build()
 
-        val otherRel = TransientRelation(Seq(otherRecord1, otherRecord2))
+        val otherRel = Relation(Seq(otherRecord1, otherRecord2))
         val sameColumnJoined = fullRelation
           .innerEquiJoin(otherRel, (colFirstname, colFirstname2))
 
@@ -226,8 +226,8 @@ class TransientRelationTest extends WordSpec with Matchers {
       }
 
       "return the appropriate result for an innerJoin" in {
-        val orders: Relation = TransientRelation(Seq(orderRecord1, orderRecord2, orderRecord3))
-        val customers: Relation = TransientRelation(Seq(customerRecord1, customerRecord2))
+        val orders: Relation = Relation(Seq(orderRecord1, orderRecord2, orderRecord3))
+        val customers: Relation = Relation(Seq(customerRecord1, customerRecord2))
 
         val joined = orders
           .innerJoin(customers, (left, right) => left.get(colCustomerId) == right.get(colCustomerId))
@@ -267,8 +267,8 @@ class TransientRelationTest extends WordSpec with Matchers {
       /* outerJoin */
 
       "return the appropriate result for an outerJoin" in {
-        val orders: Relation = TransientRelation(Seq(orderRecord1, orderRecord2, orderRecord3))
-        val customers: Relation = TransientRelation(Seq(customerRecord1, customerRecord2))
+        val orders: Relation = Relation(Seq(orderRecord1, orderRecord2, orderRecord3))
+        val customers: Relation = Relation(Seq(customerRecord1, customerRecord2))
 
         val joined = orders
           .outerJoin(customers, (left, right) => left.get(colCustomerId) == right.get(colCustomerId))
@@ -318,8 +318,8 @@ class TransientRelationTest extends WordSpec with Matchers {
       /* leftJoin */
 
       "return the appropriate result set for a leftJoin" in {
-        val orders: Relation = TransientRelation(Seq(orderRecord1, orderRecord2, orderRecord3))
-        val customers: Relation = TransientRelation(Seq(customerRecord1, customerRecord2))
+        val orders: Relation = Relation(Seq(orderRecord1, orderRecord2, orderRecord3))
+        val customers: Relation = Relation(Seq(customerRecord1, customerRecord2))
 
         val joined = orders
           .leftJoin(customers, (left, right) => left.get(colCustomerId) == right.get(colCustomerId))
@@ -364,8 +364,8 @@ class TransientRelationTest extends WordSpec with Matchers {
       /* rightJoin */
 
       "return the appropriate result set for a rightJoin" in {
-        val orders: Relation = TransientRelation(Seq(orderRecord1, orderRecord2, orderRecord3))
-        val customers: Relation = TransientRelation(Seq(customerRecord1, customerRecord2))
+        val orders: Relation = Relation(Seq(orderRecord1, orderRecord2, orderRecord3))
+        val customers: Relation = Relation(Seq(customerRecord1, customerRecord2))
 
         val joined = orders
           .rightJoin(customers, (left, right) => left.get(colCustomerId) == right.get(colCustomerId))
@@ -409,7 +409,7 @@ class TransientRelationTest extends WordSpec with Matchers {
     }
 
     "filled with incomplete records, i.e. missing values" should {
-      val incompleteRelation = TransientRelation(Seq(record1, record2, record3, record4))
+      val incompleteRelation = Relation(Seq(record1, record2, record3, record4))
 
       "return the appropriate result set for a where query" when {
 
