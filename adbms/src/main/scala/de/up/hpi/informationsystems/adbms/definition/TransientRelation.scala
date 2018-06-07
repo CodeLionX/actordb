@@ -3,15 +3,6 @@ import de.up.hpi.informationsystems.adbms.Util
 
 import scala.util.Try
 
-
-private[definition] object TransientRelation {
-
-  def apply(dataTry: Try[Seq[Record]]): TransientRelation = new TransientRelation(dataTry)
-
-  def apply(data: Seq[Record]): TransientRelation = new TransientRelation(Try(data))
-
-}
-
 private[definition] final class TransientRelation(data: Try[Seq[Record]]) extends Relation with Immutable {
 
   private val internal_data = data.getOrElse(Seq.empty)
@@ -29,14 +20,14 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
     if(isFailure)
       this
     else
-      TransientRelation(internal_data.filter{ record => record.get[T](f._1).exists(f._2) })
+      Relation(internal_data.filter{ record => record.get[T](f._1).exists(f._2) })
 
   /** @inheritdoc */
   override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation =
     if(isFailure)
       this
     else
-      TransientRelation(
+      Relation(
         // filter all records
         internal_data.filter{ record =>
           fs.keys
@@ -59,7 +50,7 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
     if(isFailure)
       this
     else
-      TransientRelation(Try(
+      Relation(Try(
         if(columnDefs subsetOf columns)
           internal_data.map(_.project(columnDefs).get)
         else
@@ -71,7 +62,7 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
     if(isFailure)
       this
     else
-      TransientRelation(Try(
+      Relation(Try(
         for {
           lside <- internal_data
           rside <- other.records.get
@@ -86,7 +77,7 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
     if(isFailure)
       this
     else
-      TransientRelation(Try(
+      Relation(Try(
         internal_data.flatMap(rec => {
           val res = other.records.get
             .filter(on.curried(rec))
@@ -102,7 +93,7 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
   override def rightJoin(other: Relation, on: Relation.RecordComparator): Relation = other.leftJoin(this, on)
 
   /** @inheritdoc */
-  override def outerJoin(other: Relation, on: Relation.RecordComparator): Relation = TransientRelation(Try(
+  override def outerJoin(other: Relation, on: Relation.RecordComparator): Relation = Relation(Try(
     this.leftJoin(other, on).records.get.union(this.rightJoin(other, on).records.get).distinct
   ))
 
@@ -111,7 +102,7 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
     if(isFailure)
       this
     else
-      TransientRelation(Try{
+      Relation(Try{
         if(!columns.contains(on._1))
           throw IncompatibleColumnDefinitionException(s"this relation does not contain the specified column {${on._1}}")
         else if(!other.columns.contains(on._2))
@@ -132,7 +123,7 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
     if(isFailure)
       this
     else
-      TransientRelation(Try{
+      Relation(Try{
         if(!this.columns.equals(other.columns))
           throw IncompatibleColumnDefinitionException(s"the columns of this and the other relation does not match\nthis: $columns\nother: ${other.columns}")
         else

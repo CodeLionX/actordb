@@ -36,13 +36,13 @@ abstract class ColumnRelation extends Relation {
   /** @inheritdoc */
   override def where[T](f: (ColumnDef[T], T => Boolean)): Relation = {
     val columnStore = data(f._1.untyped) // needed to get the right type 2 lines below
-    TransientRelation(columnStore
+    Relation(columnStore
       .indicesWhere(f._2.asInstanceOf[columnStore.valueType => Boolean])
       .map(getRecord(columns)(_)))
   }
 
   /** @inheritdoc */
-  override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation = TransientRelation(
+  override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation = Relation(
     fs.keys
       .map(column =>
         data(column)
@@ -54,7 +54,7 @@ abstract class ColumnRelation extends Relation {
   )
 
   /** @inheritdoc */
-  override def project(columnDefs: Set[UntypedColumnDef]): Relation = TransientRelation(
+  override def project(columnDefs: Set[UntypedColumnDef]): Relation = Relation(
     if(columnDefs subsetOf columns)
       (0 until data.size).map(getRecord(columnDefs)(_))
     else

@@ -69,37 +69,37 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
   }
 
   /** @inheritdoc */
-  override def where[T](f: (ColumnDef[T], T => Boolean)): Relation = TransientRelation(data).where(f)
+  override def where[T](f: (ColumnDef[T], T => Boolean)): Relation = Relation(data).where(f)
 
   /** @inheritdoc */
-  override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation = TransientRelation(data).whereAll(fs)
+  override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation = Relation(data).whereAll(fs)
 
   /** @inheritdoc */
-  override def project(columnDefs: Set[UntypedColumnDef]): Relation = TransientRelation(data).project(columnDefs)
+  override def project(columnDefs: Set[UntypedColumnDef]): Relation = Relation(data).project(columnDefs)
 
   /** @inheritdoc*/
   override def innerEquiJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
-    TransientRelation(data).innerEquiJoin(other, on)
+    Relation(data).innerEquiJoin(other, on)
 
   /** @inheritdoc */
   override def innerJoin(other: Relation, on: RecordComparator): Relation =
-    TransientRelation(records).innerJoin(other, on)
+    Relation(records).innerJoin(other, on)
 
   /** @inheritdoc */
   override def outerJoin(other: Relation, on: RecordComparator): Relation =
-    TransientRelation(records).outerJoin(other, on)
+    Relation(records).outerJoin(other, on)
 
   /** @inheritdoc */
   override def leftJoin(other: Relation, on: RecordComparator): Relation =
-    TransientRelation(records).leftJoin(other, on)
+    Relation(records).leftJoin(other, on)
 
   /** @inheritdoc */
   override def rightJoin(other: Relation, on: RecordComparator): Relation =
-    TransientRelation(records).rightJoin(other, on)
+    Relation(records).rightJoin(other, on)
 
   /** @inheritdoc */
   override def union(other: Relation): Relation =
-    TransientRelation(records).union(other)
+    Relation(records).union(other)
 
   /** @inheritdoc */
   override def records: Try[Seq[Record]] = Try(data)
