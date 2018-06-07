@@ -13,7 +13,7 @@ trait FutureRelation extends Relation with Immutable with Awaitable[Try[Seq[Reco
 
   override def innerJoin(other: Relation, on: Relation.RecordComparator): FutureRelation
 
-  def pipeTo(actor: ActorRef): Unit
+  def pipeAsMessageTo[B](mapping: Relation => B, receiver: ActorRef): Unit
 
   def future: Future[Relation]
 
@@ -108,8 +108,9 @@ object FutureRelation {
 
     override def result(atMost: Duration)(implicit permit: CanAwait): Try[Seq[Record]] = data.result(atMost)(permit).records
 
-    override def pipeTo(actor: ActorRef): Unit = {
-      akka.pattern.pipe(data).pipeTo(actor)
+    override def pipeAsMessageTo[B](mapping: Relation => B, receiver: ActorRef): Unit = {
+      val msg: Future[B] = data.map(mapping)
+      akka.pattern.pipe(msg).pipeTo(receiver)
     }
 
     override def future: Future[Relation] = data

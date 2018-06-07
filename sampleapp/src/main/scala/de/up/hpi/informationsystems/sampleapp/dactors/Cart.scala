@@ -58,7 +58,7 @@ object Cart {
     def apply(system: ActorSystem, backTo: ActorRef, askTimeout: Timeout): AddItemsHelper =
       new AddItemsHelper(system, backTo, askTimeout)
 
-    case class Success(results: Seq[Record], customerId: Int, newSessionId: Int, replyTo: ActorRef)
+    case class Success(results: Seq[Record], newSessionId: Int, replyTo: ActorRef)
     case class Failure(e: Throwable, replyTo: ActorRef)
 
   }
@@ -125,7 +125,7 @@ object Cart {
       UPDATE cart_info
         SET c_id = o_c_id, session_id = session_id + 1;
        */
-      // done outside of helper
+      // done outside helper
 
       /*
       list<tuple> discounts := disc_res.get();
@@ -156,10 +156,9 @@ object Cart {
         priceRec.get(CartPurchases.inventoryId) == orderRec.get(CartPurchases.inventoryId)
       )
       // FutureRelation: i_id, i_price, i_min_price, fixed_disc, sec_id, i_quantity
+      val result = FutureRelation.fromRecordSeq(priceDiscOrder.future.map(_.records.get.map( (rec: Record) => rec + (CartPurchases.sessionId -> currentSessionId))))
 
-      priceDiscOrder.future
-        .map(relation => AddItemsHelper.Success(relation.records.get, customerId, currentSessionId, replyTo))
-        .pipeTo(recipient)
+      result.pipeAsMessageTo(relation => AddItemsHelper.Success(relation.records.get, currentSessionId, replyTo), recipient)
     }
   }
 }
@@ -175,25 +174,20 @@ class Cart(id: Int) extends Dactor(id) {
   private var currentSessionId = 0
 
   override def receive: Receive = {
-    case AddItems.Request(orders, customerId) =>
+    case AddItems.Request(orders, customerId) => {
+      currentSessionId += 1
+      relations(CartInfo)
+        .update(CartInfo.sessionId ~> currentSessionId)
+        .where[Int](CartInfo.customerId -> { _ == customerId })
       AddItemsHelper(context.system, self, timeout).help(orders, customerId, currentSessionId, sender())
+    }
 
-    case AddItemsHelper.Success(records, customerId, newSessionId, replyTo) =>
-      updateAfterAddItems(records, customerId, newSessionId) match {
+    case AddItemsHelper.Success(records, newSessionId, replyTo) =>
+      relations(CartPurchases).insertAll(records) match {
         case Success(_) => replyTo ! AddItems.Success(newSessionId)
         case Failure(e) => replyTo ! AddItems.Failure(e)
       }
 
     case Checkout.Request(_) => sender() ! Checkout.Failure(new NotImplementedError)
-  }
-
-  def updateAfterAddItems(records: Seq[Record], customerId: Int, newSessionId: Int): Try[Unit] = Try {
-    relations(CartPurchases)
-      .insertAll(records).get
-    relations(CartInfo)
-      .update(CartInfo.sessionId ~> newSessionId)
-      .where[Int](CartInfo.customerId -> {
-        _ == customerId
-      }).get
   }
 }
