@@ -17,6 +17,8 @@ trait FutureRelation extends Relation with Immutable with Awaitable[Try[Seq[Reco
 
   def future: Future[Try[Seq[Record]]]
 
+  def transform(f: Relation => Relation): FutureRelation
+
 }
 
 object FutureRelation {
@@ -103,6 +105,9 @@ object FutureRelation {
     }
 
     override def future: Future[Try[Seq[Record]]] = data.map(_.records)
+
+    override def transform(f: Relation => Relation): FutureRelation =
+      FutureRelation(data.map(f))
   }
 }
 
