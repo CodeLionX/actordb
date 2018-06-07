@@ -1,6 +1,6 @@
 package de.up.hpi.informationsystems.sampleapp.dactors
 
-import java.time.{LocalDateTime, ZoneId, ZoneOffset, ZonedDateTime}
+import java.time.{ZoneOffset, ZonedDateTime}
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.util.Timeout
@@ -60,7 +60,7 @@ object Cart {
       new CartHelper(system, backTo, askTimeout)
 
     case class HandledAddItems(results: Seq[Record], newSessionId: Int, replyTo: ActorRef)
-    case class HandledCheckout(amount: Long, fixedDisc: Double, varDisc: Double, replyTo: ActorRef)
+    case class HandledCheckout(amount: Long, replyTo: ActorRef)
     case class Failure(e: Throwable, replyTo: ActorRef)
 
   }
@@ -111,14 +111,14 @@ object Cart {
       result.pipeAsMessageTo(relation => CartHelper.HandledAddItems(relation.records.get, currentSessionId, replyTo), recipient)
     }
 
-    def handleCheckout(customerId: Int, sectionIds: Seq[Int], allCartItems: Relation, replyTo: ActorRef): Unit = {
+    def handleCheckout(customerId: Int, storeId: Int, sectionIds: Seq[Int], time: ZonedDateTime, allCartItems: Relation, replyTo: ActorRef): Unit = {
       // request variable discounts and get sums of storeSections
       val purchaseRequests = sectionIds.map( sectionId => {
         val cartItems: Relation = allCartItems.where(CartPurchases.sectionId -> { _ == sectionId })
 
         sectionId -> StoreSection.GetVariableDiscountUpdateInventory.Request(
           customerId,
-          ZonedDateTime.now(ZoneOffset.UTC),
+          time,
           cartItems
         )
       }).toMap
@@ -141,16 +141,26 @@ object Cart {
         ))
       )
 
-      // wrap into message and send back to actor
-      variableDiscountSum.pipeAsMessageTo(relation => {
+      // notify customer
+      val result = variableDiscountSum.transform( relation => {
         val record = relation.records.get.head
-        CartHelper.HandledCheckout(
+        val msg = Customer.AddStoreVisit(
+          storeId,
+          time,
           record.get(amountCol).get,
           record.get(fixedDiscCol).get,
-          record.get(varDiscCol).get,
-          replyTo
+          record.get(varDiscCol).get
         )
-      }, recipient)
+        Dactor.dactorSelection(system, classOf[Customer], customerId) ! msg
+        relation
+      })
+
+      // wrap into message and send back to actor
+      result.pipeAsMessageTo(relation =>
+        CartHelper.HandledCheckout(
+          relation.records.get.head.get(amountCol).get,
+          replyTo
+        ), recipient)
     }
   }
 }
@@ -182,10 +192,13 @@ class Cart(id: Int) extends Dactor(id) {
       }
 
     case Checkout.Request(sessionId) => {
+      // TODO: check there is only one entry
       val customerId: Int = relations(CartInfo)
-        .project(Set(CartInfo.customerId))
         .records.get
         .map(_.get(CartInfo.customerId).get).head
+      val storeId: Int = relations(CartInfo)
+        .records.get
+        .map(_.get(CartInfo.storeId).get).head
 
       val sections: Seq[Int] = relations(CartPurchases)
         .where(CartPurchases.sessionId -> { _ == sessionId })
@@ -201,7 +214,10 @@ class Cart(id: Int) extends Dactor(id) {
         CartPurchases.fixedDiscount, CartPurchases.minPrice
       ))
 
-      helper.handleCheckout(customerId, sections, cartItems, sender())
+      helper.handleCheckout(customerId, storeId, sections, ZonedDateTime.now(ZoneOffset.UTC), cartItems, sender())
     }
+
+    case CartHelper.HandledCheckout(amount, replyTo) =>
+      replyTo ! Checkout.Success(amount)
   }
 }
