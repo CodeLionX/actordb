@@ -212,6 +212,8 @@ class TestDactor(id: Int) extends Dactor(id) {
     println()
     println("Projection of customer relation:")
     println(relations(Customer).project(Set(Customer.colName, Customer.colDiscount)).records.getOrElse(Seq.empty).pretty)
+    println("\nApplyOn test")
+    println(relations(Customer).applyOn(Customer.colName, (name: String) => name + " test" ))
 
     /**
       * Testing communicating with another actor
