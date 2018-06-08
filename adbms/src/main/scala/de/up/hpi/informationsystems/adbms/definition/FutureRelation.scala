@@ -12,16 +12,12 @@ import scala.util.Try
 
 trait FutureRelation extends Relation with Immutable with Awaitable[Try[Seq[Record]]] {
 
-  /** @inheritdoc */
   def pipeAsMessageTo[B](mapping: Relation => B, receiver: ActorRef): Unit
 
-  /** @inheritdoc */
   def future: Future[Relation]
 
-  /** @inheritdoc */
   def transform(f: Relation => Relation): FutureRelation
 
-  /** @inheritdoc */
   def flatTransform(f: Relation => FutureRelation): FutureRelation
 
   /** @inheritdoc */
@@ -50,6 +46,9 @@ trait FutureRelation extends Relation with Immutable with Awaitable[Try[Seq[Reco
 
   /** @inheritdoc */
   override def union(other: Relation): FutureRelation
+
+  /** @inheritdoc */
+  override def applyOn[T](col: ColumnDef[T], f: T => T): FutureRelation
 }
 
 object FutureRelation {
@@ -117,6 +116,10 @@ object FutureRelation {
     /** @inheritdoc*/
     override def union(other: Relation): FutureRelation =
       futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.union(rel2))
+
+    /** @inheritdoc */
+    override def applyOn[T](col: ColumnDef[T], f: T => T): FutureRelation =
+      FutureRelation(data.map(_.applyOn(col, f)))
 
     /**
       * Blocks until all Futures are complete

@@ -102,6 +102,10 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
     Relation(records).union(other)
 
   /** @inheritdoc */
+  override def applyOn[T](col: ColumnDef[T], f: T => T): Relation =
+    Relation(records).applyOn(col, f)
+
+  /** @inheritdoc */
   override def records: Try[Seq[Record]] = Try(data)
 
   /** @inheritdoc */

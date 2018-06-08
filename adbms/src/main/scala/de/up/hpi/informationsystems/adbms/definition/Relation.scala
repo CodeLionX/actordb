@@ -111,6 +111,15 @@ trait Relation {
   def union(other: Relation): Relation
 
   /**
+    * Applies `f` on all values of the column `col`.
+    * @param col column, whos values should be changed
+    * @param f transformation function
+    * @tparam T type of the column
+    * @return a new relation with the changed column values
+    */
+  def applyOn[T](col: ColumnDef[T], f: T => T): Relation
+
+  /**
     * Converts this Relation to a sequence of Records.
     * @note Depending on the underlying Relation, this operation can be very costly!
     * @return a sequence of Records if all
