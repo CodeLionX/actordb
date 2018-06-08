@@ -66,7 +66,7 @@ object Dactor {
 
   /**
     * Constructs a mapping of relation definitions and corresponding relational stores using
-    * [[de.up.hpi.informationsystems.adbms.definition.RowRelation]] als base relation.
+    * [[de.up.hpi.informationsystems.adbms.definition.RowRelation]] as base relation.
     *
     * @param relDefs sequence of relation definitions
     * @return mapping of relation definition and corresponding relational row store
