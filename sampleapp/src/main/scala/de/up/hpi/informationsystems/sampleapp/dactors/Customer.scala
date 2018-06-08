@@ -16,9 +16,9 @@ object Customer {
 
   object GetCustomerInfo {
 
-    case class Request()
-    case class Success(result: Record)
-    case class Failure(e: Throwable)
+    case class Request() extends RequestResponseProtocol.Request
+    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
 
   }
 
@@ -32,17 +32,17 @@ object Customer {
 
   object AddStoreVisit {
 
-    case class Request(storeId: Int, time: LocalDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double)
-    case class Success()
-    case class Failure(e: Throwable)
+    case class Request(storeId: Int, time: LocalDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double) extends RequestResponseProtocol.Request
+    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
 
   }
 
   object Authenticate {
 
-    case class Request(passwordHash: String)
-    case class Success()
-    case class Failure()
+    case class Request(passwordHash: String) extends RequestResponseProtocol.Request
+    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
 
   }
 
@@ -83,7 +83,7 @@ class Customer(id: Int) extends Dactor(id) {
   override def receive: Receive = {
     case GetCustomerInfo.Request() =>
       getCustomerInfo match {
-        case Success(record) => sender() ! GetCustomerInfo.Success(record)
+        case Success(record) => sender() ! GetCustomerInfo.Success(Seq(record))
         case Failure(e) => sender() ! GetCustomerInfo.Failure(e)
       }
 
@@ -95,15 +95,15 @@ class Customer(id: Int) extends Dactor(id) {
 
     case AddStoreVisit.Request(storeId: Int, time: LocalDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double) =>
       addStoreVisit(storeId, time, amount, fixedDiscount, varDiscount) match {
-        case Success(_) => sender() ! AddStoreVisit.Success()
+        case Success(_) => sender() ! AddStoreVisit.Success(Seq.empty)
         case Failure(e) => sender() ! AddStoreVisit.Failure(e)
       }
 
     case Authenticate.Request(passwordHash) =>
       if (authenticate(passwordHash)) {
-        sender() ! Authenticate.Success()
+        sender() ! Authenticate.Success(Seq.empty)
       } else {
-        sender() ! Authenticate.Failure()
+        sender() ! Authenticate.Failure(AuthenticationFailedException("failed to authenticate using password"))
       }
   }
 

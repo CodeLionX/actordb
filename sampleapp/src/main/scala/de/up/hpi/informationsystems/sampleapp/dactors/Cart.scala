@@ -5,6 +5,7 @@ import akka.util.Timeout
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.definition._
+import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -19,15 +20,15 @@ object Cart {
     case class Order(inventoryId: Int, sectionId: Int, quantity: Int)
 
     // orders: item_id, i_quantity
-    case class Request(orders: Seq[Order], customerId: Int)
-    case class Success(sessionId: Int)
-    case class Failure(e: Throwable)
+    case class Request(orders: Seq[Order], customerId: Int) extends RequestResponseProtocol.Request
+    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
   }
 
   object Checkout {
-    case class Request(sessionId: Int)
-    case class Success(amount: Double)
-    case class Failure(e: Throwable)
+    case class Request(sessionId: Int) extends RequestResponseProtocol.Request
+    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
   }
 
   object CartInfo extends RelationDef {
@@ -131,7 +132,10 @@ class Cart(id: Int) extends Dactor(id) {
 
     case AddItemsHelper.Success(records, newSessionId, replyTo) =>
       relations(CartPurchases).insertAll(records) match {
-        case Success(_) => replyTo ! AddItems.Success(newSessionId)
+        case Success(_) => {
+          val result = Seq(Record(Set(CartInfo.sessionId))(CartInfo.sessionId ~> newSessionId).build())
+          replyTo ! AddItems.Success(result)
+        }
         case Failure(e) => replyTo ! AddItems.Failure(e)
       }
 

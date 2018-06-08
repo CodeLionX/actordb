@@ -24,10 +24,10 @@ object StoreSection {
   object GetVariableDiscountUpdateInventory {
 
     // order items: i_id, i_quantity, i_min_price, i_price, i_fixed_disc
-    case class Request(customerId: Int, cardId: Int, cartTime: LocalDateTime, orderItems: Seq[Record])
+    case class Request(customerId: Int, cardId: Int, cartTime: LocalDateTime, orderItems: Seq[Record]) extends RequestResponseProtocol.Request
     // totals: amount, fixed_disc, var_disc
-    case class Success(totals: Seq[Record])
-    case class Failure(e: Throwable)
+    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
 
   }
 
