@@ -12,12 +12,42 @@ import scala.util.Try
 
 trait FutureRelation extends Relation with Immutable with Awaitable[Try[Seq[Record]]] {
 
+  /**
+    * Creates objects of type `B` from this Relation using `mapping` and pipes the resulting objects to given Actor
+    * `receiver` on successful Future completion.
+    * @param mapping  function used to create messages sent via messaging from this Relation
+    * @param receiver ActorRef of actor to pipe resulting messages to
+    * @tparam B       type of messages to be created
+    */
   def pipeAsMessageTo[B](mapping: Relation => B, receiver: ActorRef): Unit
 
+  /**
+    * Returns this FutureRelation's contents wrapped in a Future.
+    * @return the Future[Relation] which will contain this FutureRelation records
+    */
   def future: Future[Relation]
 
+  /**
+    * Creates a new Relation by applying the function `f` to this Relation.
+    * @param  f is the function to be applied
+    * @return a new Relation with `f` applied
+    */
   def transform(f: Relation => Relation): FutureRelation
 
+  /**
+    * Creates a new FutureRelation by applying the function `f` to the successful result of this FutureRelation.
+    * This is useful specifically in cases where you have to chain the creation of FutureRelations that depend on
+    * each other such as in subsequent askDactor calls.
+    *
+    * @example{{{
+    *         val result: FutureRelation = firstFutureRel.flatTransform( first => {
+    *           val idFromFirst = // ... get something from the first FutureRelation which is needed for the second
+    *           Dactor.askDactor(system, classOf[SomeActor], Map(idFromFirst -> SomeActor.Message.Request())
+    *         })
+    * }}}
+    * @param  f is the function to be applied
+    * @return a FutureRelation which will be completed with the application of the function `f`
+    */
   def flatTransform(f: Relation => FutureRelation): FutureRelation
 
   /** @inheritdoc */
@@ -140,19 +170,33 @@ object FutureRelation {
 
     override def result(atMost: Duration)(implicit permit: CanAwait): Try[Seq[Record]] = data.result(atMost)(permit).records
 
+    /** @inheritdoc */
     override def pipeAsMessageTo[B](mapping: Relation => B, receiver: ActorRef): Unit = {
       val msg: Future[B] = data.map(mapping)
       akka.pattern.pipe(msg).pipeTo(receiver)
     }
 
+    /** @inheritdoc */
     override def future: Future[Relation] = data
 
+    /** @inheritdoc */
     override def transform(f: Relation => Relation): FutureRelation =
       FutureRelation(data.map(f))
 
+    /** @inheritdoc */
     override def flatTransform(f: Relation => FutureRelation): FutureRelation =
       FutureRelation(data.flatMap(rel => f(rel).future))
 
+    /**
+      * Creates a new Relation from `this` and `other` by applying `op` to them.
+      * Checks whether `other` is of type FutureRelation or not and resolves `other` and this FutureRelation
+      * simultaneously before applying `op` to both. If `other` is not of type FutureRelation `op` is applied to this
+      * FutureRelation and `other` upon this FutureRelations successful completion.
+      *
+      * @param other  Relation to apply BinRelationOp `op` with `this` to
+      * @param op     BinRelationOp to apply
+      * @return       a new Relation returned from `op` after application to `this` and `other`
+      */
     private def futureCheckedBinaryTransformation(other: Relation, op: BinRelationOp): FutureRelation =
       FutureRelation(
         other match {
