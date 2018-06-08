@@ -15,7 +15,7 @@ object RequestResponseProtocol {
 
   /** A successful Response from a Dactor in answer to a Request.
     *
-    * @see(RequestResponseProtocol.Response)
+    * @see[[de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol.Response]]
     */
   trait Success extends Response {
     def result: Seq[Record]
@@ -23,7 +23,7 @@ object RequestResponseProtocol {
 
   /** A failure Response that is used to inform about some failure during answering to a Request.
     *
-    * @see(RequestResponseProtocol.Response)
+    * @see[[de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol.Response]]
     */
   trait Failure extends Response {
     def e: Throwable
