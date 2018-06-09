@@ -1,11 +1,11 @@
 package de.up.hpi.informationsystems.sampleapp.dactors
 
-import java.time.LocalDateTime
+import java.time.ZonedDateTime
 
 import akka.actor.Props
 import de.up.hpi.informationsystems.adbms.Dactor
-import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
+import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 
 import scala.util.{Failure, Success, Try}
@@ -32,7 +32,7 @@ object Customer {
 
   object AddStoreVisit {
 
-    case class Request(storeId: Int, time: LocalDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double)
+    case class Request(storeId: Int, time: ZonedDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double)
     case class Success()
     case class Failure(e: Throwable)
 
@@ -56,7 +56,7 @@ object Customer {
 
   object StoreVisits extends RelationDef {
     val storeId: ColumnDef[Int] = ColumnDef("store_id")
-    val timestamp: ColumnDef[LocalDateTime] = ColumnDef("time")
+    val timestamp: ColumnDef[ZonedDateTime] = ColumnDef("time")
     val amount: ColumnDef[Double] = ColumnDef("amount")
     val fixedDiscount: ColumnDef[Double] = ColumnDef("fixed_disc")
     val varDiscount: ColumnDef[Double] = ColumnDef("var_disc")
@@ -93,7 +93,7 @@ class Customer(id: Int) extends Dactor(id) {
         case Failure(e) => sender() ! GetCustomerGroupId.Failure(e)
       }
 
-    case AddStoreVisit.Request(storeId: Int, time: LocalDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double) =>
+    case AddStoreVisit.Request(storeId: Int, time: ZonedDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double) =>
       addStoreVisit(storeId, time, amount, fixedDiscount, varDiscount) match {
         case Success(_) => sender() ! AddStoreVisit.Success()
         case Failure(e) => sender() ! AddStoreVisit.Failure(e)
@@ -125,7 +125,7 @@ class Customer(id: Int) extends Dactor(id) {
       .records
   }
 
-  def addStoreVisit(storeId: Int, time: LocalDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double): Try[Record] =
+  def addStoreVisit(storeId: Int, time: ZonedDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double): Try[Record] =
     relations(StoreVisits).insert(StoreVisits.newRecord(
       StoreVisits.storeId ~> storeId
         & StoreVisits.timestamp ~> time
