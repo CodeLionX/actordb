@@ -57,11 +57,15 @@ object Dactor {
         val msg = messages(dactorId)
         val answer: Future[Any] = akka.pattern.ask(dactorSelection(system, dactorClass, dactorId), msg)(timeout)
         answer
-          .mapTo[RequestResponseProtocol.Success]
-          .map(_.result)
+          .mapTo[RequestResponseProtocol.Response]
+          .map{
+            case s: RequestResponseProtocol.Success => scala.util.Success(s.result)
+            case f: RequestResponseProtocol.Failure => scala.util.Failure(f.e)
+          }
+          .map(obj => Relation(obj))
       })
 
-    FutureRelation.fromRecordSeq(Future.sequence(results).map(_.flatten.toSeq))
+    FutureRelation(Future.sequence(results).map(_.reduce( (rel1, rel2) => rel1.union(rel2))))
   }
 
   /**
