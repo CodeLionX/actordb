@@ -57,6 +57,7 @@ object Dactor {
       .map(dactorId => {
         val msg = messages(dactorId)
         val answer: Future[Any] = akka.pattern.ask(dactorSelection(system, dactorClass, dactorId), msg)(timeout)
+        // FIXME: match on result and handle success / failure differences!!!!
         answer
           .mapTo[ResultMsgType](ev)
           .map(_.result)
