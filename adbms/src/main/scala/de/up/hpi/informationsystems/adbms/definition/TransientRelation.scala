@@ -118,6 +118,20 @@ private[definition] final class TransientRelation(data: Try[Seq[Record]]) extend
         }
       })
 
+  /** @inheritdoc*/
+  override def applyOn[T](col: ColumnDef[T], f: T => T): Relation =
+    if(isFailure || !Set(col).subsetOf(columns))
+      this
+    else
+      Relation(Try{
+        internal_data.map( record => record.get(col) match {
+          case Some(value) =>
+            val newValue = f(value)
+            record.updated(col, newValue)
+          case None => record
+        })
+      })
+
   /** @inheritdoc */
   override def union(other: Relation): Relation =
     if(isFailure)

@@ -75,12 +75,12 @@ object Cart {
         .map{ case (sectionId, sectionOrders) =>
           sectionId -> StoreSection.GetPrice.Request(sectionOrders.map(_.inventoryId))
         }
-      val priceList: FutureRelation = Dactor.askDactor[StoreSection.GetPrice.Success](system, classOf[StoreSection], priceRequests)
+      val priceList: FutureRelation = Dactor.askDactor(system, classOf[StoreSection], priceRequests)
       // FutureRelation: i_id, i_price, i_min_price
 
       val groupIdRequest = Map(customerId -> Customer.GetCustomerGroupId.Request())
       val groupId: FutureRelation = Dactor
-        .askDactor[Customer.GetCustomerGroupId.Success](system, classOf[Customer], groupIdRequest)
+        .askDactor(system, classOf[Customer], groupIdRequest)
 
       val fixedDiscount: FutureRelation = groupId.flatTransform( groupId => {
         val id = groupId.records.get.head.get(Customer.CustomerInfo.custGroupId).get

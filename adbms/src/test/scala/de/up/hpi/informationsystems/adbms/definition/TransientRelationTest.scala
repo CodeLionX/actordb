@@ -98,6 +98,12 @@ class TransientRelationTest extends WordSpec with Matchers {
           .records
           .isFailure shouldBe true
       }
+
+      "return an empty result set for any applyOn function" in {
+        emptyRelation
+          .applyOn(colFirstname, (name: String) => "something bad!")
+          .records shouldEqual Success(Seq.empty)
+      }
     }
 
     "full" should {
@@ -142,6 +148,15 @@ class TransientRelationTest extends WordSpec with Matchers {
           .project(columns + ColumnDef[Int]("bad-col"))
           .records
           .isFailure shouldBe true
+      }
+
+      "return an appropriate result set for an applyOn function" in {
+        fullRelation
+          .applyOn(colFirstname, (name: String) => name + " test")
+          .records shouldEqual Success(Seq(
+            record1.updated(colFirstname, "Test test"),
+            record2.updated(colFirstname, "Max test")
+          ))
       }
 
       /* Joins */
@@ -465,6 +480,17 @@ class TransientRelationTest extends WordSpec with Matchers {
             colAge.untyped -> {id: Any => id.asInstanceOf[Int] <= 2},
             colFirstname.untyped -> {field: Any => field.asInstanceOf[String].contains("esty")}
           )).records shouldEqual Success(Seq.empty)
+      }
+
+      "return an appropriate result set for an applyOn function" in {
+        incompleteRelation
+          .applyOn(colFirstname, (name: String) => name + " test")
+          .records shouldEqual Success(Seq(
+          record1.updated(colFirstname, "Test test"),
+          record2.updated(colFirstname, "Max test"),
+          record3,  // missing
+          record4   // null
+        ))
       }
     }
   }
