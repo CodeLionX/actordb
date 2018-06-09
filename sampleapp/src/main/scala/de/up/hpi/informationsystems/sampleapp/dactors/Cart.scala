@@ -82,8 +82,8 @@ object Cart {
       val groupId: FutureRelation = Dactor
         .askDactor(system, classOf[Customer], groupIdRequest)
 
-      val fixedDiscount: FutureRelation = groupId.flatTransform( groupId => {
-        val id = groupId.records.get.head.get(Customer.CustomerInfo.custGroupId).get
+      val fixedDiscount: FutureRelation = groupId.flatTransform( gid => {
+        val id = gid.records.get.head.get(Customer.CustomerInfo.custGroupId).get
         val fixedDiscountRequest = Map(id -> GroupManager.GetFixedDiscounts.Request(orders.map(_.inventoryId)))
         Dactor.askDactor(system, classOf[GroupManager], fixedDiscountRequest)
       })
@@ -97,16 +97,27 @@ object Cart {
       val orderRecordBuilder = Record(Set(CartPurchases.inventoryId, CartPurchases.sectionId, CartPurchases.quantity))
       val orderRelation = FutureRelation.fromRecordSeq(Future{orders.map(order => orderRecordBuilder(
         CartPurchases.inventoryId ~> order.inventoryId &
-          CartPurchases.sectionId ~> order.sectionId &
-          CartPurchases.quantity ~> order.quantity
+        CartPurchases.sectionId ~> order.sectionId &
+        CartPurchases.quantity ~> order.quantity
       ).build())})
       val priceDiscOrder: FutureRelation = priceDisc.innerJoin(orderRelation, (priceRec, orderRec) =>
         priceRec.get(CartPurchases.inventoryId) == orderRec.get(CartPurchases.inventoryId)
       )
       // FutureRelation: i_id, i_price, i_min_price, fixed_disc, sec_id, i_quantity
 
-      val result = FutureRelation.fromRecordSeq(priceDiscOrder.future.map(_.records.get.map( (rec: Record) => rec + (CartPurchases.sessionId -> currentSessionId))))
-      // FutureRelation: i_id, i_price, i_min_price, fixed_disc, sec_id, i_quantity, session_id
+      val result = FutureRelation.fromRecordSeq(priceDiscOrder.future.map(_.records.get
+        .map( (rec: Record) => rec + (CartPurchases.sessionId -> currentSessionId))
+        .map( (rec: Record) => CartPurchases.newRecord(
+          CartPurchases.sectionId ~> rec.get(CartPurchases.sectionId).get &
+          CartPurchases.sessionId ~> rec.get(CartPurchases.sessionId).get &
+          CartPurchases.quantity ~> rec.get(CartPurchases.quantity).get &
+          CartPurchases.inventoryId ~> rec.get(StoreSection.Inventory.inventoryId).get &
+          CartPurchases.fixedDiscount ~> rec.get(GroupManager.Discounts.fixedDisc).get &
+          CartPurchases.minPrice ~> rec.get(StoreSection.Inventory.minPrice).get &
+          CartPurchases.price ~> rec.get(StoreSection.Inventory.price).get
+        ).build())
+      ))
+      // FutureRelation: i_id, i_price, i_min_price, i_fixed_disc, sec_id, i_quantity, session_id
 
       result.pipeAsMessageTo(relation => CartHelper.HandledAddItems(relation.records.get, currentSessionId, replyTo), recipient)
     }

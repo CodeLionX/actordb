@@ -52,12 +52,12 @@ class SystemTest(_system: ActorSystem)
         ).build(),
         CartPurchases.newRecord(
           CartPurchases.sectionId ~> 12 &
-            CartPurchases.sessionId ~> 32 &
-            CartPurchases.inventoryId ~> 32 &
-            CartPurchases.quantity ~> 4 &
-            CartPurchases.fixedDiscount ~> 10.5 &
-            CartPurchases.minPrice ~> 22.5 &
-            CartPurchases.price ~> 32.5
+          CartPurchases.sessionId ~> 32 &
+          CartPurchases.inventoryId ~> 32 &
+          CartPurchases.quantity ~> 4 &
+          CartPurchases.fixedDiscount ~> 10.5 &
+          CartPurchases.minPrice ~> 22.5 &
+          CartPurchases.price ~> 32.5
         ).build()
       )
 
@@ -102,6 +102,10 @@ class SystemTest(_system: ActorSystem)
         Discounts.newRecord(
           Discounts.id ~> 112 &
           Discounts.fixedDisc ~> 3.5
+        ).build(),
+        Discounts.newRecord(
+          Discounts.id ~> 2001 &
+          Discounts.fixedDisc ~> 3.5
         ).build()
       )
 
@@ -134,15 +138,15 @@ class SystemTest(_system: ActorSystem)
         ).build(),
         PurchaseHistory.newRecord(
           PurchaseHistory.inventoryId ~> 2001 &
-            PurchaseHistory.time ~> ZonedDateTime.of(2017, 5, 2, 11, 21, 27, 0, ZoneOffset.UTC) &
-            PurchaseHistory.quantity ~> 3 &
-            PurchaseHistory.customerId ~> 22
+          PurchaseHistory.time ~> ZonedDateTime.of(2017, 5, 2, 11, 21, 27, 0, ZoneOffset.UTC) &
+          PurchaseHistory.quantity ~> 3 &
+          PurchaseHistory.customerId ~> 22
         ).build(),
         PurchaseHistory.newRecord(
           PurchaseHistory.inventoryId ~> 640 &
-            PurchaseHistory.time ~> ZonedDateTime.of(2017, 5, 2, 11, 21, 27, 0, ZoneOffset.UTC) &
-            PurchaseHistory.quantity ~> 2 &
-            PurchaseHistory.customerId ~> 22
+          PurchaseHistory.time ~> ZonedDateTime.of(2017, 5, 2, 11, 21, 27, 0, ZoneOffset.UTC) &
+          PurchaseHistory.quantity ~> 2 &
+          PurchaseHistory.customerId ~> 22
         ).build()
       )
 
@@ -152,7 +156,11 @@ class SystemTest(_system: ActorSystem)
       "accept AddItem messages successfully" in {
         val probe = new TestProbe(system)
 
-        cart42.tell(Cart.AddItems.Request(Seq.empty, 22), probe.ref)
+        cart42.tell(Cart.AddItems.Request(Seq(Cart.AddItems.Order(
+          inventoryId = 2001,
+          sectionId = 14,
+          quantity = 20
+        )), 22), probe.ref)
         within(200 milliseconds) {
           probe.expectMsg(Cart.AddItems.Success(1))
         }
