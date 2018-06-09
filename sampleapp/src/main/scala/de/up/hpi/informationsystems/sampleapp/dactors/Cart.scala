@@ -85,7 +85,7 @@ object Cart {
       val fixedDiscount: FutureRelation = groupId.flatTransform( groupId => {
         val id = groupId.records.get.head.get(Customer.CustomerInfo.custGroupId).get
         val fixedDiscountRequest = Map(id -> GroupManager.GetFixedDiscounts.Request(orders.map(_.inventoryId)))
-        Dactor.askDactor[GroupManager.GetFixedDiscounts.Success](system, classOf[GroupManager], fixedDiscountRequest)
+        Dactor.askDactor(system, classOf[GroupManager], fixedDiscountRequest)
       })
       // FutureRelation: i_id, fixed_disc
 
