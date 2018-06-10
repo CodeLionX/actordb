@@ -96,11 +96,11 @@ object Cart {
       // FutureRelation: i_id, i_price, i_min_price, fixed_disc
 
       val orderRecordBuilder = Record(Set(CartPurchases.inventoryId, CartPurchases.sectionId, CartPurchases.quantity))
-      val orderRelation = FutureRelation.fromRecordSeq(Future{orders.map(order => orderRecordBuilder(
+      val orderRelation = Relation(orders.map(order => orderRecordBuilder(
         CartPurchases.inventoryId ~> order.inventoryId &
         CartPurchases.sectionId ~> order.sectionId &
         CartPurchases.quantity ~> order.quantity
-      ).build())})
+      ).build()))
       val priceDiscOrder: FutureRelation = priceDisc.innerJoin(orderRelation, (priceRec, orderRec) =>
         priceRec.get(CartPurchases.inventoryId) == orderRec.get(CartPurchases.inventoryId)
       )
