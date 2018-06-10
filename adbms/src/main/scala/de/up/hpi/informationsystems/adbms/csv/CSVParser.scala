@@ -1,9 +1,21 @@
 package de.up.hpi.informationsystems.adbms.csv
 
+import java.io._
+import java.net.URI
+
+import com.univocity.parsers.common.ParsingContext
+import com.univocity.parsers.common.processor.{ObjectRowProcessor, RowProcessor}
+import com.univocity.parsers.conversions.Conversions
+import com.univocity.parsers.csv._
 import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
-import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, Relation, RelationDef, UntypedColumnDef}
+import de.up.hpi.informationsystems.adbms.definition._
+
+import scala.collection.JavaConverters._
+import scala.io.{BufferedSource, Codec, Source}
+import scala.reflect.ClassTag
 
 object CSVParser {
+
   object CartPurchases extends RelationDef {
     val sectionId: ColumnDef[Int] = ColumnDef("sec_id")
     val sessionId: ColumnDef[Int] = ColumnDef("session_id")
@@ -19,9 +31,22 @@ object CSVParser {
   }
   class NoEncoderFoundException(msg: String) extends Exception(msg)
 
+
+  implicit val fileCodec: Codec = Codec.UTF8
+
   val withHeader: Boolean = true
-  val delimiter: String = ","
+  val delimiter: Char = ','
   val lineSeparator: String = "\n"
+
+  val format: CsvFormat = {
+    val csvFormat = new CsvFormat()
+    csvFormat.setQuote('"')
+    csvFormat.setQuoteEscape('\\')
+    csvFormat.setCharToEscapeQuoteEscaping('\\')
+    csvFormat.setLineSeparator(lineSeparator)
+    csvFormat.setDelimiter(delimiter)
+    csvFormat
+  }
 
   val cartPurchases = Relation(Seq(
     CartPurchases.newRecord(
@@ -44,40 +69,74 @@ object CSVParser {
     ).build()
   ))
 
-  def toCsv(relation: Relation): String = {
-    val cols = relation.columns
-    val data = relation.records.getOrElse(Seq.empty)
-    val header =
-      if(withHeader) {
-        val start = cols.head.name
-        cols.foldLeft(start)( (str, col) => str + delimiter + col.name ) + lineSeparator
-      } else
-        ""
 
-    data.foldLeft(header)( (stringRel, record) => {
-      val start: String = convertValue(record(cols.head))
-      val line: String = cols.takeRight(cols.size - 1).foldLeft(start)( (stringRec, col) => {
-        val value: String = convertValue(record(col))
-        stringRec + delimiter + value
-      })
-      stringRel + line + lineSeparator
-    })
+  private def csvReader: CsvParser = {
+    val settings = new CsvParserSettings()
+    settings.setFormat(format)
+    settings.setHeaderExtractionEnabled(true)
+
+    val parser = new CsvParser(settings)
+    parser
   }
 
-  def convertValue(x: Any): String = x match {
-    case b: Byte => String.valueOf(b)
-    case i: Int => String.valueOf(i)
-    case l: Long => String.valueOf(l)
-    case c: Char => String.valueOf(c)
-    case f: Float => String.valueOf(f)
-    case d: Double => String.valueOf(d)
-    case s: String => s
-    case sth => throw new NoEncoderFoundException(s"$sth could not be converted to a string")
+  private def csvWriter(out: Writer): CsvWriter = {
+    val settings = new CsvWriterSettings()
+    settings.setFormat(format)
+    settings.setHeaderWritingEnabled(true)
+    new CsvWriter(out, settings)
+  }
+
+  private def readFile[T](file: File)(handler: BufferedReader => T): T = {
+    val source = Source.fromFile(file)
+    try {
+      handler(source.bufferedReader())
+    } finally {
+      source.close()
+    }
+  }
+
+  private def writeFile[T](file: File)(handler: BufferedWriter => Unit): Unit = {
+    val source = new BufferedWriter(new FileWriter(file))
+    try {
+      handler(source)
+    } finally {
+      source.close()
+    }
+  }
+
+  def writeToFile(file: File, relation: Relation): Unit = {
+    writeFile(file){ out =>
+      val writer = csvWriter(out)
+      writer.writeHeaders(relation.columns.toSeq.asJava)
+      relation.records.getOrElse(Seq.empty).foreach( record => {
+        val values = relation.columns.toSeq.map(col =>
+          record(col)
+        )
+        writer.writeRow(values.asJava)
+      })
+      writer.close()
+    }
+  }
+
+  def readFromFile(file: File, columns: Set[UntypedColumnDef]): Relation = {
+    val records = readFile(file) { in =>
+      val reader = csvReader
+      val lineIterator = reader.parseAllRecords(in).asScala
+      val result = lineIterator.map( record =>
+        Record(
+          columns.map(colDef =>
+            colDef -> record.getValue[colDef.value](colDef.name, classOf[colDef.value])
+          ).toMap
+        )
+      )
+      reader.stopParsing()
+      result
+    }
+    Relation(records)
   }
 
   def main(args: Array[String]): Unit = {
-    println("---")
-    print(CSVParser.toCsv(CSVParser.cartPurchases))
-    println("---")
+    val file: File = new File("test.txt")
+    CSVParser.writeToFile(file, CSVParser.cartPurchases)
   }
 }
