@@ -17,27 +17,23 @@ import scala.reflect.ClassTag
 
 object CSVParser {
 
-  object CartPurchases extends RelationDef {
-    val sectionId: ColumnDef[Int] = ColumnDef("sec_id")
-    val sessionId: ColumnDef[Int] = ColumnDef("session_id")
-    val inventoryId: ColumnDef[Int] = ColumnDef("i_id")
-    val quantity: ColumnDef[Int] = ColumnDef("i_quantity")
-    val fixedDiscount: ColumnDef[Double] = ColumnDef("i_fixed_disc")
-    val minPrice: ColumnDef[Double] = ColumnDef("i_min_price")
-    val price: ColumnDef[Double] = ColumnDef("i_price")
+  val defaultDelimiter: Char = ','
+  val defaultLineSeparator: String = "\n"
 
-    override val columns: Set[UntypedColumnDef] =
-      Set(sectionId, sessionId, inventoryId, quantity, fixedDiscount, minPrice, price)
-    override val name: String = "cart_purchases"
-  }
-  class NoEncoderFoundException(msg: String) extends Exception(msg)
+  def apply(): CSVParser = new CSVParser(defaultDelimiter, defaultLineSeparator)
 
+  def apply(delim: Char, lineSep: String): CSVParser =
+    new CSVParser(delim, lineSep)
+
+}
+
+class CSVParser(delim: Char, lineSep: String) {
 
   implicit val fileCodec: Codec = Codec.UTF8
 
   val withHeader: Boolean = true
-  val delimiter: Char = ','
-  val lineSeparator: String = "\n"
+  val delimiter: Char = delim
+  val lineSeparator: String = lineSep
 
   val format: CsvFormat = {
     val csvFormat = new CsvFormat()
@@ -49,44 +45,23 @@ object CSVParser {
     csvFormat
   }
 
-  val cartPurchases = Relation(Seq(
-    CartPurchases.newRecord(
-      CartPurchases.sectionId ~> 14 &
-        CartPurchases.sessionId ~> 32 &
-        CartPurchases.inventoryId ~> 2001 &
-        CartPurchases.quantity ~> 1 &
-        CartPurchases.fixedDiscount ~> 0 &
-        CartPurchases.minPrice ~> 40.3 &
-        CartPurchases.price ~> 60.99
-    ).build(),
-    CartPurchases.newRecord(
-      CartPurchases.sectionId ~> 12 &
-        CartPurchases.sessionId ~> 32 &
-        CartPurchases.inventoryId ~> 32 &
-        CartPurchases.quantity ~> 4 &
-        CartPurchases.fixedDiscount ~> 10.5 &
-        CartPurchases.minPrice ~> 22.5 &
-        CartPurchases.price ~> 32.5
-    ).build()
-  ))
-
-
   private def csvReader: CsvParser = {
     val settings = new CsvParserSettings()
     settings.setFormat(format)
-    settings.setHeaderExtractionEnabled(true)
-
-    val parser = new CsvParser(settings)
-    parser
+    settings.setHeaderExtractionEnabled(withHeader)
+    new CsvParser(settings)
   }
 
   private def csvWriter(out: Writer): CsvWriter = {
     val settings = new CsvWriterSettings()
     settings.setFormat(format)
-    settings.setHeaderWritingEnabled(true)
+    settings.setHeaderWritingEnabled(withHeader)
     new CsvWriter(out, settings)
   }
 
+  /**
+    * Loan Pattern (a.k.a. lender-lendee-pattern) for reader resource.
+    */
   private def readFile[T](file: File)(handler: BufferedReader => T): T = {
     val source = Source.fromFile(file)
     try {
@@ -96,6 +71,9 @@ object CSVParser {
     }
   }
 
+  /**
+    * Loan Pattern (a.k.a. lender-lendee-pattern) for writer resource.
+    */
   private def writeFile[T](file: File)(handler: BufferedWriter => Unit): Unit = {
     val source = new BufferedWriter(new FileWriter(file))
     try {
@@ -105,19 +83,21 @@ object CSVParser {
     }
   }
 
-  def writeToFile(file: File, relation: Relation): Unit = {
+  def writeToFile(file: File, relation: Relation): Unit =
     writeFile(file){ out =>
       val writer = csvWriter(out)
-      writer.writeHeaders(relation.columns.map(_.name).toSeq.asJava)
+      val orderedColumns = relation.columns.toSeq
+
+      writer.writeHeaders(orderedColumns.map(_.name).asJava)
+
       relation.records.getOrElse(Seq.empty).foreach( record => {
-        val values = relation.columns.toSeq.map(col =>
+        val values = orderedColumns.map(col =>
           record(col)
         )
         writer.writeRow(values.asJava)
       })
       writer.close()
     }
-  }
 
   def readFromFile(file: File, columns: Set[UntypedColumnDef]): Relation = {
     val records = readFile(file) { in =>
@@ -134,12 +114,5 @@ object CSVParser {
       result
     }
     Relation(records)
-  }
-
-  def main(args: Array[String]): Unit = {
-    val file: File = new File("test.txt")
-    CSVParser.writeToFile(file, CSVParser.cartPurchases)
-    val rel: Relation = CSVParser.readFromFile(file, CSVParser.cartPurchases.columns)
-    println(rel)
   }
 }
