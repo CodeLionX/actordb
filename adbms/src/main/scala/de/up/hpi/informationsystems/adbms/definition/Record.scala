@@ -131,7 +131,7 @@ object Record {
     */
   def apply(columnDefs: Set[UntypedColumnDef]): RecordBuilder = new RecordBuilder(columnDefs, Map.empty)
 
-  private[adbms] def apply(columnDefMap: Map[UntypedColumnDef, Any]) = new Record(columnDefMap)
+  private[adbms] def fromMap(columnDefMap: Map[UntypedColumnDef, Any]) = new Record(columnDefMap)
 
   val empty: Record = Record.empty
 

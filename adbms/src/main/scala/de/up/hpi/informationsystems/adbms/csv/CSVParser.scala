@@ -8,6 +8,7 @@ import com.univocity.parsers.common.processor.{ObjectRowProcessor, RowProcessor}
 import com.univocity.parsers.conversions.Conversions
 import com.univocity.parsers.csv._
 import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
+import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 import de.up.hpi.informationsystems.adbms.definition._
 
 import scala.collection.JavaConverters._
@@ -107,7 +108,7 @@ object CSVParser {
   def writeToFile(file: File, relation: Relation): Unit = {
     writeFile(file){ out =>
       val writer = csvWriter(out)
-      writer.writeHeaders(relation.columns.toSeq.asJava)
+      writer.writeHeaders(relation.columns.map(_.name).toSeq.asJava)
       relation.records.getOrElse(Seq.empty).foreach( record => {
         val values = relation.columns.toSeq.map(col =>
           record(col)
@@ -123,9 +124,9 @@ object CSVParser {
       val reader = csvReader
       val lineIterator = reader.parseAllRecords(in).asScala
       val result = lineIterator.map( record =>
-        Record(
+        Record.fromMap(
           columns.map(colDef =>
-            colDef -> record.getValue[colDef.value](colDef.name, classOf[colDef.value])
+            colDef -> record.getValue(colDef.name, colDef.default)
           ).toMap
         )
       )
@@ -138,5 +139,7 @@ object CSVParser {
   def main(args: Array[String]): Unit = {
     val file: File = new File("test.txt")
     CSVParser.writeToFile(file, CSVParser.cartPurchases)
+    val rel: Relation = CSVParser.readFromFile(file, CSVParser.cartPurchases.columns)
+    println(rel)
   }
 }
