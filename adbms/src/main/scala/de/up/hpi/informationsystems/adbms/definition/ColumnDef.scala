@@ -8,11 +8,11 @@ import scala.reflect.ClassTag
 
 object ColumnDef {
 
-  def apply[T](name: String)(implicit default: ColumnTypeDefault[T]): ColumnDef[T] = new ColumnDef[T](name, default.default)(default.ct)
-//  def apply[T](name: String)(implicit ct: ClassTag[T]): ColumnDef[T] = new ColumnDef[T](name, Default.value[T])(ct)
+  def apply[T](name: String)(implicit default: ColumnTypeDefault[T]): ColumnDef[T] =
+    new ColumnDef[T](name, default.default)(default.ct)
 
-  def apply[T](name: String, default: T)(implicit ct: ClassTag[T]): ColumnDef[T] = new ColumnDef[T](name, default)(ct)
-
+  def apply[T](name: String, default: T)(implicit ct: ClassTag[T]): ColumnDef[T] =
+    new ColumnDef[T](name, default)(ct)
 
   implicit def columnDefSet2UntypedSet[T](set: Set[ColumnDef[T]]): Set[UntypedColumnDef] =
     set.asInstanceOf[Set[UntypedColumnDef]]
