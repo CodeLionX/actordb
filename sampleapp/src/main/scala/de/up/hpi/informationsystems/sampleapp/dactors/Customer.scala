@@ -7,6 +7,7 @@ import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
+import de.up.hpi.informationsystems.sampleapp.definition.AuthenticationFailedException
 
 import scala.util.{Failure, Success, Try}
 
@@ -32,7 +33,7 @@ object Customer {
 
   object AddStoreVisit {
 
-    case class Request(storeId: Int, time: LocalDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double) extends RequestResponseProtocol.Request
+    case class Request(storeId: Int, time: ZonedDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double) extends RequestResponseProtocol.Request
     case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
     case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
 

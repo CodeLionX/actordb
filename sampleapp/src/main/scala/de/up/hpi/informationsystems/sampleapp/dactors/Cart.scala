@@ -222,6 +222,6 @@ class Cart(id: Int) extends Dactor(id) {
     }
 
     case CartHelper.HandledCheckout(amount, replyTo) =>
-      replyTo ! Checkout.Success(amount)
+      replyTo ! Checkout.Success(Seq(Record(Set(ColumnDef[Double]("amount")))(ColumnDef[Double]("amount") ~> amount).build()))
   }
 }
