@@ -171,7 +171,7 @@ object Record {
         new Record(Map.empty)
       else {
         val data: Map[UntypedColumnDef, Any] = columnDefs
-          .map{ colDef => Map(colDef -> recordData.getOrElse(colDef, null)) }
+          .map{ colDef => Map(colDef -> recordData.getOrElse(colDef, colDef.default)) }
           .reduce( _ ++ _)
         new Record(data)
       }

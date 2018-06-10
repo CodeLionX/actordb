@@ -1,24 +1,28 @@
 package de.up.hpi.informationsystems.sampleapp.dactors
 
-import java.time.ZonedDateTime
+import java.time.{Instant, ZoneId, ZoneOffset, ZonedDateTime}
+import java.util.TimeZone
 
 import akka.actor.Props
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
+import de.up.hpi.informationsystems.sampleapp.definition.AuthenticationFailedException
 
 import scala.util.{Failure, Success, Try}
 
 object Customer {
+  // implicit default values
+  import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 
   def props(id: Int): Props = Props(new Customer(id))
 
   object GetCustomerInfo {
 
-    case class Request()
-    case class Success(result: Record)
-    case class Failure(e: Throwable)
+    case class Request() extends RequestResponseProtocol.Request
+    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
 
   }
 
@@ -32,17 +36,17 @@ object Customer {
 
   object AddStoreVisit {
 
-    case class Request(storeId: Int, time: ZonedDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double)
-    case class Success()
-    case class Failure(e: Throwable)
+    case class Request(storeId: Int, time: ZonedDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double) extends RequestResponseProtocol.Request
+    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
 
   }
 
   object Authenticate {
 
-    case class Request(passwordHash: String)
-    case class Success()
-    case class Failure()
+    case class Request(passwordHash: String) extends RequestResponseProtocol.Request
+    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
 
   }
 
@@ -56,7 +60,7 @@ object Customer {
 
   object StoreVisits extends RelationDef {
     val storeId: ColumnDef[Int] = ColumnDef("store_id")
-    val timestamp: ColumnDef[ZonedDateTime] = ColumnDef("time")
+    val timestamp: ColumnDef[ZonedDateTime] = ColumnDef("time", ZonedDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC))
     val amount: ColumnDef[Double] = ColumnDef("amount")
     val fixedDiscount: ColumnDef[Double] = ColumnDef("fixed_disc")
     val varDiscount: ColumnDef[Double] = ColumnDef("var_disc")
@@ -83,7 +87,7 @@ class Customer(id: Int) extends Dactor(id) {
   override def receive: Receive = {
     case GetCustomerInfo.Request() =>
       getCustomerInfo match {
-        case Success(record) => sender() ! GetCustomerInfo.Success(record)
+        case Success(record) => sender() ! GetCustomerInfo.Success(Seq(record))
         case Failure(e) => sender() ! GetCustomerInfo.Failure(e)
       }
 
@@ -95,15 +99,15 @@ class Customer(id: Int) extends Dactor(id) {
 
     case AddStoreVisit.Request(storeId: Int, time: ZonedDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double) =>
       addStoreVisit(storeId, time, amount, fixedDiscount, varDiscount) match {
-        case Success(_) => sender() ! AddStoreVisit.Success()
+        case Success(_) => sender() ! AddStoreVisit.Success(Seq.empty)
         case Failure(e) => sender() ! AddStoreVisit.Failure(e)
       }
 
     case Authenticate.Request(passwordHash) =>
       if (authenticate(passwordHash)) {
-        sender() ! Authenticate.Success()
+        sender() ! Authenticate.Success(Seq.empty)
       } else {
-        sender() ! Authenticate.Failure()
+        sender() ! Authenticate.Failure(AuthenticationFailedException("failed to authenticate using password"))
       }
   }
 
