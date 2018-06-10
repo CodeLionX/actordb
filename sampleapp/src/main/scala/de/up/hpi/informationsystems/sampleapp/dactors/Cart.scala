@@ -6,6 +6,7 @@ import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.util.Timeout
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
+import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 
@@ -15,8 +16,6 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 object Cart {
-  // implicit default values
-  import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 
   def props(id: Int): Props = Props(new Cart(id))
 
