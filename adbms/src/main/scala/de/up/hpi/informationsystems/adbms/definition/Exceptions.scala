@@ -11,6 +11,7 @@ sealed class AdbmsException(message: String) extends Exception(message) {
 
   def this() = this(null: String)
 }
+
 /**
   * Indicates that the supplied column definition is not applicable to the current schema.
   *

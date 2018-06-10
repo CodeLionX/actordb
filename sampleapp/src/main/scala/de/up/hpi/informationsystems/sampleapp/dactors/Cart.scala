@@ -7,6 +7,7 @@ import akka.util.Timeout
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.definition._
+import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -23,15 +24,15 @@ object Cart {
     case class Order(inventoryId: Int, sectionId: Int, quantity: Int)
 
     // orders: item_id, i_quantity
-    case class Request(orders: Seq[Order], customerId: Int)
-    case class Success(sessionId: Int)
-    case class Failure(e: Throwable)
+    case class Request(orders: Seq[Order], customerId: Int) extends RequestResponseProtocol.Request
+    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
   }
 
   object Checkout {
-    case class Request(sessionId: Int)
-    case class Success(amount: Double)
-    case class Failure(e: Throwable)
+    case class Request(sessionId: Int) extends RequestResponseProtocol.Request
+    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
   }
 
   object CartInfo extends RelationDef {
@@ -84,8 +85,8 @@ object Cart {
       val groupId: FutureRelation = Dactor
         .askDactor(system, classOf[Customer], groupIdRequest)
 
-      val fixedDiscount: FutureRelation = groupId.flatTransform( groupId => {
-        val id = groupId.records.get.head.get(Customer.CustomerInfo.custGroupId).get
+      val fixedDiscount: FutureRelation = groupId.flatTransform( gid => {
+        val id = gid.records.get.head.get(Customer.CustomerInfo.custGroupId).get
         val fixedDiscountRequest = Map(id -> GroupManager.GetFixedDiscounts.Request(orders.map(_.inventoryId)))
         Dactor.askDactor(system, classOf[GroupManager], fixedDiscountRequest)
       })
@@ -99,16 +100,27 @@ object Cart {
       val orderRecordBuilder = Record(Set(CartPurchases.inventoryId, CartPurchases.sectionId, CartPurchases.quantity))
       val orderRelation = FutureRelation.fromRecordSeq(Future{orders.map(order => orderRecordBuilder(
         CartPurchases.inventoryId ~> order.inventoryId &
-          CartPurchases.sectionId ~> order.sectionId &
-          CartPurchases.quantity ~> order.quantity
+        CartPurchases.sectionId ~> order.sectionId &
+        CartPurchases.quantity ~> order.quantity
       ).build())})
       val priceDiscOrder: FutureRelation = priceDisc.innerJoin(orderRelation, (priceRec, orderRec) =>
         priceRec.get(CartPurchases.inventoryId) == orderRec.get(CartPurchases.inventoryId)
       )
       // FutureRelation: i_id, i_price, i_min_price, fixed_disc, sec_id, i_quantity
 
-      val result = FutureRelation.fromRecordSeq(priceDiscOrder.future.map(_.records.get.map( (rec: Record) => rec + (CartPurchases.sessionId -> currentSessionId))))
-      // FutureRelation: i_id, i_price, i_min_price, fixed_disc, sec_id, i_quantity, session_id
+      val result = FutureRelation.fromRecordSeq(priceDiscOrder.future.map(_.records.get
+        .map( (rec: Record) => rec + (CartPurchases.sessionId -> currentSessionId))
+        .map( (rec: Record) => CartPurchases.newRecord(
+          CartPurchases.sectionId ~> rec.get(CartPurchases.sectionId).get &
+          CartPurchases.sessionId ~> rec.get(CartPurchases.sessionId).get &
+          CartPurchases.quantity ~> rec.get(CartPurchases.quantity).get &
+          CartPurchases.inventoryId ~> rec.get(StoreSection.Inventory.inventoryId).get &
+          CartPurchases.fixedDiscount ~> rec.get(GroupManager.Discounts.fixedDisc).get &
+          CartPurchases.minPrice ~> rec.get(StoreSection.Inventory.minPrice).get &
+          CartPurchases.price ~> rec.get(StoreSection.Inventory.price).get
+        ).build())
+      ))
+      // FutureRelation: i_id, i_price, i_min_price, i_fixed_disc, sec_id, i_quantity, session_id
 
       result.pipeAsMessageTo(relation => CartHelper.HandledAddItems(relation.records.get, currentSessionId, replyTo), recipient)
     }
@@ -189,7 +201,10 @@ class Cart(id: Int) extends Dactor(id) {
 
     case CartHelper.HandledAddItems(records, newSessionId, replyTo) =>
       relations(CartPurchases).insertAll(records) match {
-        case Success(_) => replyTo ! AddItems.Success(newSessionId)
+        case Success(_) => {
+          val result = Seq(Record(Set(CartInfo.sessionId))(CartInfo.sessionId ~> newSessionId).build())
+          replyTo ! AddItems.Success(result)
+        }
         case Failure(e) => replyTo ! AddItems.Failure(e)
       }
 
@@ -220,6 +235,6 @@ class Cart(id: Int) extends Dactor(id) {
     }
 
     case CartHelper.HandledCheckout(amount, replyTo) =>
-      replyTo ! Checkout.Success(amount)
+      replyTo ! Checkout.Success(Seq(Record(Set(ColumnDef[Double]("amount")))(ColumnDef[Double]("amount") ~> amount).build()))
   }
 }
