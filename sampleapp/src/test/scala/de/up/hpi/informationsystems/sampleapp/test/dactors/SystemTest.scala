@@ -167,6 +167,7 @@ class SystemTest(_system: ActorSystem)
 
 //        cart42.tell(Cart.AddItems.Request(Seq.empty, 22), probe.ref)
 //        probe.expectMsg(Cart.AddItems.Success(Seq(Record(Set(ColumnDef[Int]("session_id")))(ColumnDef[Int]("session_id") ~> 2).build())))
+
       }
     }
   }
