@@ -3,15 +3,16 @@ package definition
 
 import java.util.Objects
 
-import scala.reflect.ClassTag
 import scala.language.implicitConversions
+import scala.reflect.ClassTag
 
 object ColumnDef {
 
-  @deprecated
-  def apply[T](name: String)(implicit ct: ClassTag[T]): ColumnDef[T] = new ColumnDef[T](name, null.asInstanceOf[T])(ct)
+  def apply[T](name: String)(implicit default: ColumnTypeDefault[T]): ColumnDef[T] = new ColumnDef[T](name, default.default)(default.ct)
+//  def apply[T](name: String)(implicit ct: ClassTag[T]): ColumnDef[T] = new ColumnDef[T](name, Default.value[T])(ct)
 
   def apply[T](name: String, default: T)(implicit ct: ClassTag[T]): ColumnDef[T] = new ColumnDef[T](name, default)(ct)
+
 
   implicit def columnDefSet2UntypedSet[T](set: Set[ColumnDef[T]]): Set[UntypedColumnDef] =
     set.asInstanceOf[Set[UntypedColumnDef]]
@@ -73,21 +74,29 @@ final class ColumnDef[T](pName: String, pDefault: T)(implicit ct: ClassTag[T]) e
 
   // overrides of [[java.lang.Object]]
 
-  override def toString: String = s"""${this.getClass.getSimpleName}[$tpe](name="$name")"""
+  override def toString: String = s"""${this.getClass.getSimpleName}[$tpe](name="$name", default=$default)"""
 
-  override def hashCode(): Int = Objects.hash(name, ct)
+  override def hashCode(): Int = Objects.hash(name, tpe) * (if(default != null) 12 + default.hashCode() else 1)
 
-  override def equals(o: scala.Any): Boolean =
+  override def equals(o: scala.Any): Boolean = {
+    def equalsIfNotNull(d1: Any, d2: Any): Boolean =
+      if (d1 == null && d2 == null) true
+      else if (d1 == null || d2 == null) false
+      else d1.equals(d2)
+
     if (o == null || getClass != o.getClass)
       false
     else {
       // cast other object
       val otherTypedColumnDef: ColumnDef[T] = o.asInstanceOf[ColumnDef[T]]
-      if (this.name.equals(otherTypedColumnDef.name) && this.tpe.equals(otherTypedColumnDef.tpe))
+      if (this.name.equals(otherTypedColumnDef.name) &&
+        this.tpe.equals(otherTypedColumnDef.tpe) &&
+        equalsIfNotNull(this.default, otherTypedColumnDef.default))
         true
       else
         false
     }
+  }
 
   override def clone(): AnyRef = new ColumnDef[T](this.name, this.default)(this.tpe)
 }
