@@ -7,7 +7,11 @@ import scala.reflect.ClassTag
 import scala.language.implicitConversions
 
 object ColumnDef {
-  def apply[T](name: String)(implicit ct: ClassTag[T]): ColumnDef[T] = new ColumnDef[T](name)(ct)
+
+  @deprecated
+  def apply[T](name: String)(implicit ct: ClassTag[T]): ColumnDef[T] = new ColumnDef[T](name, null.asInstanceOf[T])(ct)
+
+  def apply[T](name: String, default: T)(implicit ct: ClassTag[T]): ColumnDef[T] = new ColumnDef[T](name, default)(ct)
 
   implicit def columnDefSet2UntypedSet[T](set: Set[ColumnDef[T]]): Set[UntypedColumnDef] =
     set.asInstanceOf[Set[UntypedColumnDef]]
@@ -37,6 +41,8 @@ sealed trait UntypedColumnDef {
     */
   def tpe: ClassTag[value]
 
+  def default: value
+
   /**
     * Returns an untyped version of this column definition
     * @return untyped version of this column definition
@@ -51,12 +57,15 @@ sealed trait UntypedColumnDef {
   protected[definition] def buildColumnStore(): ColumnStore
 }
 
-final class ColumnDef[T](pName: String)(implicit ct: ClassTag[T]) extends UntypedColumnDef {
+final class ColumnDef[T](pName: String, pDefault: T)(implicit ct: ClassTag[T]) extends UntypedColumnDef {
+
   override type value = T
 
   override val name: String = pName
 
   override val tpe: ClassTag[T] = ct
+
+  override val default: T = pDefault
 
   override def untyped: UntypedColumnDef = this.asInstanceOf[UntypedColumnDef]
 
@@ -80,5 +89,5 @@ final class ColumnDef[T](pName: String)(implicit ct: ClassTag[T]) extends Untype
         false
     }
 
-  override def clone(): AnyRef = new ColumnDef[T](this.name)(this.tpe)
+  override def clone(): AnyRef = new ColumnDef[T](this.name, this.default)(this.tpe)
 }
