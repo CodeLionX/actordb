@@ -25,6 +25,23 @@ object CSVParser {
   def apply(delim: Char, lineSep: String): CSVParser =
     new CSVParser(delim, lineSep)
 
+  object Implicits {
+    private val parser = CSVParser()
+
+    implicit class RichRelation(relation: Relation) {
+      def writeToFile(file: File): Unit =
+        parser.writeToFile(file, relation)
+
+      def readFromFile(file: File): Relation =
+        parser.readFromFile(file, relation.columns)
+    }
+
+    implicit class RichRelationDef(relationDef: RelationDef) {
+      def readFromFile(file: File): Relation =
+        parser.readFromFile(file, relationDef.columns)
+    }
+  }
+
 }
 
 class CSVParser(delim: Char, lineSep: String) {
