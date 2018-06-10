@@ -45,6 +45,45 @@ object Dactor {
     */
   def nameOf(clazz: Class[_ <: Dactor], id: Int): String = s"${clazz.getSimpleName}-$id"
 
+  /** Sends `RequestResponseProtocol.Request`s to (multiple) instances of a `Dactor` subclass and returns a
+    * FutureRelation which will complete with the unioned results from the respective
+    * `RequestResponseProtocol.Responses` if successful or a failed FutureRelation if at least one of the requests
+    * fails.
+    *
+    * @example{{{
+    *           // Request and response definition in MyDactor:
+    *           object MyMessage {
+    *             case class Request() extends RequestResponseProtocol.Request
+    *             case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    *             case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
+    *           }
+    *
+    *           // Reacting to requests and sending a response in MyDactor:
+    *           override def receive: Receive = {
+    *             case MyMessage.Request() =>
+    *               someInternalMethod match {
+    *                 case Success(results) => sender() ! MyMessage.Success(results)
+    *                 case Failure(e) => sender() ! MyMessage.Failure(e)
+    *               }
+    *           }
+    *
+    *           // [...]
+    *
+    *           // Sending a request to a MyDactor:
+    *           val requestMap = Map(someMyDactorId -> MyDactor.MyMessage.Request())
+    *           val futureResponses: FutureRelation = Dactor
+    *             .askDactor(system, classOf[MyDactor], requestMap)
+    * }}}
+    *
+    * @note this should always be used with `RequestResponseProtocol` sub-case-classes.
+    * @see[[de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol]]
+    *
+    * @param system       the ActorSystem of the Dactors to send requests to
+    * @param dactorClass  the class of Dactors to send requests to
+    * @param messages     a Map from Dactor ids to `RequestResponseProtocol.Request`s to send to the respective Dactors
+    * @param timeout      failure timeout waiting for the response
+    * @return             a FutureRelation of the unioned results from the Requests on successful completion
+    */
   def askDactor(
                 system: ActorSystem, dactorClass: Class[_ <: Dactor], messages: Map[Int, RequestResponseProtocol.Request]
                )(
@@ -71,7 +110,7 @@ object Dactor {
 
   /**
     * Constructs a mapping of relation definitions and corresponding relational stores using
-    * [[de.up.hpi.informationsystems.adbms.definition.RowRelation]] als base relation.
+    * [[de.up.hpi.informationsystems.adbms.definition.RowRelation]] as base relation.
     *
     * @param relDefs sequence of relation definitions
     * @return mapping of relation definition and corresponding relational row store
