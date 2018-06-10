@@ -12,4 +12,8 @@ object Dependencies {
     akkaTestDependencies ++ Seq(
       "com.typesafe.akka" %% "akka-actor" % akkaVersion
     )
+
+  val uniVocityParsers = Seq(
+    "com.univocity" % "univocity-parsers" % "2.6.3"
+  )
 }

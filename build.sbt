@@ -8,7 +8,8 @@ lazy val adbms = (project in file("adbms"))
     // I don't know why they are not accepted at the commonSettings key
     organization := Common.organization,
     scalaVersion := Common.scalaVersion,
-    libraryDependencies ++= Dependencies.akkaActorDependencies
+    libraryDependencies ++= Dependencies.akkaActorDependencies,
+    libraryDependencies ++= Dependencies.uniVocityParsers
   )
 
 lazy val sampleapp = (project in file("sampleapp"))
