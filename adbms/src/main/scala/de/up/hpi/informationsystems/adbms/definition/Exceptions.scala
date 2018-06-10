@@ -11,6 +11,7 @@ sealed class AdbmsException(message: String) extends Exception(message) {
 
   def this() = this(null: String)
 }
+
 /**
   * Indicates that the supplied column definition is not applicable to the current schema.
   *
@@ -31,10 +32,3 @@ case class RecordNotFoundException(message: String) extends AdbmsException(messa
   * @param message gives details
   */
 case class InconsistentStateException(message: String) extends AdbmsException(message)
-
-/**
-  * Indicates a failed authentication attempt with an authentication authority.
-  *
-  * @param message gives details
-  */
-case class AuthenticationFailedException(message: String) extends AdbmsException(message)
