@@ -8,6 +8,8 @@ import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 import scala.util.{Failure, Success, Try}
 
 object GroupManager {
+  // implicit default values
+  import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 
   def props(id: Int): Props = Props(new GroupManager(id))
 

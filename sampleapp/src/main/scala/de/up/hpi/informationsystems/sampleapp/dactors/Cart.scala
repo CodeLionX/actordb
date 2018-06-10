@@ -14,6 +14,8 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 object Cart {
+  // implicit default values
+  import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 
   def props(id: Int): Props = Props(new Cart(id))
 

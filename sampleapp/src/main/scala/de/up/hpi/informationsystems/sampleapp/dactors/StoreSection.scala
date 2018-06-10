@@ -1,6 +1,6 @@
 package de.up.hpi.informationsystems.sampleapp.dactors
 
-import java.time.ZonedDateTime
+import java.time.{Instant, ZoneOffset, ZonedDateTime}
 
 import akka.actor.Props
 import de.up.hpi.informationsystems.adbms.Dactor
@@ -8,7 +8,10 @@ import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 
 import scala.util.{Failure, Success, Try}
+
 object StoreSection {
+  // implicit default values
+  import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 
   def props(id: Int): Props = Props(new StoreSection(id))
 
@@ -47,7 +50,7 @@ object StoreSection {
 
   object PurchaseHistory extends RelationDef {
     val inventoryId: ColumnDef[Int] = ColumnDef("i_id")
-    val time: ColumnDef[ZonedDateTime] = ColumnDef("time")
+    val time: ColumnDef[ZonedDateTime] = ColumnDef("time", ZonedDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC))
     val quantity: ColumnDef[Long] = ColumnDef("i_quantity")
     val cartId: ColumnDef[Int] = ColumnDef("c_id")
 

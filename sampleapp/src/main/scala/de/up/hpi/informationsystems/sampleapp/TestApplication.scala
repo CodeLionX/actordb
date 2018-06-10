@@ -4,6 +4,7 @@ import akka.actor.{Actor, ActorSystem, Props}
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.definition._
+import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol
 import de.up.hpi.informationsystems.sampleapp.dactors.GroupManager
 
