@@ -15,6 +15,12 @@ trait FutureRelation extends Relation with Immutable with Awaitable[Try[Seq[Reco
   /**
     * Creates objects of type `B` from this Relation using `mapping` and pipes the resulting objects to given Actor
     * `receiver` on successful Future completion.
+    *
+    * @example{{{
+    *          val msgs: Map[Int, Customer.CustomerRequest] = _
+    *          val customers: FutureRelation = Dactor.askDactor(system, classOf[Customer], msgs)
+    *          customers.pipeAsMessageTo(relation => <SelfCompanion>.UpdateCustomersMsg(relation), self)
+    * }}}
     * @param mapping  function used to create messages sent via messaging from this Relation
     * @param receiver ActorRef of actor to pipe resulting messages to
     * @tparam B       type of messages to be created
@@ -30,7 +36,7 @@ trait FutureRelation extends Relation with Immutable with Awaitable[Try[Seq[Reco
   /**
     * Creates a new Relation by applying the function `f` to this Relation.
     * @param  f is the function to be applied
-    * @return a new Relation with `f` applied
+    * @return a new FutureRelation with `f` applied
     */
   def transform(f: Relation => Relation): FutureRelation
 
@@ -40,10 +46,10 @@ trait FutureRelation extends Relation with Immutable with Awaitable[Try[Seq[Reco
     * each other such as in subsequent askDactor calls.
     *
     * @example{{{
-    *         val result: FutureRelation = firstFutureRel.flatTransform( first => {
-    *           val idFromFirst = // ... get something from the first FutureRelation which is needed for the second
-    *           Dactor.askDactor(system, classOf[SomeActor], Map(idFromFirst -> SomeActor.Message.Request())
-    *         })
+    *          val result: FutureRelation = firstFutureRel.flatTransform( first => {
+    *            val idFromFirst = // ... get something from the first FutureRelation which is needed for the second
+    *            Dactor.askDactor(system, classOf[SomeActor], Map(idFromFirst -> SomeActor.Message.Request())
+    *          })
     * }}}
     * @param  f is the function to be applied
     * @return a FutureRelation which will be completed with the application of the function `f`
