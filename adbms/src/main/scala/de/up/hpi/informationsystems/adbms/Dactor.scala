@@ -95,7 +95,6 @@ object Dactor {
       .map(dactorId => {
         val msg = messages(dactorId)
         val answer: Future[Any] = akka.pattern.ask(dactorSelection(system, dactorClass, dactorId), msg)(timeout)
-        // FIXME: match on result and handle success / failure differences!!!!
         answer
           .mapTo[RequestResponseProtocol.Response]
           .map{
@@ -105,7 +104,12 @@ object Dactor {
           .map(obj => Relation(obj))
       })
 
-    FutureRelation(Future.sequence(results).map(_.reduce( (rel1, rel2) => rel1.union(rel2))))
+    FutureRelation(Future.sequence(results).map(relations =>
+      if(relations.isEmpty)
+        Relation(scala.util.Success(Seq.empty))
+      else
+        relations.reduce( (rel1, rel2) => rel1.union(rel2))
+    ))
   }
 
   /**
