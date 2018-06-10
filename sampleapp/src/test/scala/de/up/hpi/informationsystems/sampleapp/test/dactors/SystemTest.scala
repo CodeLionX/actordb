@@ -168,11 +168,7 @@ class SystemTest(_system: ActorSystem)
           ).build())))
         }
 
-        cart42.tell(Cart.AddItems.Request(Seq(Cart.AddItems.Order(
-          inventoryId = 2001,
-          sectionId = 14,
-          quantity = 5
-        )), 22), probe.ref)
+        cart42.tell(Cart.AddItems.Request(Seq.empty, 22), probe.ref)
         within(200 milliseconds) {
           probe.expectMsg(Cart.AddItems.Success(Seq(Record(Set(ColumnDef[Int]("session_id")))(
             ColumnDef[Int]("session_id") ~> 2
