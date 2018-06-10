@@ -6,6 +6,7 @@ import akka.actor.{Actor, ActorNotFound, ActorRef, ActorSystem, InvalidActorName
 import akka.testkit.{TestKit, TestProbe}
 import akka.util.Timeout
 import de.up.hpi.informationsystems.adbms.Dactor
+import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
