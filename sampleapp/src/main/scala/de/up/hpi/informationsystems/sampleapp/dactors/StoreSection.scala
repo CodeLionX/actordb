@@ -49,9 +49,9 @@ object StoreSection {
     val inventoryId: ColumnDef[Int] = ColumnDef("i_id")
     val time: ColumnDef[ZonedDateTime] = ColumnDef("time")
     val quantity: ColumnDef[Long] = ColumnDef("i_quantity")
-    val cartId: ColumnDef[Int] = ColumnDef("c_id")
+    val customerId: ColumnDef[Int] = ColumnDef("c_id")
 
-    override val columns: Set[UntypedColumnDef] = Set(inventoryId, time, quantity, cartId)
+    override val columns: Set[UntypedColumnDef] = Set(inventoryId, time, quantity, customerId)
     override val name: String = "purchase_history"
   }
 }
