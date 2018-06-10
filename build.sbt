@@ -23,7 +23,7 @@ lazy val sampleapp = (project in file("sampleapp"))
   .dependsOn(adbms)
 
 lazy val root = (project in file("."))
-  .aggregate(adbms)
+  .aggregate(adbms, sampleapp)
   .settings(
     version := Common.frameworkVersion,
     scalaVersion := Common.scalaVersion
