@@ -1,0 +1,4 @@
+intCol,charCol,byteCol,doubleCol,longCol,shortCol,stringCol,floatCol,boolCol
+3,x,1,6.0,4,2,test,5.0,true
+0,,0,0.0,0,0,,0.0,false
+30,a,10,6.6,40,20,bla,5.5,true
