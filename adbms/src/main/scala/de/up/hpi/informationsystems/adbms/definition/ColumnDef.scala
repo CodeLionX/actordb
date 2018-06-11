@@ -42,6 +42,10 @@ sealed trait UntypedColumnDef {
     */
   def tpe: ClassTag[value]
 
+  /**
+    * Returns the default value of the column.
+    * @return the default value of the column
+    */
   def default: value
 
   /**

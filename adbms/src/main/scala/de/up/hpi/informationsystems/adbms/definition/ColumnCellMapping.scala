@@ -4,6 +4,7 @@ package de.up.hpi.informationsystems.adbms.definition
   * Provides implicits for creating a mapping between column definition and cell value
   *
   * @example {{{
+  * import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
   * val x: ColumnCellMapping = ColumnDef[Int]("id") ~> 12
   * }}}
   */
