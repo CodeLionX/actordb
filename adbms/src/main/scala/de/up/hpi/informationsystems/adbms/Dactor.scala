@@ -7,7 +7,6 @@ import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessagingProtocol, RequestResponseProtocol}
 
 import scala.concurrent.Future
-import scala.reflect.ClassTag
 import scala.util.Try
 
 object Dactor {
