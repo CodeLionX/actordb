@@ -6,6 +6,7 @@ import akka.actor.Props
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
+import de.up.hpi.informationsystems.sampleapp.dactors.Cart.CartPurchases
 
 import scala.util.{Failure, Success, Try}
 
@@ -72,8 +73,11 @@ class StoreSection(id: Int) extends Dactor(id) {
         case Failure(e) => sender() ! GetPrice.Failure(e)
       }
 
-    case GetVariableDiscountUpdateInventory.Request =>
-      sender() ! GetVariableDiscountUpdateInventory.Failure(new NotImplementedError)
+    case GetVariableDiscountUpdateInventory.Request(customerId, cartTime, orderItems) =>
+      getVariableDiscountUpdateInventory(customerId, cartTime, orderItems) match {
+        case Success(something) => sender() ! GetVariableDiscountUpdateInventory.Success(something)
+        case Failure(e) => sender() ! GetVariableDiscountUpdateInventory.Failure(e)
+      }
   }
 
   def getPrice(inventoryIds: Seq[Int]): Try[Seq[Record]] = {
@@ -82,6 +86,70 @@ class StoreSection(id: Int) extends Dactor(id) {
       .project(resultSchema)
       .where[Int](Inventory.inventoryId -> { id => inventoryIds.contains(id) })
       .records
+  }
+
+  /**
+    *
+    * @param customerId the customer's id
+    * @param cartTime   time at the beginning of checkout
+    * @param orderItems i_id, i_quantity, i_min_price, i_price, i_fixed_disc
+    * @return sequence of records containing orderItems with i_var_disc
+    */
+  def getVariableDiscountUpdateInventory(customerId: Int, cartTime: ZonedDateTime, orderItems: Relation): Try[Seq[Record]] = Try{
+    // response columns
+    val amountCol = ColumnDef[Double]("amount", 0.0)
+    val fixedDiscCol = ColumnDef[Double]("fixed_disc", 0.0)
+    val varDiscCol = ColumnDef[Double]("var_disc", 0.0)
+
+    // for each of the orderitems calculate the variable discounts generate response format tuple
+    orderItems.records.get.map(item => {
+      // update inventory for this item
+      val inventoryEntryForItem = relations(Inventory)
+        .where[Int]((Inventory.inventoryId, _ == item.get(CartPurchases.inventoryId).get))
+        .records.get.head
+
+      val currentQuantity = inventoryEntryForItem.get(Inventory.quantity).get
+
+      import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
+      relations(Inventory)
+        .update(Inventory.quantity ~> (currentQuantity - item.get(CartPurchases.quantity).get))
+        .where[Int]((Inventory.inventoryId, _ == item.get(CartPurchases.inventoryId).get))
+
+      // add purchase to purchase history
+      relations(PurchaseHistory)
+        .insert(PurchaseHistory.newRecord(
+          PurchaseHistory.inventoryId ~> item.get(CartPurchases.inventoryId).get &
+          PurchaseHistory.time ~> cartTime &
+          PurchaseHistory.quantity ~> item.get(CartPurchases.quantity).get &
+          PurchaseHistory.customerId ~> customerId
+        ).build())
+
+      // calculate var_disc
+      val recentSalesQuantities = relations(PurchaseHistory)
+        .whereAll(Map(
+          PurchaseHistory.inventoryId.untyped -> { _ == item.get(CartPurchases.inventoryId).get },
+          PurchaseHistory.time.untyped -> { time: Any => time.asInstanceOf[ZonedDateTime].isAfter(cartTime.minusDays(7)) }  // k = 7
+        ))
+        .records.get
+        .map(_.get(PurchaseHistory.quantity).getOrElse(0))
+
+      val mean = recentSalesQuantities.foldLeft(0.0)(_+_.asInstanceOf[Long]) / recentSalesQuantities.size
+      val std_dev = math.sqrt(recentSalesQuantities.map(quantity => math.pow(quantity.asInstanceOf[Double] - mean, 2)).sum)
+
+      // FIXME put the constants (K and C) at sensible places
+      val C: Double = 0.1
+      val varDisc: Double =
+        inventoryEntryForItem.get(Inventory.varDisc).get * (item.get(CartPurchases.quantity).get / (mean + C * std_dev))
+
+      // FIXME check if amount - fixedDisc - varDisc < min_price and if yes possibly change amount
+
+      // generate response format tuple
+      Record(Set(amountCol, fixedDiscCol, varDiscCol))(
+        amountCol ~> (item.get(CartPurchases.price).get * item.get(CartPurchases.quantity).get) &
+        fixedDiscCol ~> item.get(CartPurchases.fixedDiscount).get &
+        varDiscCol ~> varDisc
+      ).build()
+    })
   }
 
 }
