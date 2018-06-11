@@ -125,6 +125,13 @@ object Dactor {
 abstract class Dactor(id: Int) extends Actor with ActorLogging {
 
   /**
+    * Returns the name of this Dactor used for lookup.
+    *
+    * @return name of this Dactor
+    */
+  protected val name: String = Dactor.nameOf(this.getClass, id)
+
+  /**
     * Returns a map of relation definition and corresponding relational store.
     *
     * @return map of relation definition and corresponding relational store
