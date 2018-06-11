@@ -133,7 +133,10 @@ class StoreSection(id: Int) extends Dactor(id) {
         .records.get
         .map(_.get(PurchaseHistory.quantity).getOrElse(0))
 
-      val mean = recentSalesQuantities.foldLeft(0.0)(_+_.asInstanceOf[Long]) / recentSalesQuantities.size
+      val mean = recentSalesQuantities.size match {  // don't divide by zero
+        case 0 => 0
+        case size: Int  => recentSalesQuantities.foldLeft(0.0)(_+_.asInstanceOf[Long]) / size
+      }
       val std_dev = math.sqrt(recentSalesQuantities.map(quantity => math.pow(quantity.asInstanceOf[Double] - mean, 2)).sum)
 
       // FIXME put the constants (K and C) at sensible places
