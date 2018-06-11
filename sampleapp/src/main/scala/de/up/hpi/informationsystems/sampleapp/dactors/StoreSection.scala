@@ -6,6 +6,7 @@ import akka.actor.Props
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
+import de.up.hpi.informationsystems.sampleapp.DataInitializer
 
 import scala.util.{Failure, Success, Try}
 
@@ -59,7 +60,7 @@ object StoreSection {
   }
 }
 
-class StoreSection(id: Int) extends Dactor(id) {
+class StoreSectionImpl(id: Int) extends Dactor(id) {
   import StoreSection._
 
   override protected val relations: Map[RelationDef, MutableRelation] =
@@ -85,3 +86,4 @@ class StoreSection(id: Int) extends Dactor(id) {
   }
 
 }
+class StoreSection(id: Int) extends StoreSectionImpl(id) with DataInitializer // DataInitializer needs to be mixed-in here!
