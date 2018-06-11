@@ -70,6 +70,7 @@ class StoreSectionTest(_system: ActorSystem)
       }
 
       // TODO Failure cases
+
       "accept GetVariableDiscountUpdateInventory messages successfully" in {
         val orderItemsColumns: Set[UntypedColumnDef] =
           Set(CartPurchases.inventoryId, CartPurchases.quantity, CartPurchases.price, CartPurchases.fixedDiscount, CartPurchases.minPrice)
