@@ -1,6 +1,6 @@
 package de.up.hpi.informationsystems.adbms.csv
 
-import java.io.{BufferedReader, File, FileNotFoundException, FileReader}
+import java.io.{File, FileNotFoundException}
 import java.net.URI
 
 import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
@@ -28,7 +28,7 @@ object CSVParserTest {
     override val name: String = "TestRelation"
   }
 
-  val testRelation = Relation(Seq(
+  val testRelation: Relation = Relation(Seq(
     TestRelation.newRecord(
       TestRelation.byteCol ~> 1.toByte &
       TestRelation.shortCol ~> 2.toShort &
@@ -53,6 +53,13 @@ object CSVParserTest {
       TestRelation.boolCol ~> true
     ).build()
   ))
+
+  val correctCsv: String = Seq(
+    "intCol,charCol,byteCol,doubleCol,longCol,shortCol,stringCol,floatCol,boolCol\n",
+    "3,x,1,6.0,4,2,test,5.0,true\n",
+    "0,,0,0.0,0,0,,0.0,false\n",
+    "30,a,10,6.6,40,20,bla,5.5,true\n"
+  ).mkString
 
   val exportFilename: String = "exported.csv"
   val importFilename: String = "imported.csv"
@@ -80,12 +87,7 @@ class CSVParserTest extends WordSpec with Matchers {
       parser.writeToFile(file, testRelation)
 
       val source = Source.fromFile(file)
-      source.mkString shouldEqual Seq(
-        "intCol,charCol,byteCol,doubleCol,longCol,shortCol,stringCol,floatCol,boolCol\n",
-        "3,x,1,6.0,4,2,test,5.0,true\n",
-        "0,,0,0.0,0,0,,0.0,false\n",
-        "30,a,10,6.6,40,20,bla,5.5,true\n"
-      ).mkString
+      source.mkString shouldEqual correctCsv
       source.close()
     }
 
@@ -96,7 +98,7 @@ class CSVParserTest extends WordSpec with Matchers {
       relation.records shouldEqual testRelation.records
     }
 
-    "provide implicits for a relation" in {
+    "provide implicits for a relation to process csv files" in {
       import CSVParser.Implicits._
 
       val file = getFile("implicitTest.csv")
@@ -104,6 +106,30 @@ class CSVParserTest extends WordSpec with Matchers {
 
       val readRelation = testRelation.readFromFile(file)
       val readRelationDef = TestRelation.readFromFile(file)
+
+      testRelation.records shouldEqual readRelation.records
+      testRelation.records shouldEqual readRelationDef.records
+    }
+
+    "successfully export a relation to a csv string" in {
+      val csvString = parser.writeToCsv(testRelation)
+
+      csvString shouldEqual correctCsv
+    }
+
+    "successfully import a relation from a csv string" in {
+      val relation = parser.readFromCsv(correctCsv, TestRelation.columns)
+
+      relation.records shouldEqual testRelation.records
+    }
+
+    "provide implicits for a relation to process csv strings" in {
+      import CSVParser.Implicits._
+
+      val csvString = testRelation.writeToCsv
+
+      val readRelation = testRelation.readFromCsv(csvString)
+      val readRelationDef = TestRelation.readFromCsv(csvString)
 
       testRelation.records shouldEqual readRelation.records
       testRelation.records shouldEqual readRelationDef.records

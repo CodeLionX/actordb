@@ -1,21 +1,17 @@
 package de.up.hpi.informationsystems.adbms.csv
 
 import java.io._
-import java.net.URI
 
-import com.univocity.parsers.common.ParsingContext
-import com.univocity.parsers.common.processor.{ObjectRowProcessor, RowProcessor}
-import com.univocity.parsers.conversions.Conversions
 import com.univocity.parsers.csv._
-import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
-import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 import de.up.hpi.informationsystems.adbms.definition._
 
 import scala.collection.JavaConverters._
-import scala.io.{BufferedSource, Codec, Source}
-import scala.reflect.ClassTag
+import scala.io.{Codec, Source}
 
 object CSVParser {
+
+  private type BufferedEncoder = BufferedWriter => Unit
+  private type BufferedDecoder[T] = BufferedReader => T
 
   val defaultDelimiter: Char = ','
   val defaultLineSeparator: String = "\n"
@@ -29,22 +25,36 @@ object CSVParser {
     private val parser = CSVParser()
 
     implicit class RichRelation(relation: Relation) {
+
       def writeToFile(file: File): Unit =
         parser.writeToFile(file, relation)
 
       def readFromFile(file: File): Relation =
         parser.readFromFile(file, relation.columns)
+
+      def writeToCsv: String =
+        parser.writeToCsv(relation)
+
+      def readFromCsv(csv: String): Relation =
+        parser.readFromCsv(csv, relation.columns)
+
     }
 
     implicit class RichRelationDef(relationDef: RelationDef) {
+
       def readFromFile(file: File): Relation =
         parser.readFromFile(file, relationDef.columns)
+
+      def readFromCsv(csv: String): Relation =
+        parser.readFromCsv(csv, relationDef.columns)
+
     }
   }
 
 }
 
 class CSVParser(delim: Char, lineSep: String) {
+  import de.up.hpi.informationsystems.adbms.csv.CSVParser.{BufferedDecoder, BufferedEncoder}
 
   implicit val fileCodec: Codec = Codec.UTF8
 
@@ -79,10 +89,11 @@ class CSVParser(delim: Char, lineSep: String) {
   /**
     * Loan Pattern (a.k.a. lender-lendee-pattern) for reader resource.
     */
-  private def readFile[T](file: File)(handler: BufferedReader => T): T = {
+  private def readFile[T](file: File)(handler: BufferedDecoder[T]): T = {
     val source = Source.fromFile(file)
+    val reader = source.bufferedReader()
     try {
-      handler(source.bufferedReader())
+      handler(reader)
     } finally {
       source.close()
     }
@@ -91,7 +102,7 @@ class CSVParser(delim: Char, lineSep: String) {
   /**
     * Loan Pattern (a.k.a. lender-lendee-pattern) for writer resource.
     */
-  private def writeFile[T](file: File)(handler: BufferedWriter => Unit): Unit = {
+  private def writeFile(file: File)(handler: BufferedEncoder): Unit = {
     val source = new BufferedWriter(new FileWriter(file))
     try {
       handler(source)
@@ -100,36 +111,64 @@ class CSVParser(delim: Char, lineSep: String) {
     }
   }
 
-  def writeToFile(file: File, relation: Relation): Unit =
-    writeFile(file){ out =>
-      val writer = csvWriter(out)
-      val orderedColumns = relation.columns.toSeq
-
-      writer.writeHeaders(orderedColumns.map(_.name).asJava)
-
-      relation.records.getOrElse(Seq.empty).foreach( record => {
-        val values = orderedColumns.map(col =>
-          record(col)
-        )
-        writer.writeRow(values.asJava)
-      })
-      writer.close()
+  private def readString[T](str: String)(handler: BufferedDecoder[T]): T = {
+    val reader = new BufferedReader(new StringReader(str))
+    try {
+      handler(reader)
+    } finally {
+      reader.close()
     }
-
-  def readFromFile(file: File, columns: Set[UntypedColumnDef]): Relation = {
-    val records = readFile(file) { in =>
-      val reader = csvReader
-      val lineIterator = reader.parseAllRecords(in).asScala
-      val result = lineIterator.map( record =>
-        Record.fromMap(
-          columns.map(colDef =>
-            colDef -> record.getValue(colDef.name, colDef.default)
-          ).toMap
-        )
-      )
-      reader.stopParsing()
-      result
-    }
-    Relation(records)
   }
+
+  private def writeString(handler: BufferedEncoder): String = {
+    val source = new StringWriter()
+    val writer = new BufferedWriter(source)
+    try{
+      handler(writer)
+      source.toString
+    } finally {
+      source.close()
+    }
+  }
+
+  def decodeWithUnivocity(columns: Set[UntypedColumnDef]): BufferedDecoder[Relation] = (in: BufferedReader) => {
+    val reader = csvReader
+    val lineIterator = reader.parseAllRecords(in).asScala
+    val result = lineIterator.map( record =>
+      Record.fromMap(
+        columns.toSeq.map(colDef =>
+          colDef -> record.getValue(colDef.name, colDef.default)
+        ).toMap
+      )
+    )
+    reader.stopParsing()
+    Relation(result)
+  }
+
+  def encodeWithUnicotiy(relation: Relation): BufferedEncoder = (out: BufferedWriter) => {
+    val writer = csvWriter(out)
+    val orderedColumns = relation.columns.toSeq
+
+    writer.writeHeaders(orderedColumns.map(_.name).asJava)
+
+    relation.records.getOrElse(Seq.empty).foreach( record => {
+      val values = orderedColumns.map(col =>
+        record(col)
+      )
+      writer.writeRow(values.asJava)
+    })
+    writer.close()
+  }
+
+  def writeToFile(file: File, relation: Relation): Unit =
+    writeFile(file)(encodeWithUnicotiy(relation))
+
+  def readFromFile(file: File, columns: Set[UntypedColumnDef]): Relation =
+    readFile(file)(decodeWithUnivocity(columns))
+
+  def writeToCsv(relation: Relation): String =
+    writeString(encodeWithUnicotiy(relation))
+
+  def readFromCsv(csv: String, columns: Set[UntypedColumnDef]): Relation =
+    readString(csv)(decodeWithUnivocity(columns))
 }
