@@ -65,6 +65,8 @@ class StoreSectionTest(_system: ActorSystem)
         storeSection1.tell(StoreSection.GetPrice.Request(Seq(10, 11)), probe.ref)
         probe.expectMsg(StoreSection.GetPrice.Success(Seq.empty))
       }
+
+      // TODO Failure cases
     }
   }
 
