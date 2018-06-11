@@ -1,12 +1,14 @@
 package de.up.hpi.informationsystems.adbms.csv
 
 import java.io._
+import java.time.ZonedDateTime
 
 import com.univocity.parsers.csv._
 import de.up.hpi.informationsystems.adbms.definition._
 
 import scala.collection.JavaConverters._
 import scala.io.{Codec, Source}
+import scala.reflect.ClassTag
 
 object CSVParser {
 
@@ -202,9 +204,10 @@ class CSVParser(delim: Char, lineSep: String) {
     val lineIterator = reader.parseAllRecords(in).asScala
     val result = lineIterator.map( record =>
       Record.fromMap(
-        columns.toSeq.map(colDef =>
-          colDef -> record.getValue(colDef.name, colDef.default)
-        ).toMap
+        columns.toSeq.map {
+          case colDef if colDef.tpe == ClassTag.apply(classOf[ZonedDateTime]) => colDef -> ZonedDateTime.parse(record.getString(colDef.name))
+          case colDef => colDef -> record.getValue(colDef.name, colDef.default)
+        }.toMap
       )
     )
     reader.stopParsing()

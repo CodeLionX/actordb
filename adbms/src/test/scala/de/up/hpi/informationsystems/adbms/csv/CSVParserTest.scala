@@ -74,7 +74,7 @@ class CSVParserTest extends WordSpec with Matchers {
   "A CSVParser" should {
     val parser = CSVParser()
 
-    "successfully export a relation to a csv file" in {
+    "successfully export and import a relation using csv file" in {
       val file = getFile(exportFilename)
       parser.writeToFile(file, testRelation)
       val relation = parser.readFromFile(file, TestRelation.columns)
