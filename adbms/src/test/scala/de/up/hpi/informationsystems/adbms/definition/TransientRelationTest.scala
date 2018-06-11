@@ -1,5 +1,6 @@
 package de.up.hpi.informationsystems.adbms.definition
 
+import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.util.Success
@@ -488,7 +489,7 @@ class TransientRelationTest extends WordSpec with Matchers {
           .records shouldEqual Success(Seq(
           record1.updated(colFirstname, "Test test"),
           record2.updated(colFirstname, "Max test"),
-          record3,  // missing
+          record3.updated(colFirstname, " test"),  // default value
           record4   // null
         ))
       }

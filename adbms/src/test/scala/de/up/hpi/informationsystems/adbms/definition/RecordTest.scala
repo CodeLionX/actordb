@@ -1,10 +1,13 @@
 package de.up.hpi.informationsystems.adbms.definition
 
+import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 import org.scalatest.{Matchers, WordSpec}
 
-import scala.util.{Success, Failure}
+import scala.util.{Failure, Success}
 
 class RecordTest extends WordSpec with Matchers {
+
+  val anyCol = ColumnDef[Any]("", null)
 
   "A record builder" should {
     val col1 = ColumnDef[String]("col1")
@@ -40,7 +43,6 @@ class RecordTest extends WordSpec with Matchers {
     }
 
     "fail to compile if types of column and value do not match with apply and RecordBuilderPart" in {
-      import ColumnCellMapping._
       assertTypeError("val r = Record(Seq(col1, col2, col3))(col1 ~> val2).build()")
       assertTypeError("val r = Record(Seq(col1, col2, col3))(col2 ~> val3).build()")
       assertTypeError("val r = Record(Seq(col1, col2, col3))(col3 ~> val1).build()")
@@ -56,7 +58,7 @@ class RecordTest extends WordSpec with Matchers {
       }
 
       "not return any data" in {
-        emptyRecord.get(ColumnDef[Any]("")) shouldBe empty
+        emptyRecord.get(anyCol) shouldBe empty
       }
 
       "project to itself, when projected by an empty list" in {
@@ -64,7 +66,7 @@ class RecordTest extends WordSpec with Matchers {
       }
 
       "not allow projection, when projecting by any column definition" in {
-        emptyRecord.project(Set(ColumnDef[Any](""))).isFailure shouldBe true
+        emptyRecord.project(Set(anyCol)).isFailure shouldBe true
       }
     }
 
@@ -79,11 +81,11 @@ class RecordTest extends WordSpec with Matchers {
         record.columns shouldEqual Set(col1, col2, col3)
       }
 
-      "return None, when accessing any column" in {
-        record.get(ColumnDef[Any]("")) shouldBe None
-        record.get(col1) shouldBe None
-        record.get(col2) shouldBe None
-        record.get(col3) shouldBe None
+      "return default values, when accessing any column" in {
+        record.get(anyCol) shouldBe None
+        record.get(col1) shouldBe Some(ColumnTypeDefaults.value[String])
+        record.get(col2) shouldBe Some(ColumnTypeDefaults.value[Int])
+        record.get(col3) shouldBe Some(ColumnTypeDefaults.value[Double])
       }
 
       "project to empty record, when projected by an empty list" in {
@@ -91,7 +93,7 @@ class RecordTest extends WordSpec with Matchers {
       }
 
       "not allow projection, when projecting by any column definition" in {
-        record.project(Set(ColumnDef[Any](""))) should be.leftSideValue
+        record.project(Set(anyCol)) should be.leftSideValue
       }
 
       "project to correct column subset, when projecting by contained columns" in {
@@ -115,7 +117,7 @@ class RecordTest extends WordSpec with Matchers {
         .build()
 
       "return the column's cell value" in {
-        record.get(ColumnDef[Any]("")) shouldBe None
+        record.get(anyCol) shouldBe None
         record.get(col1) shouldBe Some(val1)
         record.get(col2) shouldBe Some(val2)
         record.get(col3) shouldBe Some(val3)

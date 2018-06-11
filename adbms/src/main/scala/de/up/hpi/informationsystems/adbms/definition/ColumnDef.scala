@@ -3,11 +3,16 @@ package definition
 
 import java.util.Objects
 
-import scala.reflect.ClassTag
 import scala.language.implicitConversions
+import scala.reflect.ClassTag
 
 object ColumnDef {
-  def apply[T](name: String)(implicit ct: ClassTag[T]): ColumnDef[T] = new ColumnDef[T](name)(ct)
+
+  def apply[T](name: String)(implicit default: ColumnTypeDefault[T]): ColumnDef[T] =
+    new ColumnDef[T](name, default.default)(default.ct)
+
+  def apply[T](name: String, default: T)(implicit ct: ClassTag[T]): ColumnDef[T] =
+    new ColumnDef[T](name, default)(ct)
 
   implicit def columnDefSet2UntypedSet[T](set: Set[ColumnDef[T]]): Set[UntypedColumnDef] =
     set.asInstanceOf[Set[UntypedColumnDef]]
@@ -37,6 +42,8 @@ sealed trait UntypedColumnDef {
     */
   def tpe: ClassTag[value]
 
+  def default: value
+
   /**
     * Returns an untyped version of this column definition
     * @return untyped version of this column definition
@@ -51,12 +58,15 @@ sealed trait UntypedColumnDef {
   protected[definition] def buildColumnStore(): ColumnStore
 }
 
-final class ColumnDef[T](pName: String)(implicit ct: ClassTag[T]) extends UntypedColumnDef {
+final class ColumnDef[T](pName: String, pDefault: T)(implicit ct: ClassTag[T]) extends UntypedColumnDef {
+
   override type value = T
 
   override val name: String = pName
 
   override val tpe: ClassTag[T] = ct
+
+  override val default: T = pDefault
 
   override def untyped: UntypedColumnDef = this.asInstanceOf[UntypedColumnDef]
 
@@ -64,21 +74,29 @@ final class ColumnDef[T](pName: String)(implicit ct: ClassTag[T]) extends Untype
 
   // overrides of [[java.lang.Object]]
 
-  override def toString: String = s"""${this.getClass.getSimpleName}[$tpe](name="$name")"""
+  override def toString: String = s"""${this.getClass.getSimpleName}[$tpe](name="$name", default=$default)"""
 
-  override def hashCode(): Int = Objects.hash(name, ct)
+  override def hashCode(): Int = Objects.hash(name, tpe) * (if(default != null) 12 + default.hashCode() else 1)
 
-  override def equals(o: scala.Any): Boolean =
+  override def equals(o: scala.Any): Boolean = {
+    def equalsIfNotNull(d1: Any, d2: Any): Boolean =
+      if (d1 == null && d2 == null) true
+      else if (d1 == null || d2 == null) false
+      else d1.equals(d2)
+
     if (o == null || getClass != o.getClass)
       false
     else {
       // cast other object
       val otherTypedColumnDef: ColumnDef[T] = o.asInstanceOf[ColumnDef[T]]
-      if (this.name.equals(otherTypedColumnDef.name) && this.tpe.equals(otherTypedColumnDef.tpe))
+      if (this.name.equals(otherTypedColumnDef.name) &&
+        this.tpe.equals(otherTypedColumnDef.tpe) &&
+        equalsIfNotNull(this.default, otherTypedColumnDef.default))
         true
       else
         false
     }
+  }
 
-  override def clone(): AnyRef = new ColumnDef[T](this.name)(this.tpe)
+  override def clone(): AnyRef = new ColumnDef[T](this.name, this.default)(this.tpe)
 }
