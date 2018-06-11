@@ -1,11 +1,14 @@
 package de.up.hpi.informationsystems.sampleapp.test.dactors
 
+import java.time.ZonedDateTime
+
 import akka.actor.ActorSystem
 import akka.testkit.{TestKit, TestProbe}
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
-import de.up.hpi.informationsystems.adbms.definition.Record
+import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, Record, Relation, UntypedColumnDef}
 import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol.InsertIntoRelation
+import de.up.hpi.informationsystems.sampleapp.dactors.Cart.CartPurchases
 import de.up.hpi.informationsystems.sampleapp.dactors.StoreSection
 import de.up.hpi.informationsystems.sampleapp.dactors.StoreSection.Inventory
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
@@ -67,6 +70,39 @@ class StoreSectionTest(_system: ActorSystem)
       }
 
       // TODO Failure cases
+      "accept GetVariableDiscountUpdateInventory messages successfully" in {
+        val orderItemsColumns: Set[UntypedColumnDef] =
+          Set(CartPurchases.inventoryId, CartPurchases.quantity, CartPurchases.price, CartPurchases.fixedDiscount, CartPurchases.minPrice)
+
+        // request contents
+        val customerId = 12
+        val cartTime = ZonedDateTime.now()
+        val orderItems: Relation = Relation(Seq(
+          Record(orderItemsColumns)(
+            CartPurchases.inventoryId ~> 100 &
+            CartPurchases.quantity ~> 2 &
+            CartPurchases.price ~> 9.99 &
+            CartPurchases.fixedDiscount ~> 0.1 &
+            CartPurchases.minPrice ~> 6.39
+          ).build()))
+
+        // response column defs
+        val amountCol = ColumnDef[Double]("amount", 0.0)
+        val fixedDiscCol = ColumnDef[Double]("fixed_disc", 0.0)
+        val varDiscCol = ColumnDef[Double]("var_disc", 0.0)
+
+        val probe = new TestProbe(system)
+        storeSection1.tell(StoreSection.GetVariableDiscountUpdateInventory.Request(
+          customerId, cartTime, orderItems
+        ), probe.ref)
+        probe.expectMsg(StoreSection.GetVariableDiscountUpdateInventory.Success(Seq(
+          Record(Set(amountCol, fixedDiscCol, varDiscCol))(
+            amountCol ~> 19.98 &
+            fixedDiscCol ~> 2.0 &
+            varDiscCol ~> 2.0
+          ).build()
+        )))
+      }
     }
   }
 
