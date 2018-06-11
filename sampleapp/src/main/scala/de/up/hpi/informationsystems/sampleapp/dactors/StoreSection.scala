@@ -137,20 +137,24 @@ class StoreSection(id: Int) extends Dactor(id) {
         case 0 => 0
         case size: Int  => recentSalesQuantities.foldLeft(0.0)(_+_.asInstanceOf[Long]) / size
       }
-      val std_dev = math.sqrt(recentSalesQuantities.map(quantity => math.pow(quantity.asInstanceOf[Double] - mean, 2)).sum)
+      val std_dev = math.sqrt(recentSalesQuantities.map(quantity => math.pow(quantity.asInstanceOf[Long].doubleValue() - mean, 2)).sum)
 
       // FIXME put the constants (K and C) at sensible places
       val C: Double = 0.1
-      val varDisc: Double =
+      val varDiscFactor: Double =
         inventoryEntryForItem.get(Inventory.varDisc).get * (item.get(CartPurchases.quantity).get / (mean + C * std_dev))
 
       // FIXME check if amount - fixedDisc - varDisc < min_price and if yes possibly change amount
 
       // generate response format tuple
+      val amount: Double = item.get(CartPurchases.price).get * item.get(CartPurchases.quantity).get
+      val fixedDisc: Double = item.get(CartPurchases.fixedDiscount).get * amount
+      val varDisc: Double = amount * varDiscFactor
+
       Record(Set(amountCol, fixedDiscCol, varDiscCol))(
-        amountCol ~> (item.get(CartPurchases.price).get * item.get(CartPurchases.quantity).get) &
-        fixedDiscCol ~> item.get(CartPurchases.fixedDiscount).get &
-        varDiscCol ~> varDisc
+        amountCol ~> (Math.round(amount * 100.0)/100.0) &
+        fixedDiscCol ~> (Math.round(fixedDisc * 100.0)/100.0) &
+        varDiscCol ~> (Math.round(varDisc * 100.0)/100.0)
       ).build()
     })
   }
