@@ -54,15 +54,7 @@ object CSVParserTest {
     ).build()
   ))
 
-  val correctCsv: String = Seq(
-    "intCol,charCol,byteCol,doubleCol,longCol,shortCol,stringCol,floatCol,boolCol\n",
-    "3,x,1,6.0,4,2,test,5.0,true\n",
-    "0,,0,0.0,0,0,,0.0,false\n",
-    "30,a,10,6.6,40,20,bla,5.5,true\n"
-  ).mkString
-
   val exportFilename: String = "exported.csv"
-  val importFilename: String = "imported.csv"
 }
 
 class CSVParserTest extends WordSpec with Matchers {
@@ -85,14 +77,6 @@ class CSVParserTest extends WordSpec with Matchers {
     "successfully export a relation to a csv file" in {
       val file = getFile(exportFilename)
       parser.writeToFile(file, testRelation)
-
-      val source = Source.fromFile(file)
-      source.mkString shouldEqual correctCsv
-      source.close()
-    }
-
-    "successfully import a relation from a csv file" in {
-      val file = getFile(importFilename)
       val relation = parser.readFromFile(file, TestRelation.columns)
 
       relation.records shouldEqual testRelation.records
@@ -111,14 +95,9 @@ class CSVParserTest extends WordSpec with Matchers {
       testRelation.records shouldEqual readRelationDef.records
     }
 
-    "successfully export a relation to a csv string" in {
+    "successfully export and import a relation using csv string" in {
       val csvString = parser.writeToCsv(testRelation)
-
-      csvString shouldEqual correctCsv
-    }
-
-    "successfully import a relation from a csv string" in {
-      val relation = parser.readFromCsv(correctCsv, TestRelation.columns)
+      val relation = parser.readFromCsv(csvString, TestRelation.columns)
 
       relation.records shouldEqual testRelation.records
     }
