@@ -78,13 +78,21 @@ class StoreSectionTest(_system: ActorSystem)
         // request contents
         val customerId = 12
         val cartTime = ZonedDateTime.now()
-        val orderItems: Relation = Relation(Seq(
+        val orderItems1: Relation = Relation(Seq(
           Record(orderItemsColumns)(
             CartPurchases.inventoryId ~> 100 &
             CartPurchases.quantity ~> 2 &
             CartPurchases.price ~> 9.99 &
             CartPurchases.fixedDiscount ~> 0.1 &
             CartPurchases.minPrice ~> 6.39
+          ).build()))
+        val orderItems2: Relation = Relation(Seq(
+          Record(orderItemsColumns)(
+            CartPurchases.inventoryId ~> 100 &
+              CartPurchases.quantity ~> 3 &
+              CartPurchases.price ~> 9.99 &
+              CartPurchases.fixedDiscount ~> 0.1 &
+              CartPurchases.minPrice ~> 6.39
           ).build()))
 
         // response column defs
@@ -94,17 +102,27 @@ class StoreSectionTest(_system: ActorSystem)
 
         val probe = new TestProbe(system)
         storeSection1.tell(StoreSection.GetVariableDiscountUpdateInventory.Request(
-          customerId, cartTime, orderItems
+          customerId, cartTime, orderItems1
         ), probe.ref)
         probe.expectMsg(StoreSection.GetVariableDiscountUpdateInventory.Success(Seq(
           Record(Set(amountCol, fixedDiscCol, varDiscCol))(
             amountCol ~> 19.98 &
             fixedDiscCol ~> 2.0 &
-            varDiscCol ~> 2.0
+            varDiscCol ~> 0
+          ).build()
+        )))
+
+        storeSection1.tell(StoreSection.GetVariableDiscountUpdateInventory.Request(
+          customerId, cartTime, orderItems2
+        ), probe.ref)
+        probe.expectMsg(StoreSection.GetVariableDiscountUpdateInventory.Success(Seq(
+          Record(Set(amountCol, fixedDiscCol, varDiscCol))(
+            amountCol ~> 29.97 &
+              fixedDiscCol ~> 3.0 &
+              varDiscCol ~> 4.5
           ).build()
         )))
       }
     }
   }
-
 }

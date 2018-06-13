@@ -96,6 +96,9 @@ class StoreSection(id: Int) extends Dactor(id) {
     * @return sequence of records containing orderItems with i_var_disc
     */
   def getVariableDiscountUpdateInventory(customerId: Int, cartTime: ZonedDateTime, orderItems: Relation): Try[Seq[Record]] = Try{
+    val C: Double = 0.1
+    val K: Int = 7
+
     // response columns
     val amountCol = ColumnDef[Double]("amount", 0.0)
     val fixedDiscCol = ColumnDef[Double]("fixed_disc", 0.0)
@@ -119,7 +122,7 @@ class StoreSection(id: Int) extends Dactor(id) {
       val recentSalesQuantities = relations(PurchaseHistory)
         .whereAll(Map(
           PurchaseHistory.inventoryId.untyped -> { _ == item.get(CartPurchases.inventoryId).get },
-          PurchaseHistory.time.untyped -> { time: Any => time.asInstanceOf[ZonedDateTime].isAfter(cartTime.minusDays(7)) }  // k = 7
+          PurchaseHistory.time.untyped -> { time: Any => time.asInstanceOf[ZonedDateTime].isAfter(cartTime.minusDays(K)) }
         ))
         .records.get
         .map(_.get(PurchaseHistory.quantity).getOrElse(0))
@@ -140,12 +143,12 @@ class StoreSection(id: Int) extends Dactor(id) {
       }
       val std_dev = math.sqrt(recentSalesQuantities.map(quantity => math.pow(quantity.asInstanceOf[Long].doubleValue() - mean, 2)).sum)
 
-      // FIXME put the constants (K and C) at sensible places
-      val C: Double = 0.1
-      val varDiscFactor: Double =
-        inventoryEntryForItem.get(Inventory.varDisc).get * (item.get(CartPurchases.quantity).get / (mean + C * std_dev))
+      val varDiscFactor: Double = mean + C * std_dev match {
+        case 0 => 0
+        case divisor: Double => inventoryEntryForItem.get(Inventory.varDisc).get * item.get(CartPurchases.quantity).get / divisor
+      }
 
-      // FIXME check if amount - fixedDisc - varDisc < min_price and if yes possibly change amount
+      // IGNORE check if amount - fixedDisc - varDisc < min_price and if yes possibly change amount
 
       // generate response format tuple
       val amount: Double = item.get(CartPurchases.price).get * item.get(CartPurchases.quantity).get
