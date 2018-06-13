@@ -12,16 +12,27 @@ object DataInitializer {
 
 }
 
+/**
+  * Mixin for [[de.up.hpi.informationsystems.adbms.Dactor]]s to automatically
+  * load data from csv files into the `Dactor`'s relations when a
+  * [[de.up.hpi.informationsystems.sampleapp.DataInitializer.LoadData]] request
+  * is received.
+  *
+  * @example
+  * {{{
+  * class MyDactorBase extends Dactor {
+  *   override protected val relations: Map[RelationDef, MutableRelation] = ...
+  *   override def receive: Receive = ...
+  * }
+  * class MyDactor extends MyDactorBase with DataInitializer
+  * }}}
+  */
 trait DataInitializer extends Dactor {
   import DataInitializer._
 
   private val csvParser = CSVParser()
 
-  private def getResourceInputStream(root: String, dactorName: String, relationDef: RelationDef): InputStream = {
-    val fileName = s"$root/$name/${relationDef.name}.csv"
-    log.info(s"Try loading file $fileName")
-    getClass.getResourceAsStream(fileName)
-  }
+  abstract override def receive: Receive = handleRequest orElse super.receive
 
   private def handleRequest: Receive = {
     case LoadData(rootPath) =>
@@ -38,6 +49,9 @@ trait DataInitializer extends Dactor {
       }
   }
 
-  abstract override def receive: Receive = handleRequest orElse super.receive
-
+  private def getResourceInputStream(root: String, dactorName: String, relationDef: RelationDef): InputStream = {
+    val fileName = s"$root/$name/${relationDef.name}.csv"
+    log.info(s"Try loading file $fileName")
+    getClass.getResourceAsStream(fileName)
+  }
 }

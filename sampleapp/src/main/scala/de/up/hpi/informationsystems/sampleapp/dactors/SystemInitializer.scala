@@ -1,7 +1,5 @@
 package de.up.hpi.informationsystems.sampleapp.dactors
 
-import java.net.URI
-
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Cancellable, PoisonPill, Props}
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.sampleapp.DataInitializer.LoadData
@@ -19,8 +17,16 @@ object SystemInitializer {
 
   def props: Props = Props(new SystemInitializer())
 
+  /**
+    * Returns the sampleapp's actor system
+    */
+  // only instantiated once (first call) as we are in a `object` and have a `lazy val`
   lazy val actorSystem: ActorSystem = ActorSystem("sampleapp-system")
 
+  /**
+    * Returns the ActorRef of the initializer actor
+    */
+    // only instantiated once (first call) as we are in a `object` and have a `lazy val`
   lazy val initializer: ActorRef = actorSystem.actorOf(props, "initializer")
 
 }
@@ -35,7 +41,7 @@ class SystemInitializer extends Actor with ActorLogging {
 
   def down: Receive = {
     case Startup(timeout) =>
-      log.info(s"Starting up system and loading data from root: $manifestPath")
+      log.info(s"Starting up system and loading data from resource root: $manifestPath")
 
       val storeSection14 = Dactor.dactorOf(context.system, classOf[StoreSection], 14)
       context.watch(storeSection14)
