@@ -81,6 +81,26 @@ class CSVParserTest extends WordSpec with Matchers {
       relation.records shouldEqual testRelation.records
     }
 
+    "successfully overwrite existing file when exporting relation to a csv file" in {
+      val file = getFile(exportFilename)
+      parser.writeToFile(file, testRelation)
+      parser.writeToFile(file, testRelation)  // second time around
+      val relation = parser.readFromFile(file, TestRelation.columns)
+
+      relation.records shouldEqual testRelation.records
+    }
+
+    "successfully overwrite existing data in relation when loading data from a csv file" in {
+      import CSVParser.Implicits._
+
+      val file = getFile(exportFilename)
+      parser.writeToFile(file, testRelation)
+      val relation = parser.readFromFile(file, TestRelation.columns)
+      relation.readFromFile(file)   // second time around
+
+      relation.records shouldEqual testRelation.records
+    }
+
     "provide implicits for a relation to process csv files" in {
       import CSVParser.Implicits._
 
