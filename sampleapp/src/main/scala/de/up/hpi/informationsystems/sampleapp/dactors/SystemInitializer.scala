@@ -28,12 +28,14 @@ object SystemInitializer {
 class SystemInitializer extends Actor with ActorLogging {
   import SystemInitializer._
 
+  val manifestPath: String = "/data/manifest"
+
   ///// state machine
   override def receive: Receive = down orElse commonBehavior
 
   def down: Receive = {
     case Startup(timeout) =>
-      log.info(s"Starting up system and loading data from root: $manifestUri")
+      log.info(s"Starting up system and loading data from root: $manifestPath")
 
       val storeSection14 = Dactor.dactorOf(context.system, classOf[StoreSection], 14)
       context.watch(storeSection14)
@@ -49,7 +51,7 @@ class SystemInitializer extends Actor with ActorLogging {
 
       // send message to all Dactors
       val pendingACKs = Seq(storeSection14, cart42, groupManager10, customer22)
-      val loadDataMsg = LoadData(manifestUri)
+      val loadDataMsg = LoadData(manifestPath)
       pendingACKs.foreach( actorRef =>
         actorRef ! loadDataMsg
       )
@@ -96,6 +98,4 @@ class SystemInitializer extends Actor with ActorLogging {
     self ! PoisonPill
     context.system.terminate()
   }
-
-  def manifestUri: URI = new URI(getClass.getResource("/data/manifest").toString)
 }
