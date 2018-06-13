@@ -1,6 +1,7 @@
 package de.up.hpi.informationsystems.adbms.definition
 
-import de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilder
+import de.up.hpi.informationsystems.adbms.record.Record
+import de.up.hpi.informationsystems.adbms.record.Record.RecordBuilder
 
 /**
   * Can be used for defining relations.
@@ -39,7 +40,7 @@ trait RelationDef {
   val columns: Set[UntypedColumnDef]
 
   /**
-    * Returns a new [[de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilder]] initialized with the
+    * Returns a new [[de.up.hpi.informationsystems.adbms.record.Record.RecordBuilder]] initialized with the
     * columns for this relation.
     * @return initialized RecordBuilder
     */

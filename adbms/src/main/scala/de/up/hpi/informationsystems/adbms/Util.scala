@@ -1,6 +1,7 @@
 package de.up.hpi.informationsystems.adbms
 
-import de.up.hpi.informationsystems.adbms.definition.{Record, UntypedColumnDef}
+import de.up.hpi.informationsystems.adbms.definition.UntypedColumnDef
+import de.up.hpi.informationsystems.adbms.record.Record
 
 object Util {
 

@@ -1,7 +1,9 @@
-package de.up.hpi.informationsystems.adbms.definition
+package de.up.hpi.informationsystems.adbms.relation
 
-import de.up.hpi.informationsystems.adbms.Util
-import de.up.hpi.informationsystems.adbms.definition.Relation.RecordComparator
+import de.up.hpi.informationsystems.adbms.definition._
+import de.up.hpi.informationsystems.adbms.record.Record
+import de.up.hpi.informationsystems.adbms.relation.Relation.RecordComparator
+import de.up.hpi.informationsystems.adbms.{IncompatibleColumnDefinitionException, RecordNotFoundException, Util}
 
 import scala.util.Try
 

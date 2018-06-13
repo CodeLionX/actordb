@@ -2,10 +2,12 @@ package de.up.hpi.informationsystems.sampleapp
 
 import akka.actor.{Actor, ActorSystem, Props}
 import de.up.hpi.informationsystems.adbms.Dactor
-import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
-import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
+import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol
+import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
+import de.up.hpi.informationsystems.adbms.record.Record
+import de.up.hpi.informationsystems.adbms.relation.MutableRelation
 import de.up.hpi.informationsystems.sampleapp.dactors.GroupManager
 
 import scala.concurrent.duration._
@@ -154,7 +156,6 @@ class TestDactor(id: Int) extends Dactor(id) {
 
     println()
     println()
-    import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
     val record = User.newRecord(
       User.colFirstname ~> "Firstname" &
       User.colLastname ~> "Lastname" &

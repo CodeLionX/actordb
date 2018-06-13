@@ -3,12 +3,13 @@ package de.up.hpi.informationsystems.sampleapp.dactors
 import java.time.{Instant, ZoneOffset, ZonedDateTime}
 
 import akka.actor.Props
-import de.up.hpi.informationsystems.adbms.Dactor
-import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
+import de.up.hpi.informationsystems.adbms.{Dactor, InconsistentStateException}
+import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessageHandling, RequestResponseProtocol}
-import de.up.hpi.informationsystems.sampleapp.DataInitializer
-import de.up.hpi.informationsystems.sampleapp.definition.AuthenticationFailedException
+import de.up.hpi.informationsystems.adbms.record.Record
+import de.up.hpi.informationsystems.adbms.relation.MutableRelation
+import de.up.hpi.informationsystems.sampleapp.{AuthenticationFailedException, DataInitializer}
 
 import scala.util.{Failure, Success, Try}
 

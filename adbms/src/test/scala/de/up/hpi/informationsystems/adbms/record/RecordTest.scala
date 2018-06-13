@@ -1,6 +1,7 @@
-package de.up.hpi.informationsystems.adbms.definition
+package de.up.hpi.informationsystems.adbms.record
 
 import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
+import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, ColumnTypeDefaults}
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.util.{Failure, Success}

@@ -1,9 +1,12 @@
-package de.up.hpi.informationsystems.adbms.definition
-import de.up.hpi.informationsystems.adbms.Util
+package de.up.hpi.informationsystems.adbms.relation
+
+import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, UntypedColumnDef}
+import de.up.hpi.informationsystems.adbms.record.Record
+import de.up.hpi.informationsystems.adbms.{IncompatibleColumnDefinitionException, Util}
 
 import scala.util.Try
 
-private[definition] final class TransientRelation(data: Try[Seq[Record]]) extends Relation with Immutable {
+private[relation] final class TransientRelation(data: Try[Seq[Record]]) extends Relation with Immutable {
 
   private val internal_data = data.getOrElse(Seq.empty)
   private val isFailure = data.isFailure

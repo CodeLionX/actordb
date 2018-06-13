@@ -1,6 +1,10 @@
-package de.up.hpi.informationsystems.adbms.definition
+package de.up.hpi.informationsystems.adbms.relation
 
+import de.up.hpi.informationsystems.adbms.RecordNotFoundException
 import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
+import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, RelationDef, UntypedColumnDef}
+import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
+import de.up.hpi.informationsystems.adbms.record.Record
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.util.Success
@@ -77,7 +81,6 @@ class RowRelationTest extends WordSpec with Matchers {
       val test = RowRelation(Test)
 
       import Test._
-      import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
       test.insertAll(Seq(
         test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
         test.newRecord(col1 ~> 1 & col2 ~> "Firstname1" & col3 ~> "Lastname1").build(),
@@ -111,7 +114,6 @@ class RowRelationTest extends WordSpec with Matchers {
       val test = RowRelation(Test)
 
       import Test._
-      import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
       test.insertAll(Seq(
         test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
         test.newRecord(col1 ~> 1 & col2 ~> "Firstname1" & col3 ~> "Lastname1").build(),
@@ -148,7 +150,6 @@ class RowRelationTest extends WordSpec with Matchers {
       val test = RowRelation(Test)
 
       import Test._
-      import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
       test.insertAll(Seq(
         test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
         test.newRecord(col1 ~> 1 & col2 ~> "Firstname1" & col3 ~> "Lastname1").build(),
@@ -181,7 +182,6 @@ class RowRelationTest extends WordSpec with Matchers {
       val test = RowRelation(Test)
 
       import Test._
-      import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
       test.insertAll(Seq(
         test.newRecord(col1 ~> 0 & col2 ~> "Firstname0" & col3 ~> "Lastname0").build(),
         test.newRecord(col1 ~> 1 & col2 ~> "Firstname1" & col3 ~> "Lastname1").build(),

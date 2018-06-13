@@ -1,6 +1,8 @@
-package de.up.hpi.informationsystems.adbms.definition
+package de.up.hpi.informationsystems.adbms.relation
 
-import de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilder
+import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, UntypedColumnDef}
+import de.up.hpi.informationsystems.adbms.record.Record
+import de.up.hpi.informationsystems.adbms.record.Record.RecordBuilder
 
 import scala.util.Try
 
@@ -128,7 +130,7 @@ trait Relation {
 
   // this trait comes with this for nothing :)
   /**
-    * Returns a new [[de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilder]] initialized with the
+    * Returns a new [[de.up.hpi.informationsystems.adbms.record.Record.RecordBuilder]] initialized with the
     * columns for this relation.
     * @return initialized RecordBuilder
     */

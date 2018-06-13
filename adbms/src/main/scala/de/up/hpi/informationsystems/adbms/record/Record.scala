@@ -1,6 +1,9 @@
-package de.up.hpi.informationsystems.adbms.definition
+package de.up.hpi.informationsystems.adbms.record
 
 import java.util.Objects
+
+import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, UntypedColumnDef}
+import de.up.hpi.informationsystems.adbms.{IncompatibleColumnDefinitionException, record}
 
 import scala.collection.{GenTraversableOnce, MapLike, mutable}
 import scala.util.Try
@@ -52,7 +55,7 @@ class Record private (cells: Map[UntypedColumnDef, Any])
   override def default(key: UntypedColumnDef): Any = null
 
   /**
-    * Use [[de.up.hpi.informationsystems.adbms.definition.Record#get]] instead!
+    * Use [[de.up.hpi.informationsystems.adbms.record.Record#get]] instead!
     * It takes care of types!
     */
   @Deprecated
@@ -97,12 +100,12 @@ class Record private (cells: Map[UntypedColumnDef, Any])
 
   // FIXME: I don't know what to do here.
   // removing this line leads to a compiler error
-  override protected[this] def newBuilder: mutable.Builder[(UntypedColumnDef, Any), Record] = ???
+  override protected def newBuilder: mutable.Builder[(UntypedColumnDef, Any), Record] = ???
 }
 
 object Record {
   /**
-    * Creates a [[de.up.hpi.informationsystems.adbms.definition.Record]] with the builder pattern.
+    * Creates a [[de.up.hpi.informationsystems.adbms.record.Record]] with the builder pattern.
     *
     * @example {{{
     * val firstnameCol = ColumnDef[String]("Firstname")
@@ -126,7 +129,7 @@ object Record {
     * assert(record == sameRecord)
     * }}}
     *
-    * This call initiates the [[de.up.hpi.informationsystems.adbms.definition.Record.RecordBuilder]] with
+    * This call initiates the [[record.Record.RecordBuilder]] with
     * the column definitions of the corresponding relational schema
     */
   def apply(columnDefs: Set[UntypedColumnDef]): RecordBuilder = new RecordBuilder(columnDefs, Map.empty)
@@ -136,8 +139,9 @@ object Record {
   val empty: Record = Record.empty
 
   /**
-    * Builder for a [[de.up.hpi.informationsystems.adbms.definition.Record]].
+    * Builder for a [[de.up.hpi.informationsystems.adbms.record.Record]].
     * Initiates the record builder with the column definition list the record should comply with.
+    *
     * @param columnDefs all columns of the corresponding relational schema
     * @param recordData initial cell contents, usually: `Map.empty`
     */
@@ -163,7 +167,8 @@ object Record {
       new RecordBuilder(columnDefs, recordData ++ Map(colDef -> value))
 
     /**
-      * Builds the [[de.up.hpi.informationsystems.adbms.definition.Record]] instance.
+      * Builds the [[de.up.hpi.informationsystems.adbms.record.Record]] instance.
+      *
       * @return a new record
       */
     def build(): Record =

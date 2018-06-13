@@ -1,7 +1,7 @@
 package de.up.hpi.informationsystems.adbms.protocols
 
 import de.up.hpi.informationsystems.adbms.Dactor
-import de.up.hpi.informationsystems.adbms.definition.Record
+import de.up.hpi.informationsystems.adbms.record.Record
 
 import scala.util.Try
 

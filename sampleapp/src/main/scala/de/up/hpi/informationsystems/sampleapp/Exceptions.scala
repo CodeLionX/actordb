@@ -1,5 +1,4 @@
-package de.up.hpi.informationsystems.sampleapp.definition
-
+package de.up.hpi.informationsystems.sampleapp
 
 sealed class ApplicationException(message: String) extends Exception(message) {
   def this(message: String, cause: Throwable) = {

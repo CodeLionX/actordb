@@ -1,6 +1,6 @@
 package de.up.hpi.informationsystems.adbms.protocols
 
-import de.up.hpi.informationsystems.adbms.definition.Record
+import de.up.hpi.informationsystems.adbms.record.Record
 
 /**
   * Provides default messages for the `adbms` framework.
