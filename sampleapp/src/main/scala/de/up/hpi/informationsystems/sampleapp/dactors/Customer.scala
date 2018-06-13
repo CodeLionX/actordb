@@ -1,7 +1,6 @@
 package de.up.hpi.informationsystems.sampleapp.dactors
 
-import java.time.{Instant, ZoneId, ZoneOffset, ZonedDateTime}
-import java.util.TimeZone
+import java.time.{Instant, ZoneOffset, ZonedDateTime}
 
 import akka.actor.Props
 import de.up.hpi.informationsystems.adbms.Dactor

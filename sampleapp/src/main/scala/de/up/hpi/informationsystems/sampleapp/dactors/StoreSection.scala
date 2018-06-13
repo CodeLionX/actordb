@@ -5,7 +5,7 @@ import java.time.{Instant, ZoneOffset, ZonedDateTime}
 import akka.actor.Props
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition._
-import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
+import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessageHandling, RequestResponseProtocol}
 import de.up.hpi.informationsystems.sampleapp.DataInitializer
 
 import scala.util.{Failure, Success, Try}
@@ -60,7 +60,7 @@ object StoreSection {
   }
 }
 
-class StoreSectionImpl(id: Int) extends Dactor(id) {
+class StoreSectionBase(id: Int) extends Dactor(id) {
   import StoreSection._
 
   override protected val relations: Map[RelationDef, MutableRelation] =
@@ -75,6 +75,7 @@ class StoreSectionImpl(id: Int) extends Dactor(id) {
 
     case GetVariableDiscountUpdateInventory.Request =>
       sender() ! GetVariableDiscountUpdateInventory.Failure(new NotImplementedError)
+
   }
 
   def getPrice(inventoryIds: Seq[Int]): Try[Seq[Record]] = {
@@ -86,4 +87,8 @@ class StoreSectionImpl(id: Int) extends Dactor(id) {
   }
 
 }
-class StoreSection(id: Int) extends StoreSectionImpl(id) with DataInitializer // DataInitializer needs to be mixed-in here!
+
+class StoreSection(id: Int)
+  extends StoreSectionBase(id)
+    with DataInitializer // DataInitializer needs to be mixed-in here: Trait Linearization!
+    with DefaultMessageHandling
