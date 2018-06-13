@@ -35,3 +35,4 @@ before_install:
 script:
   - sbt ++$TRAVIS_SCALA_VERSION test
   - sbt ++$TRAVIS_SCALA_VERSION "sampleapp/runMain de.up.hpi.informationsystems.sampleapp.TestApplication"
+  - sbt ++$TRAVIS_SCALA_VERSION "sampleapp/runMain de.up.hpi.informationsystems.sampleapp.Main"

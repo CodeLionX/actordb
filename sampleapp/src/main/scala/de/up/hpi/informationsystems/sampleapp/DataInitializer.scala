@@ -24,6 +24,7 @@ trait DataInitializer extends Dactor {
     new File(
       new URI(fileName)
     )
+//    getClass.getResourceAsStream()
   }
 
   private def handleRequest: Receive = {

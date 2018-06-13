@@ -6,13 +6,12 @@ import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Cancellable, Pois
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.sampleapp.DataInitializer.LoadData
 
-import scala.concurrent.duration._
-import scala.language.postfixOps
+import scala.concurrent.duration.FiniteDuration
 
 
 object SystemInitializer {
 
-  final case object Startup
+  final case class Startup(timeout: FiniteDuration)
 
   final case object Shutdown
 
@@ -33,7 +32,7 @@ class SystemInitializer extends Actor with ActorLogging {
   override def receive: Receive = down orElse commonBehavior
 
   def down: Receive = {
-    case Startup =>
+    case Startup(timeout) =>
       log.info(s"Starting up system and loading data from root: $manifestUri")
 
       val storeSection14 = Dactor.dactorOf(context.system, classOf[StoreSection], 14)
@@ -57,7 +56,7 @@ class SystemInitializer extends Actor with ActorLogging {
 
       // schedule timeout
       import context.dispatcher
-      val loadTimeout = context.system.scheduler.scheduleOnce(20 seconds, self, Timeout)
+      val loadTimeout = context.system.scheduler.scheduleOnce(timeout, self, Timeout)
 
       context.become(waitingForACK(pendingACKs, loadTimeout) orElse commonBehavior)
   }
