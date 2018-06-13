@@ -58,37 +58,35 @@ object StoreSection {
     override val columns: Set[UntypedColumnDef] = Set(inventoryId, time, quantity, customerId)
     override val name: String = "purchase_history"
   }
-}
 
-class StoreSectionBase(id: Int) extends Dactor(id) {
-  import StoreSection._
+  class StoreSectionBase(id: Int) extends Dactor(id) {
 
-  override protected val relations: Map[RelationDef, MutableRelation] =
-    Dactor.createAsRowRelations(Seq(Inventory, PurchaseHistory))
+    override protected val relations: Map[RelationDef, MutableRelation] =
+      Dactor.createAsRowRelations(Seq(Inventory, PurchaseHistory))
 
-  override def receive: Receive = {
-    case GetPrice.Request(inventoryIds) =>
-      getPrice(inventoryIds) match {
-        case Success(result) => sender() ! GetPrice.Success(result)
-        case Failure(e) => sender() ! GetPrice.Failure(e)
-      }
+    override def receive: Receive = {
+      case GetPrice.Request(inventoryIds) =>
+        getPrice(inventoryIds) match {
+          case Success(result) => sender() ! GetPrice.Success(result)
+          case Failure(e) => sender() ! GetPrice.Failure(e)
+        }
 
-    case GetVariableDiscountUpdateInventory.Request =>
-      sender() ! GetVariableDiscountUpdateInventory.Failure(new NotImplementedError)
+      case GetVariableDiscountUpdateInventory.Request =>
+        sender() ! GetVariableDiscountUpdateInventory.Failure(new NotImplementedError)
 
+    }
+
+    def getPrice(inventoryIds: Seq[Int]): Try[Seq[Record]] = {
+      val resultSchema: Set[UntypedColumnDef] = Set(Inventory.inventoryId, Inventory.price, Inventory.minPrice)
+      relations(Inventory)
+        .project(resultSchema)
+        .where[Int](Inventory.inventoryId -> { id => inventoryIds.contains(id) })
+        .records
+    }
   }
-
-  def getPrice(inventoryIds: Seq[Int]): Try[Seq[Record]] = {
-    val resultSchema: Set[UntypedColumnDef] = Set(Inventory.inventoryId, Inventory.price, Inventory.minPrice)
-    relations(Inventory)
-      .project(resultSchema)
-      .where[Int](Inventory.inventoryId -> { id => inventoryIds.contains(id) })
-      .records
-  }
-
 }
 
 class StoreSection(id: Int)
-  extends StoreSectionBase(id)
+  extends StoreSection.StoreSectionBase(id)
     with DataInitializer // DataInitializer needs to be mixed-in here: Trait Linearization!
     with DefaultMessageHandling
