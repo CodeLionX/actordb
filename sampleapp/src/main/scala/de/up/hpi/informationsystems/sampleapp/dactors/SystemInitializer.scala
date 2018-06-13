@@ -35,11 +35,27 @@ class SystemInitializer extends Actor with ActorLogging {
   def down: Receive = {
     case Startup =>
       log.info(s"Starting up system and loading data from root: $manifestUri")
-      val storeSection14 = Dactor.dactorOf(context.system, classOf[StoreSection], 14)
-      storeSection14 ! LoadData(manifestUri)
-      context.watch(storeSection14)
-      val pendingACKs = Seq(storeSection14)
 
+      val storeSection14 = Dactor.dactorOf(context.system, classOf[StoreSection], 14)
+      context.watch(storeSection14)
+
+      val cart42 = Dactor.dactorOf(context.system, classOf[Cart], 42)
+      context.watch(cart42)
+
+      val groupManager10 = Dactor.dactorOf(context.system, classOf[GroupManager], 10)
+      context.watch(groupManager10)
+
+      val customer22 = Dactor.dactorOf(context.system, classOf[Customer], 22)
+      context.watch(customer22)
+
+      // send message to all Dactors
+      val pendingACKs = Seq(storeSection14, cart42, groupManager10, customer22)
+      val loadDataMsg = LoadData(manifestUri)
+      pendingACKs.foreach( actorRef =>
+        actorRef ! loadDataMsg
+      )
+
+      // schedule timeout
       import context.dispatcher
       val loadTimeout = context.system.scheduler.scheduleOnce(20 seconds, self, Timeout)
 
