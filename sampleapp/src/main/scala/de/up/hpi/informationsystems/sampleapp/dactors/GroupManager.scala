@@ -4,6 +4,7 @@ import akka.actor.Props
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessageHandling, RequestResponseProtocol}
+import de.up.hpi.informationsystems.sampleapp.DataInitializer
 
 import scala.util.{Failure, Success, Try}
 
@@ -53,5 +54,6 @@ object GroupManager {
 
 class GroupManager(id:Int)
   extends GroupManager.GroupManagerBase(id)
+    with DataInitializer
     with DefaultMessageHandling
 

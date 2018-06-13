@@ -7,6 +7,7 @@ import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessageHandling, RequestResponseProtocol}
+import de.up.hpi.informationsystems.sampleapp.DataInitializer
 import de.up.hpi.informationsystems.sampleapp.definition.AuthenticationFailedException
 
 import scala.util.{Failure, Success, Try}
@@ -145,4 +146,5 @@ object Customer {
 
 class Customer(id: Int)
   extends Customer.CustomerBase(id)
+    with DataInitializer
     with DefaultMessageHandling

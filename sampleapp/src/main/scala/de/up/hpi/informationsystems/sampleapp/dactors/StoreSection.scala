@@ -88,5 +88,5 @@ object StoreSection {
 
 class StoreSection(id: Int)
   extends StoreSection.StoreSectionBase(id)
-    with DataInitializer // DataInitializer needs to be mixed-in here: Trait Linearization!
+    with DataInitializer
     with DefaultMessageHandling

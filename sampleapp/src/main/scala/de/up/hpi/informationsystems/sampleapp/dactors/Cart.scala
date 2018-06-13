@@ -9,6 +9,7 @@ import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessageHandling, RequestResponseProtocol}
+import de.up.hpi.informationsystems.sampleapp.DataInitializer
 import de.up.hpi.informationsystems.sampleapp.dactors.Cart.CartBase
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -240,4 +241,5 @@ object Cart {
 
 class Cart(id: Int)
   extends CartBase(id)
+    with DataInitializer
     with DefaultMessageHandling
