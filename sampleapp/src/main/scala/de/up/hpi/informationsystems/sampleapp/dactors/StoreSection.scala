@@ -115,16 +115,7 @@ class StoreSection(id: Int) extends Dactor(id) {
         .update(Inventory.quantity ~> (currentQuantity - item.get(CartPurchases.quantity).get))
         .where[Int]((Inventory.inventoryId, _ == item.get(CartPurchases.inventoryId).get))
 
-      // add purchase to purchase history
-      relations(PurchaseHistory)
-        .insert(PurchaseHistory.newRecord(
-          PurchaseHistory.inventoryId ~> item.get(CartPurchases.inventoryId).get &
-          PurchaseHistory.time ~> cartTime &
-          PurchaseHistory.quantity ~> item.get(CartPurchases.quantity).get &
-          PurchaseHistory.customerId ~> customerId
-        ).build())
-
-      // calculate var_disc
+      // get recent sales to calculate var_disc
       val recentSalesQuantities = relations(PurchaseHistory)
         .whereAll(Map(
           PurchaseHistory.inventoryId.untyped -> { _ == item.get(CartPurchases.inventoryId).get },
@@ -133,6 +124,16 @@ class StoreSection(id: Int) extends Dactor(id) {
         .records.get
         .map(_.get(PurchaseHistory.quantity).getOrElse(0))
 
+      // add purchase to purchase history
+      relations(PurchaseHistory)
+        .insert(PurchaseHistory.newRecord(
+          PurchaseHistory.inventoryId ~> item.get(CartPurchases.inventoryId).get &
+            PurchaseHistory.time ~> cartTime &
+            PurchaseHistory.quantity ~> item.get(CartPurchases.quantity).get &
+            PurchaseHistory.customerId ~> customerId
+        ).build())
+
+      // calculate var_disc
       val mean = recentSalesQuantities.size match {  // don't divide by zero
         case 0 => 0
         case size: Int  => recentSalesQuantities.foldLeft(0.0)(_+_.asInstanceOf[Long]) / size
