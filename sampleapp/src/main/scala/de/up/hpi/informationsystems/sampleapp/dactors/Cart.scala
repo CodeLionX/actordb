@@ -226,8 +226,8 @@ object Cart {
             Map(CartPurchases.sessionId.untyped -> { sesId: Any => sesId.asInstanceOf[Int] == sessionId}) ++
               Map(CartPurchases.sectionId.untyped -> { secId: Any => sections.contains(secId.asInstanceOf[Int]) })
           ).project(Set(
-          CartPurchases.inventoryId, CartPurchases.quantity, CartPurchases.price,
-          CartPurchases.fixedDiscount, CartPurchases.minPrice
+            CartPurchases.inventoryId, CartPurchases.quantity, CartPurchases.price,
+            CartPurchases.fixedDiscount, CartPurchases.minPrice
         ))
 
         helper.handleCheckout(customerId, storeId, sections, ZonedDateTime.now(ZoneOffset.UTC), cartItems, sender())
