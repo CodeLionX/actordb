@@ -1,6 +1,6 @@
 package de.up.hpi.informationsystems.adbms.csv
 
-import java.io.{File, FileNotFoundException}
+import java.io._
 import java.net.URI
 
 import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
@@ -8,7 +8,6 @@ import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, Relation, RelationDef, UntypedColumnDef}
 import org.scalatest.{Matchers, WordSpec}
 
-import scala.io.Source
 
 object CSVParserTest {
   
@@ -109,6 +108,29 @@ class CSVParserTest extends WordSpec with Matchers {
 
       val readRelation = testRelation.readFromCsv(csvString)
       val readRelationDef = TestRelation.readFromCsv(csvString)
+
+      testRelation.records shouldEqual readRelation.records
+      testRelation.records shouldEqual readRelationDef.records
+    }
+
+    "successfully export and import a relation using csv streams" in {
+      val outputStream = new ByteArrayOutputStream()
+      parser.writeToStream(outputStream, testRelation)
+      val inputStream = new ByteArrayInputStream(outputStream.toByteArray)
+      val relation = parser.readFromStream(inputStream, TestRelation.columns)
+
+      relation.records shouldEqual testRelation.records
+    }
+
+    "provide implicits for a relation to process csv streams" in {
+      import CSVParser.Implicits._
+
+      val outputStream = new ByteArrayOutputStream()
+      testRelation.writeToStream(outputStream)
+
+      val inputArray = outputStream.toByteArray
+      val readRelation = testRelation.readFromStream(new ByteArrayInputStream(inputArray))
+      val readRelationDef = TestRelation.readFromStream(new ByteArrayInputStream(inputArray))
 
       testRelation.records shouldEqual readRelation.records
       testRelation.records shouldEqual readRelationDef.records
