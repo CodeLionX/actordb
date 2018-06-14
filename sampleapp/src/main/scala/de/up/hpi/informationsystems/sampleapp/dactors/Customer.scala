@@ -1,13 +1,13 @@
 package de.up.hpi.informationsystems.sampleapp.dactors
 
-import java.time.{Instant, ZoneId, ZoneOffset, ZonedDateTime}
-import java.util.TimeZone
+import java.time.{Instant, ZoneOffset, ZonedDateTime}
 
 import akka.actor.Props
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.definition._
-import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
+import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessageHandling, RequestResponseProtocol}
+import de.up.hpi.informationsystems.sampleapp.DataInitializer
 import de.up.hpi.informationsystems.sampleapp.definition.AuthenticationFailedException
 
 import scala.util.{Failure, Success, Try}
@@ -76,72 +76,75 @@ object Customer {
     override val name: String = "passwd"
   }
 
+  class CustomerBase(id: Int) extends Dactor(id) {
+
+    override protected val relations: Map[RelationDef, MutableRelation] =
+      Dactor.createAsRowRelations(Seq(CustomerInfo, StoreVisits, Password))
+
+    override def receive: Receive = {
+      case GetCustomerInfo.Request() =>
+        getCustomerInfo match {
+          case Success(record) => sender() ! GetCustomerInfo.Success(Seq(record))
+          case Failure(e) => sender() ! GetCustomerInfo.Failure(e)
+        }
+
+      case GetCustomerGroupId.Request() =>
+        getCustomerGroupId match {
+          case Success(groupId) => sender() ! GetCustomerGroupId.Success(groupId)
+          case Failure(e) => sender() ! GetCustomerGroupId.Failure(e)
+        }
+
+      case AddStoreVisit.Request(storeId: Int, time: ZonedDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double) =>
+        addStoreVisit(storeId, time, amount, fixedDiscount, varDiscount) match {
+          case Success(_) => sender() ! AddStoreVisit.Success(Seq.empty)
+          case Failure(e) => sender() ! AddStoreVisit.Failure(e)
+        }
+
+      case Authenticate.Request(passwordHash) =>
+        if (authenticate(passwordHash)) {
+          sender() ! Authenticate.Success(Seq.empty)
+        } else {
+          sender() ! Authenticate.Failure(AuthenticationFailedException("failed to authenticate using password"))
+        }
+    }
+
+    def getCustomerInfo: Try[Record] = {
+      val rowCount = relations(CustomerInfo).records.get.size
+      if (rowCount > 1) {
+        throw InconsistentStateException(s"this relation was expected to contain at maximum 1 row, but contained $rowCount")
+      }
+      Try(relations(CustomerInfo).records.get.head)
+    }
+
+    def getCustomerGroupId: Try[Seq[Record]] = {
+      val rowCount = relations(CustomerInfo).records.get.size
+      if (rowCount > 1) {
+        throw InconsistentStateException(s"this relation was expected to contain at maximum 1 row, but contained $rowCount")
+      }
+      relations(CustomerInfo)
+        .project(Set(CustomerInfo.custGroupId))
+        .records
+    }
+
+    def addStoreVisit(storeId: Int, time: ZonedDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double): Try[Record] =
+      relations(StoreVisits).insert(StoreVisits.newRecord(
+        StoreVisits.storeId ~> storeId
+          & StoreVisits.timestamp ~> time
+          & StoreVisits.amount ~> amount
+          & StoreVisits.fixedDiscount ~> fixedDiscount
+          & StoreVisits.varDiscount ~> varDiscount
+      ).build())
+
+    def authenticate(passwordHash: String): Boolean = {
+      val res = relations(Password).where[String](Password.encryptedPassword -> {
+        _.equals(passwordHash)
+      }).records
+      res.isFailure || res.get.length == 1
+    }
+  }
 }
 
-class Customer(id: Int) extends Dactor(id) {
-  import Customer._
-
-  override protected val relations: Map[RelationDef, MutableRelation] =
-    Dactor.createAsRowRelations(Seq(CustomerInfo, StoreVisits, Password))
-
-  override def receive: Receive = {
-    case GetCustomerInfo.Request() =>
-      getCustomerInfo match {
-        case Success(record) => sender() ! GetCustomerInfo.Success(Seq(record))
-        case Failure(e) => sender() ! GetCustomerInfo.Failure(e)
-      }
-
-    case GetCustomerGroupId.Request() =>
-      getCustomerGroupId match {
-        case Success(groupId) => sender() ! GetCustomerGroupId.Success(groupId)
-        case Failure(e) => sender() ! GetCustomerGroupId.Failure(e)
-      }
-
-    case AddStoreVisit.Request(storeId: Int, time: ZonedDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double) =>
-      addStoreVisit(storeId, time, amount, fixedDiscount, varDiscount) match {
-        case Success(_) => sender() ! AddStoreVisit.Success(Seq.empty)
-        case Failure(e) => sender() ! AddStoreVisit.Failure(e)
-      }
-
-    case Authenticate.Request(passwordHash) =>
-      if (authenticate(passwordHash)) {
-        sender() ! Authenticate.Success(Seq.empty)
-      } else {
-        sender() ! Authenticate.Failure(AuthenticationFailedException("failed to authenticate using password"))
-      }
-  }
-
-  def getCustomerInfo: Try[Record] = {
-    val rowCount = relations(CustomerInfo).records.get.size
-    if (rowCount > 1) {
-      throw InconsistentStateException(s"this relation was expected to contain at maximum 1 row, but contained $rowCount")
-    }
-    Try(relations(CustomerInfo).records.get.head)
-  }
-
-  def getCustomerGroupId: Try[Seq[Record]] = {
-    val rowCount = relations(CustomerInfo).records.get.size
-    if (rowCount > 1) {
-      throw InconsistentStateException(s"this relation was expected to contain at maximum 1 row, but contained $rowCount")
-    }
-    relations(CustomerInfo)
-      .project(Set(CustomerInfo.custGroupId))
-      .records
-  }
-
-  def addStoreVisit(storeId: Int, time: ZonedDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double): Try[Record] =
-    relations(StoreVisits).insert(StoreVisits.newRecord(
-      StoreVisits.storeId ~> storeId
-        & StoreVisits.timestamp ~> time
-        & StoreVisits.amount ~> amount
-        & StoreVisits.fixedDiscount ~> fixedDiscount
-        & StoreVisits.varDiscount ~> varDiscount
-    ).build())
-
-  def authenticate(passwordHash: String): Boolean = {
-    val res = relations(Password).where[String](Password.encryptedPassword -> {
-      _.equals(passwordHash)
-    }).records
-    res.isFailure || res.get.length == 1
-  }
-}
+class Customer(id: Int)
+  extends Customer.CustomerBase(id)
+    with DataInitializer
+    with DefaultMessageHandling

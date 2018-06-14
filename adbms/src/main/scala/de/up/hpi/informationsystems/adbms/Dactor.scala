@@ -1,14 +1,11 @@
 package de.up.hpi.informationsystems.adbms
 
-import akka.actor.Status.{Failure, Success}
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, ActorSelection, ActorSystem, Props}
 import akka.util.Timeout
 import de.up.hpi.informationsystems.adbms.definition._
-import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessagingProtocol, RequestResponseProtocol}
+import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 
 import scala.concurrent.Future
-import scala.reflect.ClassTag
-import scala.util.Try
 
 object Dactor {
 
@@ -125,6 +122,13 @@ object Dactor {
 abstract class Dactor(id: Int) extends Actor with ActorLogging {
 
   /**
+    * Returns the name of this Dactor used for lookup.
+    *
+    * @return name of this Dactor
+    */
+  protected val name: String = Dactor.nameOf(this.getClass, id)
+
+  /**
     * Returns a map of relation definition and corresponding relational store.
     *
     * @return map of relation definition and corresponding relational store
@@ -164,24 +168,4 @@ abstract class Dactor(id: Int) extends Actor with ActorLogging {
 
   override def postStop(): Unit = log.info(s"${this.getClass.getSimpleName}($id) stopped")
 
-  override def unhandled(message: Any): Unit = message match {
-    case DefaultMessagingProtocol.InsertIntoRelation(relationName, records) =>
-      handleGenericInsert(relationName, records) match {
-        case util.Success(_) => sender() ! Success
-        case util.Failure(e) => sender() ! Failure(e)
-      }
-    case _ => super.unhandled(message)
-  }
-
-
-  /**
-    * Inserts the specified records into the relation and returns the number of successfully inserted records.
-    *
-    * @param relationName name of the relation the records should be inserted to
-    * @param records      records to be inserted
-    * @return either number of successfully inserted records or a `Throwable` describing the failure
-    */
-  private def handleGenericInsert(relationName: String, records: Seq[Record]): Try[Int] = Try {
-    relationFromName(relationName).insertAll(records).map(_.count(_ => true))
-  }.flatten
 }

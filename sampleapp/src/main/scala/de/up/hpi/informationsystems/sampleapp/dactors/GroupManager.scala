@@ -3,7 +3,8 @@ package de.up.hpi.informationsystems.sampleapp.dactors
 import akka.actor.Props
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition._
-import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
+import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessageHandling, RequestResponseProtocol}
+import de.up.hpi.informationsystems.sampleapp.DataInitializer
 
 import scala.util.{Failure, Success, Try}
 
@@ -29,25 +30,30 @@ object GroupManager {
     override val columns: Set[UntypedColumnDef] = Set(id, fixedDisc)
     override val name: String = "discounts"
   }
-}
 
-class GroupManager(id: Int) extends Dactor(id) {
-  import GroupManager._
+  class GroupManagerBase(id: Int) extends Dactor(id) {
 
-  override protected val relations: Map[RelationDef, MutableRelation] =
-    Dactor.createAsRowRelations(Seq(Discounts))
+    override protected val relations: Map[RelationDef, MutableRelation] =
+      Dactor.createAsRowRelations(Seq(Discounts))
 
-  override def receive: Receive = {
-    case GetFixedDiscounts.Request(ids) =>
-      getFixedDiscounts(ids) match {
-        case Success(result) => sender() ! GetFixedDiscounts.Success(result)
-        case Failure(e) => sender() ! GetFixedDiscounts.Failure(e)
-      }
+    override def receive: Receive = {
+      case GetFixedDiscounts.Request(ids) =>
+        getFixedDiscounts(ids) match {
+          case Success(result) => sender() ! GetFixedDiscounts.Success(result)
+          case Failure(e) => sender() ! GetFixedDiscounts.Failure(e)
+        }
+    }
+
+    def getFixedDiscounts(ids: Seq[Int]): Try[Seq[Record]] =
+      relations(Discounts)
+        .where(Discounts.id -> { id: Int => ids.contains(id) })
+        .records
+
   }
-
-  def getFixedDiscounts(ids: Seq[Int]): Try[Seq[Record]] =
-    relations(Discounts)
-      .where(Discounts.id -> { id: Int => ids.contains(id) })
-      .records
-
 }
+
+class GroupManager(id:Int)
+  extends GroupManager.GroupManagerBase(id)
+    with DataInitializer
+    with DefaultMessageHandling
+

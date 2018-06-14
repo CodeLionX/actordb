@@ -1,12 +1,14 @@
 package de.up.hpi.informationsystems.adbms.csv
 
 import java.io._
+import java.time.ZonedDateTime
 
 import com.univocity.parsers.csv._
 import de.up.hpi.informationsystems.adbms.definition._
 
 import scala.collection.JavaConverters._
 import scala.io.{Codec, Source}
+import scala.reflect.ClassTag
 
 object CSVParser {
 
@@ -74,6 +76,21 @@ object CSVParser {
         parser.readFromFile(file, relation.columns)
 
       /**
+        * Encodes this relation as csv and writes it's data to `stream`
+        * @param stream stream to write the relation's data to
+        */
+      def writeToStream(stream: OutputStream): Unit =
+        parser.writeToStream(stream, relation)
+
+      /**
+        * Decodes csv data read from `stream` using this relation's column definition.
+        * @param stream to read the relation's data from
+        * @return a new relation containing the data from the csv file
+        */
+      def readFromStream(stream: InputStream): Relation =
+        parser.readFromStream(stream, relation.columns)
+
+      /**
         * Encodes this relation as a csv string.
         * @return a string contain this relation's data as csv
         */
@@ -99,6 +116,14 @@ object CSVParser {
         */
       def readFromFile(file: File): Relation =
         parser.readFromFile(file, relationDef.columns)
+
+      /**
+        * Decodes csv data read from `stream` using this relationDef's column definition.
+        * @param stream to read the relation's data from
+        * @return a new relation containing the data from the csv file
+        */
+      def readFromStream(stream: InputStream): Relation =
+        parser.readFromStream(stream, relationDef.columns)
 
       /**
         * Decodes the csv string using this relationDef's column definition.
@@ -172,6 +197,30 @@ class CSVParser(delim: Char, lineSep: String) {
   }
 
   /**
+    * Loan Pattern (a.k.a. lender-lendee-pattern) for reader resource: Stream
+    */
+  private def readStream[T](stream: InputStream)(handler: BufferedDecoder[T]): T = {
+    val reader = new BufferedReader(new InputStreamReader(stream))
+    try {
+      handler(reader)
+    } finally {
+      reader.close()
+    }
+  }
+
+  /**
+    * Loan Pattern (a.k.a. lender-lendee-pattern) for writer resource: Stream
+    */
+  private def writeStream(stream: OutputStream)(handler: BufferedEncoder): Unit = {
+    val source = new BufferedWriter(new OutputStreamWriter(stream))
+    try {
+      handler(source)
+    } finally {
+      source.close()
+    }
+  }
+
+  /**
     * Loan Pattern (a.k.a. lender-lendee-pattern) for reader resource: String
     */
   private def readString[T](str: String)(handler: BufferedDecoder[T]): T = {
@@ -202,9 +251,10 @@ class CSVParser(delim: Char, lineSep: String) {
     val lineIterator = reader.parseAllRecords(in).asScala
     val result = lineIterator.map( record =>
       Record.fromMap(
-        columns.toSeq.map(colDef =>
-          colDef -> record.getValue(colDef.name, colDef.default)
-        ).toMap
+        columns.toSeq.map {
+          case colDef if colDef.tpe == ClassTag.apply(classOf[ZonedDateTime]) => colDef -> ZonedDateTime.parse(record.getString(colDef.name))
+          case colDef => colDef -> record.getValue(colDef.name, colDef.default)
+        }.toMap
       )
     )
     reader.stopParsing()
@@ -231,7 +281,7 @@ class CSVParser(delim: Char, lineSep: String) {
   /**
     * Writes the contents of `relation` to the file `file` as csv.
     * @param file instance to write the csv string to
-    * @param relation relation, which's columns will be decoded to csv
+    * @param relation relation, which's records will be decoded to csv
     */
   def writeToFile(file: File, relation: Relation): Unit =
     writeFile(file)(encodeWithUnicotiy(relation))
@@ -245,6 +295,24 @@ class CSVParser(delim: Char, lineSep: String) {
     */
   def readFromFile(file: File, columns: Set[UntypedColumnDef]): Relation =
     readFile(file)(decodeWithUnivocity(columns))
+
+  /**
+    * Writes the contents of `relation` to the stream `stream` as csv.
+    * @param stream output stream to write to
+    * @param relation relation, which's records will be decoded to csv
+    */
+  def writeToStream(stream: OutputStream, relation: Relation): Unit =
+    writeStream(stream)(encodeWithUnicotiy(relation))
+
+  /**
+    * Returns a new relation, which's data is read from the input stream in csv format
+    * using the provided column definitions to decode the data.
+    * @param stream stream to read the relation's data from
+    * @param columns used to decode the csv string (header, type and default value information)
+    * @return a new relation containing the contents of the decoded stream
+    */
+  def readFromStream(stream: InputStream, columns: Set[UntypedColumnDef]): Relation =
+    readStream(stream)(decodeWithUnivocity(columns))
 
   /**
     * Returns the contents of `relation` as csv string.

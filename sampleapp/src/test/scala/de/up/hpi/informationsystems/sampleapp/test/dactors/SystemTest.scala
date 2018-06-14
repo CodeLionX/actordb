@@ -16,7 +16,6 @@ import de.up.hpi.informationsystems.sampleapp.dactors.StoreSection.{Inventory, P
 import de.up.hpi.informationsystems.sampleapp.dactors.{Cart, Customer, GroupManager, StoreSection}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
-import scala.concurrent.duration._
 import scala.language.postfixOps
 
 class SystemTest(_system: ActorSystem)

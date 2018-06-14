@@ -8,7 +8,9 @@ import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 import de.up.hpi.informationsystems.adbms.definition._
-import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
+import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessageHandling, RequestResponseProtocol}
+import de.up.hpi.informationsystems.sampleapp.DataInitializer
+import de.up.hpi.informationsystems.sampleapp.dactors.Cart.CartBase
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -176,64 +178,68 @@ object Cart {
         ), recipient)
     }
   }
-}
 
-class Cart(id: Int) extends Dactor(id) {
-  import Cart._
+  class CartBase(id: Int) extends Dactor(id) {
 
-  private val timeout: Timeout = Timeout(2.seconds)
-  private val helper: CartHelper = CartHelper(context.system, self, timeout)
+    private val timeout: Timeout = Timeout(2.seconds)
+    private val helper: CartHelper = CartHelper(context.system, self, timeout)
 
-  override protected val relations: Map[RelationDef, MutableRelation] =
-    Dactor.createAsRowRelations(Seq(CartInfo, CartPurchases))
+    override protected val relations: Map[RelationDef, MutableRelation] =
+      Dactor.createAsRowRelations(Seq(CartInfo, CartPurchases))
 
-  private var currentSessionId = 0
+    private var currentSessionId = 0
 
-  override def receive: Receive = {
-    case AddItems.Request(orders, customerId) => {
-      currentSessionId += 1
-      relations(CartInfo)
-        .update(CartInfo.sessionId ~> currentSessionId)
-        .where[Int](CartInfo.customerId -> { _ == customerId })
-      helper.handleAddItems(orders, customerId, currentSessionId, sender())
-    }
-
-    case CartHelper.HandledAddItems(records, newSessionId, replyTo) =>
-      relations(CartPurchases).insertAll(records) match {
-        case Success(_) => {
-          val result = Seq(Record(Set(CartInfo.sessionId))(CartInfo.sessionId ~> newSessionId).build())
-          replyTo ! AddItems.Success(result)
-        }
-        case Failure(e) => replyTo ! AddItems.Failure(e)
+    override def receive: Receive = {
+      case AddItems.Request(orders, customerId) => {
+        currentSessionId += 1
+        relations(CartInfo)
+          .update(CartInfo.sessionId ~> currentSessionId)
+          .where[Int](CartInfo.customerId -> { _ == customerId })
+        helper.handleAddItems(orders, customerId, currentSessionId, sender())
       }
 
-    case Checkout.Request(sessionId) => {
-      // TODO: check there is only one entry
-      val customerId: Int = relations(CartInfo)
-        .records.get
-        .map(_.get(CartInfo.customerId).get).head
-      val storeId: Int = relations(CartInfo)
-        .records.get
-        .map(_.get(CartInfo.storeId).get).head
+      case CartHelper.HandledAddItems(records, newSessionId, replyTo) =>
+        relations(CartPurchases).insertAll(records) match {
+          case Success(_) => {
+            val result = Seq(Record(Set(CartInfo.sessionId))(CartInfo.sessionId ~> newSessionId).build())
+            replyTo ! AddItems.Success(result)
+          }
+          case Failure(e) => replyTo ! AddItems.Failure(e)
+        }
 
-      val sections: Seq[Int] = relations(CartPurchases)
-        .where[Int](CartPurchases.sessionId -> { _ == sessionId })
-        .project(Set(CartPurchases.sectionId))
-        .records.get.map(_.get(CartPurchases.sectionId).get).distinct
+      case Checkout.Request(sessionId) => {
+        // TODO: check there is only one entry
+        val customerId: Int = relations(CartInfo)
+          .records.get
+          .map(_.get(CartInfo.customerId).get).head
+        val storeId: Int = relations(CartInfo)
+          .records.get
+          .map(_.get(CartInfo.storeId).get).head
 
-      val cartItems: Relation = relations(CartPurchases)
-        .whereAll(
-          Map(CartPurchases.sessionId.untyped -> { sesId: Any => sesId.asInstanceOf[Int] == sessionId}) ++
-            Map(CartPurchases.sectionId.untyped -> { secId: Any => sections.contains(secId.asInstanceOf[Int]) })
-        ).project(Set(
-          CartPurchases.inventoryId, CartPurchases.quantity, CartPurchases.price,
-          CartPurchases.fixedDiscount, CartPurchases.minPrice
+        val sections: Seq[Int] = relations(CartPurchases)
+          .where[Int](CartPurchases.sessionId -> { _ == sessionId })
+          .project(Set(CartPurchases.sectionId))
+          .records.get.map(_.get(CartPurchases.sectionId).get).distinct
+
+        val cartItems: Relation = relations(CartPurchases)
+          .whereAll(
+            Map(CartPurchases.sessionId.untyped -> { sesId: Any => sesId.asInstanceOf[Int] == sessionId}) ++
+              Map(CartPurchases.sectionId.untyped -> { secId: Any => sections.contains(secId.asInstanceOf[Int]) })
+          ).project(Set(
+            CartPurchases.inventoryId, CartPurchases.quantity, CartPurchases.price,
+            CartPurchases.fixedDiscount, CartPurchases.minPrice
         ))
 
-      helper.handleCheckout(customerId, storeId, sections, ZonedDateTime.now(ZoneOffset.UTC), cartItems, sender())
-    }
+        helper.handleCheckout(customerId, storeId, sections, ZonedDateTime.now(ZoneOffset.UTC), cartItems, sender())
+      }
 
-    case CartHelper.HandledCheckout(amount, replyTo) =>
-      replyTo ! Checkout.Success(Seq(Record(Set(ColumnDef[Double]("amount")))(ColumnDef[Double]("amount") ~> amount).build()))
+      case CartHelper.HandledCheckout(amount, replyTo) =>
+        replyTo ! Checkout.Success(Seq(Record(Set(ColumnDef[Double]("amount")))(ColumnDef[Double]("amount") ~> amount).build()))
+    }
   }
 }
+
+class Cart(id: Int)
+  extends CartBase(id)
+    with DataInitializer
+    with DefaultMessageHandling
