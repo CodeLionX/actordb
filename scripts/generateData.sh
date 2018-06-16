@@ -15,6 +15,10 @@ Usage: $0
     -m sets the total number of items (default=100000)
     -k sets the number of carts per customer (default=20)
     -o
+
+Example:
+> mkdir output
+> $0 -k 10 -o output
 HELP
 }
 
@@ -85,4 +89,14 @@ echo "    #purchase_history = ${s_purchases}"
 echo ""
 echo "Output folder: ${outputFolder}"
 
+function naming_scheme {
+  local dactor=$1
+  local id=$2
+  local relation=$3
+  declare -n ret=$4
+  ret="${dactor}-${id}/${relation}.csv"
+}
 
+declare result
+naming_scheme "Dactor" 12 "relation" result
+echo ${result}
