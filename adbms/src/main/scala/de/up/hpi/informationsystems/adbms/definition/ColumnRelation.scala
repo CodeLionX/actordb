@@ -1,4 +1,8 @@
 package de.up.hpi.informationsystems.adbms.definition
+import de.up.hpi.informationsystems.adbms.IncompatibleColumnDefinitionException
+import de.up.hpi.informationsystems.adbms.record.Record
+import de.up.hpi.informationsystems.adbms.relation.Relation
+
 import scala.util.Try
 
 /**

@@ -6,6 +6,8 @@ import akka.actor.Props
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessageHandling, RequestResponseProtocol}
+import de.up.hpi.informationsystems.adbms.record.Record
+import de.up.hpi.informationsystems.adbms.relation.{MutableRelation, Relation}
 import de.up.hpi.informationsystems.sampleapp.DataInitializer
 import de.up.hpi.informationsystems.sampleapp.dactors.Cart.CartPurchases
 
@@ -116,7 +118,7 @@ object StoreSection {
 
         val currentQuantity = inventoryEntryForItem.get(Inventory.quantity).get
 
-        import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
+        import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
         relations(Inventory)
           .update(Inventory.quantity ~> (currentQuantity - item.get(CartPurchases.quantity).get))
           .where[Int]((Inventory.inventoryId, _ == item.get(CartPurchases.inventoryId).get))

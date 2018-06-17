@@ -1,13 +1,16 @@
-package de.up.hpi.informationsystems.adbms.definition
+package de.up.hpi.informationsystems.adbms
 
 import java.util.NoSuchElementException
 
-import akka.actor.{Actor, ActorNotFound, ActorRef, ActorSystem, InvalidActorNameException, Props}
+import akka.actor.{Actor, ActorNotFound, ActorRef, ActorSystem, InvalidActorNameException}
 import akka.testkit.{TestKit, TestProbe}
 import akka.util.Timeout
-import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
+import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, RelationDef, UntypedColumnDef}
 import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessageHandling, DefaultMessagingProtocol}
+import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
+import de.up.hpi.informationsystems.adbms.record.Record
+import de.up.hpi.informationsystems.adbms.relation.MutableRelation
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
@@ -113,7 +116,6 @@ class DactorTest extends TestKit(ActorSystem("test-system"))
 
       "relations available" should {
         import DactorTest.DactorWithRelation.TestRelation
-        import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
 
         val probe = TestProbe()
         val dut = Dactor.dactorOf(system, classOf[DactorTest.DactorWithRelation], 1)

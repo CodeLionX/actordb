@@ -5,6 +5,8 @@ import java.time.ZonedDateTime
 
 import com.univocity.parsers.csv._
 import de.up.hpi.informationsystems.adbms.definition._
+import de.up.hpi.informationsystems.adbms.record.Record
+import de.up.hpi.informationsystems.adbms.relation.Relation
 
 import scala.collection.JavaConverters._
 import scala.io.{Codec, Source}
@@ -20,16 +22,18 @@ object CSVParser {
 
   /**
     * Creates a new `CSVParser` for encoding and decoding
-    * [[de.up.hpi.informationsystems.adbms.definition.Relation]]s
+    * [[de.up.hpi.informationsystems.adbms.relation.Relation]]s
     * with the default configuration (delim=, and lineSep=\n).
+ *
     * @return a configured `CSVParser`
     */
   def apply(): CSVParser = new CSVParser(defaultDelimiter, defaultLineSeparator)
 
   /**
     * Creates a new `CSVParser` for encoding and decoding
-    * [[de.up.hpi.informationsystems.adbms.definition.Relation]]s
+    * [[de.up.hpi.informationsystems.adbms.relation.Relation]]s
     * using the provided configuration.
+ *
     * @param delim value delimiter
     * @param lineSep line separator
     * @return a configured `CSVParser`
@@ -39,7 +43,7 @@ object CSVParser {
 
   /**
     * Import this object to enrich
-    * [[de.up.hpi.informationsystems.adbms.definition.Relation]]s
+    * [[de.up.hpi.informationsystems.adbms.relation.Relation]]s
     * and
     * [[de.up.hpi.informationsystems.adbms.definition.RelationDef]]s
     * with methods to encode and decode them as csv.

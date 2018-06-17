@@ -58,9 +58,7 @@ class SystemInitializer extends Actor with ActorLogging {
       // send message to all Dactors
       val pendingACKs = Seq(storeSection14, cart42, groupManager10, customer22)
       val loadDataMsg = LoadData(manifestPath)
-      pendingACKs.foreach( actorRef =>
-        actorRef ! loadDataMsg
-      )
+      pendingACKs.foreach( _ ! loadDataMsg )
 
       // schedule timeout
       import context.dispatcher

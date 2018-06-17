@@ -1,7 +1,9 @@
-package de.up.hpi.informationsystems.adbms.definition
+package de.up.hpi.informationsystems.adbms.relation
 
 import akka.actor.ActorRef
-import de.up.hpi.informationsystems.adbms.definition.Relation.RecordComparator
+import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, UntypedColumnDef}
+import de.up.hpi.informationsystems.adbms.record.Record
+import de.up.hpi.informationsystems.adbms.relation.Relation.RecordComparator
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -66,7 +68,7 @@ trait FutureRelation extends Relation with Immutable with Awaitable[Try[Seq[Reco
   override def project(columnDefs: Set[UntypedColumnDef]): FutureRelation
 
   /** @inheritdoc */
-  override def innerJoin(other: Relation, on: Relation.RecordComparator): FutureRelation
+  override def innerJoin(other: Relation, on: RecordComparator): FutureRelation
 
   /** @inheritdoc */
   override def outerJoin(other: Relation, on: RecordComparator): FutureRelation
@@ -130,19 +132,19 @@ object FutureRelation {
       FutureRelation(data.map(_.project(columnDefs)))
 
     /** @inheritdoc */
-    override def innerJoin(other: Relation, on: Relation.RecordComparator): FutureRelation =
+    override def innerJoin(other: Relation, on: RecordComparator): FutureRelation =
       futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.innerJoin(rel2, on))
 
     /** @inheritdoc */
-    override def outerJoin(other: Relation, on: Relation.RecordComparator): FutureRelation =
+    override def outerJoin(other: Relation, on: RecordComparator): FutureRelation =
       futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.outerJoin(rel2, on))
 
     /** @inheritdoc */
-    override def leftJoin(other: Relation, on: Relation.RecordComparator): FutureRelation =
+    override def leftJoin(other: Relation, on: RecordComparator): FutureRelation =
       futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.leftJoin(rel2, on))
 
     /** @inheritdoc */
-    override def rightJoin(other: Relation, on: Relation.RecordComparator): FutureRelation =
+    override def rightJoin(other: Relation, on: RecordComparator): FutureRelation =
       futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.rightJoin(rel2, on))
 
     /** @inheritdoc */

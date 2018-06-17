@@ -1,11 +1,15 @@
-package de.up.hpi.informationsystems.adbms.definition
+package de.up.hpi.informationsystems.adbms.relation
+
+import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, UntypedColumnDef}
+import de.up.hpi.informationsystems.adbms.record.{ColumnCellMapping, Record}
 
 import scala.util.Try
 
 trait MutableRelation extends Relation {
 
   /**
-    * Inserts a [[de.up.hpi.informationsystems.adbms.definition.Record]] into the relation
+    * Inserts a [[de.up.hpi.informationsystems.adbms.record.Record]] into the relation
+    *
     * @param record to be inserted
     * @return the record or an exception wrapped in a Try
     */
@@ -33,17 +37,17 @@ trait MutableRelation extends Relation {
   // implement this trait and get the following for free :)
   /**
     * Updates all records in this relation matching a supplied condition to the new column-cell-mappings.
-    * Don't forget to import [[de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping]].
+    * Don't forget to import [[de.up.hpi.informationsystems.adbms.record.ColumnCellMapping]].
     *
     * @example {{{
-    *   import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
+    *   import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
     *   val result: Try[Int] = Relation
     *       .update(ColumnDef[String]("firstname") ~> "Hans"
     *               & ColumnDef[String]("lastname") ~> "Schmidt")
     *       .where(ColumnDef[Int]("id") -> { _ == 12 })
     * }}}
     * @param mapping new values for the specified columns
-    * @return an [[de.up.hpi.informationsystems.adbms.definition.MutableRelation.UpdateBuilder]] to construct the update query
+    * @return an [[de.up.hpi.informationsystems.adbms.relation.MutableRelation.UpdateBuilder]] to construct the update query
     */
   def update(mapping: ColumnCellMapping): UpdateBuilder = new UpdateBuilder(mapping.toMap)
 
@@ -63,7 +67,7 @@ trait MutableRelation extends Relation {
     * Part of the fluent relation API.
     * @param updateData column-cell-mappings, which represent the updated data
     */
-  class UpdateBuilder private[MutableRelation] (updateData: Map[UntypedColumnDef, Any]) {
+  class UpdateBuilder private[MutableRelation](updateData: Map[UntypedColumnDef, Any]) {
 
     //    def byKey[T](keyValue: T): Try[Int] = internalUpdateByKey[T](updateData, keyValue)
 

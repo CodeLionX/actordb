@@ -5,9 +5,11 @@ import java.time.ZonedDateTime
 import akka.actor.ActorSystem
 import akka.testkit.{TestKit, TestProbe}
 import de.up.hpi.informationsystems.adbms.Dactor
-import de.up.hpi.informationsystems.adbms.definition.ColumnCellMapping._
-import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, Record, Relation, UntypedColumnDef}
+import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, UntypedColumnDef}
 import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol.InsertIntoRelation
+import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
+import de.up.hpi.informationsystems.adbms.record.Record
+import de.up.hpi.informationsystems.adbms.relation.Relation
 import de.up.hpi.informationsystems.sampleapp.dactors.Cart.CartPurchases
 import de.up.hpi.informationsystems.sampleapp.dactors.StoreSection
 import de.up.hpi.informationsystems.sampleapp.dactors.StoreSection.Inventory

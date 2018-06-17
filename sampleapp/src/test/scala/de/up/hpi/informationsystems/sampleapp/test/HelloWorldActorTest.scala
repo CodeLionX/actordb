@@ -1,11 +1,11 @@
 package de.up.hpi.informationsystems.sampleapp.test
 
-import scala.language.implicitConversions
-
-import org.scalatest.{FlatSpecLike, BeforeAndAfterAll, Matchers}
 import akka.actor.ActorSystem
 import akka.testkit.{TestKit, TestProbe}
 import de.up.hpi.informationsystems.sampleapp.Worker
+import org.scalatest.{BeforeAndAfterAll, FlatSpecLike, Matchers}
+
+import scala.language.implicitConversions
 
 
 class HelloWorldActorTest(_system: ActorSystem)

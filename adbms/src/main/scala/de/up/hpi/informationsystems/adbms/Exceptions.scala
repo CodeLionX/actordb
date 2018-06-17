@@ -1,5 +1,4 @@
-package de.up.hpi.informationsystems.adbms.definition
-
+package de.up.hpi.informationsystems.adbms
 
 sealed class AdbmsException(message: String) extends Exception(message) {
   def this(message: String, cause: Throwable) = {
