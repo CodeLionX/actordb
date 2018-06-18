@@ -114,7 +114,7 @@ object Customer {
       if (rowCount > 1) {
         throw InconsistentStateException(s"this relation was expected to contain at maximum 1 row, but contained $rowCount")
       }
-      Relation(relations(CustomerInfo).records.get)
+      relations(CustomerInfo).immutable
     }
 
     def getCustomerGroupId: Try[Relation] = Try{
