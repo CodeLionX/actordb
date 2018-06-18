@@ -51,24 +51,24 @@ class StoreSectionTest(_system: ActorSystem)
       "accept GetPrice messages successfully" in {
         val probe = new TestProbe(system)
         storeSection1.tell(StoreSection.GetPrice.Request(Seq(100, 101)), probe.ref)
-        probe.expectMsg(StoreSection.GetPrice.Success(Seq(
-          Record(Set(Inventory.inventoryId, Inventory.price, Inventory.minPrice))(
-            Inventory.inventoryId ~> 100 &
-            Inventory.price ~> 9.99 &
-            Inventory.minPrice ~> 6.39
-          ).build(),
-          Record(Set(Inventory.inventoryId, Inventory.price, Inventory.minPrice))(
-            Inventory.inventoryId ~> 101 &
-            Inventory.price ~> 19.99 &
-            Inventory.minPrice ~> 14.00
-          ).build()
-        )))
+        probe.expectMsg(StoreSection.GetPrice.Success(Relation(Seq(
+                  Record(Set(Inventory.inventoryId, Inventory.price, Inventory.minPrice))(
+                    Inventory.inventoryId ~> 100 &
+                    Inventory.price ~> 9.99 &
+                    Inventory.minPrice ~> 6.39
+                  ).build(),
+                  Record(Set(Inventory.inventoryId, Inventory.price, Inventory.minPrice))(
+                    Inventory.inventoryId ~> 101 &
+                    Inventory.price ~> 19.99 &
+                    Inventory.minPrice ~> 14.00
+                  ).build()
+                ))))
       }
 
       "return empty when calling GetPrice for non-existent inventoryIds" in {
         val probe = new TestProbe(system)
         storeSection1.tell(StoreSection.GetPrice.Request(Seq(10, 11)), probe.ref)
-        probe.expectMsg(StoreSection.GetPrice.Success(Seq.empty))
+        probe.expectMsg(StoreSection.GetPrice.Success(Relation(Seq.empty)))
       }
 
       // TODO Failure cases
@@ -106,24 +106,24 @@ class StoreSectionTest(_system: ActorSystem)
         storeSection1.tell(StoreSection.GetVariableDiscountUpdateInventory.Request(
           customerId, cartTime, orderItems1
         ), probe.ref)
-        probe.expectMsg(StoreSection.GetVariableDiscountUpdateInventory.Success(Seq(
-          Record(Set(amountCol, fixedDiscCol, varDiscCol))(
-            amountCol ~> 19.98 &
-            fixedDiscCol ~> 2.0 &
-            varDiscCol ~> 0
-          ).build()
-        )))
+        probe.expectMsg(StoreSection.GetVariableDiscountUpdateInventory.Success(Relation(Seq(
+                  Record(Set(amountCol, fixedDiscCol, varDiscCol))(
+                    amountCol ~> 19.98 &
+                    fixedDiscCol ~> 2.0 &
+                    varDiscCol ~> 0
+                  ).build()
+                ))))
 
         storeSection1.tell(StoreSection.GetVariableDiscountUpdateInventory.Request(
           customerId, cartTime, orderItems2
         ), probe.ref)
-        probe.expectMsg(StoreSection.GetVariableDiscountUpdateInventory.Success(Seq(
-          Record(Set(amountCol, fixedDiscCol, varDiscCol))(
-            amountCol ~> 29.97 &
-              fixedDiscCol ~> 3.0 &
-              varDiscCol ~> 4.5
-          ).build()
-        )))
+        probe.expectMsg(StoreSection.GetVariableDiscountUpdateInventory.Success(Relation(Seq(
+                  Record(Set(amountCol, fixedDiscCol, varDiscCol))(
+                    amountCol ~> 29.97 &
+                      fixedDiscCol ~> 3.0 &
+                      varDiscCol ~> 4.5
+                  ).build()
+                ))))
       }
     }
   }

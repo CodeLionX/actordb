@@ -8,7 +8,7 @@ import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessageHandling, RequestResponseProtocol}
 import de.up.hpi.informationsystems.adbms.record.Record
-import de.up.hpi.informationsystems.adbms.relation.MutableRelation
+import de.up.hpi.informationsystems.adbms.relation.{MutableRelation, Relation}
 import de.up.hpi.informationsystems.sampleapp.{AuthenticationFailedException, DataInitializer}
 
 import scala.util.{Failure, Success, Try}
@@ -22,7 +22,7 @@ object Customer {
   object GetCustomerInfo {
 
     case class Request() extends RequestResponseProtocol.Request
-    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    case class Success(result: Relation) extends RequestResponseProtocol.Success
     case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
 
   }
@@ -30,7 +30,7 @@ object Customer {
   object GetCustomerGroupId {
 
     case class Request() extends RequestResponseProtocol.Request
-    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    case class Success(result: Relation) extends RequestResponseProtocol.Success
     case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
 
   }
@@ -38,7 +38,7 @@ object Customer {
   object AddStoreVisit {
 
     case class Request(storeId: Int, time: ZonedDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double) extends RequestResponseProtocol.Request
-    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    case class Success(result: Relation) extends RequestResponseProtocol.Success
     case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
 
   }
@@ -46,7 +46,7 @@ object Customer {
   object Authenticate {
 
     case class Request(passwordHash: String) extends RequestResponseProtocol.Request
-    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    case class Success(result: Relation) extends RequestResponseProtocol.Success
     case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
 
   }
@@ -85,7 +85,7 @@ object Customer {
     override def receive: Receive = {
       case GetCustomerInfo.Request() =>
         getCustomerInfo match {
-          case Success(record) => sender() ! GetCustomerInfo.Success(Seq(record))
+          case Success(customerInfo) => sender() ! GetCustomerInfo.Success(customerInfo)
           case Failure(e) => sender() ! GetCustomerInfo.Failure(e)
         }
 
@@ -97,34 +97,33 @@ object Customer {
 
       case AddStoreVisit.Request(storeId: Int, time: ZonedDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double) =>
         addStoreVisit(storeId, time, amount, fixedDiscount, varDiscount) match {
-          case Success(_) => sender() ! AddStoreVisit.Success(Seq.empty)
+          case Success(_) => sender() ! AddStoreVisit.Success(Relation(Seq.empty))
           case Failure(e) => sender() ! AddStoreVisit.Failure(e)
         }
 
       case Authenticate.Request(passwordHash) =>
         if (authenticate(passwordHash)) {
-          sender() ! Authenticate.Success(Seq.empty)
+          sender() ! Authenticate.Success(Relation(Seq.empty))
         } else {
           sender() ! Authenticate.Failure(AuthenticationFailedException("failed to authenticate using password"))
         }
     }
 
-    def getCustomerInfo: Try[Record] = {
+    def getCustomerInfo: Try[Relation] = {
       val rowCount = relations(CustomerInfo).records.get.size
       if (rowCount > 1) {
         throw InconsistentStateException(s"this relation was expected to contain at maximum 1 row, but contained $rowCount")
       }
-      Try(relations(CustomerInfo).records.get.head)
+      Try(Relation(relations(CustomerInfo).records.get))
     }
 
-    def getCustomerGroupId: Try[Seq[Record]] = {
+    def getCustomerGroupId: Try[Relation] = {
       val rowCount = relations(CustomerInfo).records.get.size
       if (rowCount > 1) {
         throw InconsistentStateException(s"this relation was expected to contain at maximum 1 row, but contained $rowCount")
       }
-      relations(CustomerInfo)
-        .project(Set(CustomerInfo.custGroupId))
-        .records
+      Try(relations(CustomerInfo)
+        .project(Set(CustomerInfo.custGroupId)))
     }
 
     def addStoreVisit(storeId: Int, time: ZonedDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double): Try[Record] =

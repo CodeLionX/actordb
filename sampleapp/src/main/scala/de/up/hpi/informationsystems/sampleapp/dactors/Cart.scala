@@ -28,13 +28,13 @@ object Cart {
 
     // orders: item_id, i_quantity
     case class Request(orders: Seq[Order], customerId: Int) extends RequestResponseProtocol.Request
-    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    case class Success(result: Relation) extends RequestResponseProtocol.Success
     case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
   }
 
   object Checkout {
     case class Request(sessionId: Int) extends RequestResponseProtocol.Request
-    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    case class Success(result: Relation) extends RequestResponseProtocol.Success
     case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
   }
 
@@ -203,7 +203,7 @@ object Cart {
       case CartHelper.HandledAddItems(records, newSessionId, replyTo) =>
         relations(CartPurchases).insertAll(records) match {
           case Success(_) => {
-            val result = Seq(Record(Set(CartInfo.sessionId))(CartInfo.sessionId ~> newSessionId).build())
+            val result: Relation = Relation(Seq(Record(Set(CartInfo.sessionId))(CartInfo.sessionId ~> newSessionId).build()))
             replyTo ! AddItems.Success(result)
           }
           case Failure(e) => replyTo ! AddItems.Failure(e)
@@ -236,7 +236,7 @@ object Cart {
       }
 
       case CartHelper.HandledCheckout(amount, replyTo) =>
-        replyTo ! Checkout.Success(Seq(Record(Set(ColumnDef[Double]("amount")))(ColumnDef[Double]("amount") ~> amount).build()))
+        replyTo ! Checkout.Success(Relation(Seq(Record(Set(ColumnDef[Double]("amount")))(ColumnDef[Double]("amount") ~> amount).build())))
     }
   }
 }
