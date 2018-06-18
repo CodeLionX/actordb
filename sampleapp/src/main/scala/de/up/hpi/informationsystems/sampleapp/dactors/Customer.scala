@@ -97,7 +97,7 @@ object Customer {
 
       case AddStoreVisit.Request(storeId: Int, time: ZonedDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double) =>
         addStoreVisit(storeId, time, amount, fixedDiscount, varDiscount) match {
-          case Success(_) => sender() ! AddStoreVisit.Success(Relation(Seq.empty))
+          case Success(_) => sender() ! AddStoreVisit.Success(Relation.empty)
           case Failure(e) => sender() ! AddStoreVisit.Failure(e)
         }
 
@@ -109,21 +109,21 @@ object Customer {
         }
     }
 
-    def getCustomerInfo: Try[Relation] = {
+    def getCustomerInfo: Try[Relation] = Try{
       val rowCount = relations(CustomerInfo).records.get.size
       if (rowCount > 1) {
         throw InconsistentStateException(s"this relation was expected to contain at maximum 1 row, but contained $rowCount")
       }
-      Try(Relation(relations(CustomerInfo).records.get))
+      Relation(relations(CustomerInfo).records.get)
     }
 
-    def getCustomerGroupId: Try[Relation] = {
+    def getCustomerGroupId: Try[Relation] = Try{
       val rowCount = relations(CustomerInfo).records.get.size
       if (rowCount > 1) {
         throw InconsistentStateException(s"this relation was expected to contain at maximum 1 row, but contained $rowCount")
       }
-      Try(relations(CustomerInfo)
-        .project(Set(CustomerInfo.custGroupId)))
+      relations(CustomerInfo)
+        .project(Set(CustomerInfo.custGroupId))
     }
 
     def addStoreVisit(storeId: Int, time: ZonedDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double): Try[Record] =

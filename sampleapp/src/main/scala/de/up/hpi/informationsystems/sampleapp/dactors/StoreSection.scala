@@ -69,8 +69,8 @@ object StoreSection {
 
     override def receive: Receive = {
       case GetPrice.Request(inventoryIds) =>
-        getPrice(inventoryIds) match {
-          case Success(result) => sender() ! GetPrice.Success(result)
+        getPrice(inventoryIds).records match {
+          case Success(result) => sender() ! GetPrice.Success(Relation(result))
           case Failure(e) => sender() ! GetPrice.Failure(e)
         }
 
@@ -81,11 +81,11 @@ object StoreSection {
         }
     }
 
-    def getPrice(inventoryIds: Seq[Int]): Try[Relation] = {
+    def getPrice(inventoryIds: Seq[Int]): Relation = {
       val resultSchema: Set[UntypedColumnDef] = Set(Inventory.inventoryId, Inventory.price, Inventory.minPrice)
-      Try(relations(Inventory)
+      relations(Inventory)
         .project(resultSchema)
-        .where[Int](Inventory.inventoryId -> { id => inventoryIds.contains(id) }))
+        .where[Int](Inventory.inventoryId -> { id => inventoryIds.contains(id) })
     }
 
     /**
