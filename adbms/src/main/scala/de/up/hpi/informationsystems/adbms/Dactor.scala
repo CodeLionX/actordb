@@ -100,7 +100,7 @@ object Dactor {
             case s: RequestResponseProtocol.Success => scala.util.Success(s.result)
             case f: RequestResponseProtocol.Failure => scala.util.Failure(f.e)
           }
-          .map(obj => Relation(obj))
+          .map(_.get)
       })
 
     FutureRelation(Future.sequence(results).map(_.reduce( (rel1, rel2) => rel1.union(rel2))))
