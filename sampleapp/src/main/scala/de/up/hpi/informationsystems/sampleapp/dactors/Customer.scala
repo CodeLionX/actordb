@@ -103,7 +103,7 @@ object Customer {
 
       case Authenticate.Request(passwordHash) =>
         if (authenticate(passwordHash)) {
-          sender() ! Authenticate.Success(Relation(Seq.empty))
+          sender() ! Authenticate.Success(Relation.empty)
         } else {
           sender() ! Authenticate.Failure(AuthenticationFailedException("failed to authenticate using password"))
         }
