@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-function help {
+function printHelp() {
 cat <<HELP
 This script generates data files in CSV format for load testing.
 Usage: $0
@@ -37,39 +37,41 @@ while getopts "hn:m:k:o:" option; do
     m) m=$OPTARG ;;
     k) k=$OPTARG ;;
     o) outputFolder=$OPTARG ;;
-    h|\?) help
+    h|\?) printHelp
         exit 1 ;;
   esac
 done
 
-# reset getopts again
+# reset getopts counter again
 shift $(($OPTIND - 1))
 
 # require output folder argument and check if it is a directory
 if [ -z "${outputFolder}" ]; then
   echo "You must specify an output directory!" >&2
 
-  help
+  printHelp
   exit 1
 else
   if [ ! -d "${outputFolder}" ]; then
     echo "${outputFolder} is not a directory!"
 
-    help
+    printHelp
     exit 1
   fi
 fi
 
+scriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 # user info about to be generated stuff
 customers=$(( n ))
 c_storeVisits=$(( k * 4 ))
-groups=$(( n / 20 )) # bash only supports integer division!
+groups=$(( n / 20 + 1 )) # bash only supports integer division!
 g_discounts=$(( m / 20 ))
 carts=$(( k * n ))
 c_purchases=$(( (groups * g_discounts) / carts ))
-storeSections=$(( m / 200 ))
-s_inventory=$(( 200 ))
-s_purchases=$(( 4 * (carts * c_purchases) / storeSections ))
+storeSections=$(( m / 400 + 1))
+s_inventory=$(( 400 ))
+s_purchases=$(( 2 * (carts * c_purchases) / storeSections ))
 
 echo "Generating data in CSV format for load testing:"
 echo "  ${customers} customers"
@@ -88,15 +90,194 @@ echo "    #inventory = ${s_inventory}"
 echo "    #purchase_history = ${s_purchases}"
 echo ""
 echo "Output folder: ${outputFolder}"
+echo ""
 
-function naming_scheme {
+function open_file() {
   local dactor=$1
   local id=$2
   local relation=$3
-  declare -n ret=$4
-  ret="${dactor}-${id}/${relation}.csv"
+  declare -n file=$4
+
+  folder="${outputFolder}/${dactor}-${id}"
+  mkdir -p ${folder}
+  file="${folder}/${relation}.csv"
 }
 
-declare result
-naming_scheme "Dactor" 12 "relation" result
-echo ${result}
+rand_counter=0
+function rand() {
+  local min=$1
+  local max=$2
+
+  # too slow
+  #echo $(python -S -c "import random; print random.randrange(${min},${max})")
+
+  # external script
+  # still too slow --> 34.8m for default arguments (see above)
+  #echo $("${scriptDir}/rand.sh" "$@")
+
+  # pseudo-rand
+  # takes only 2.1m for default arguments
+  local next=${rand_counter}
+  (( ++rand_counter ))
+  echo $(( min + (next % max) ))
+}
+
+# headers:
+# - StoreSection
+inventoryHeader="i_id,i_price,i_min_price,i_quantity,i_var_disc"
+purchaseHistoryHeader="i_id,time,i_quantity,c_id"
+
+# - GroupManager
+discountsHeader="i_id,fixed_disc"
+
+# - Customer
+customerInfoHeader="cust_name,c_g_id"
+storeVisitsHeader="store_id,time,amount,fixed_disc,var_disc"
+
+# - Cart
+cartInfoHeader="c_id,store_id,session_id"
+cartPurchasesHeader="sec_id,session_id,i_id,i_quantity,i_fixed_disc,i_min_price,i_price"
+
+
+# generate inventory data
+items=( )
+
+i=0
+while [ ${i} -lt ${m} ]; do
+  quantity=$(( i * 10 ))
+  items[${i}]="${i},${i}.${i},${i}.${i},${quantity},${i}.5"
+  (( ++i ))
+done
+#echo "number of items ${#items[@]}"
+
+# default time value
+timeValue="2017-05-02T11:01:32Z"
+
+
+# write store sections
+echo "Writing store sections ..."
+i=0
+while [ ${i} -lt ${storeSections} ]; do
+
+  if [ $(( i % 100)) -eq 0 ]; then
+    echo "  processed ${i} sections"
+  fi
+
+  declare f_ss_inventory
+  open_file "StoreSection" ${i} "inventory" f_ss_inventory
+  echo "${inventoryHeader}" > "${f_ss_inventory}"
+
+  j=0
+  while [ ${j} -lt ${s_inventory} ]; do
+    echo "${items[$(( (i * s_inventory) + j ))]}" >> "${f_ss_inventory}"
+
+    (( ++j ))
+  done
+
+  declare f_ss_purchases
+  open_file "StoreSection" ${i} "purchase_history" f_ss_purchases
+  echo "${purchaseHistoryHeader}" > "${f_ss_purchases}"
+
+  j=0
+  maxCustomerId=$(( customers - 1 ))
+  minInventoryId=$(( i * s_inventory ))
+  maxInventoryId=$(( (i + 1) * s_inventory ))
+  maxInventoryId=$(( maxInventoryId < m ? maxInventoryId : m ))
+  #echo "store section ${i}: minId=${minInventoryId}, maxId=${maxInventoryId}"
+
+  while [ ${j} -lt ${s_purchases} ]; do
+    customerId=$(rand 0 ${maxCustomerId})
+    inventoryId=$(rand ${minInventoryId} ${maxInventoryId})
+    echo "${inventoryId},${timeValue},${j},${customerId}" >> "${f_ss_purchases}"
+
+    (( ++j ))
+  done
+
+
+  (( ++i ))
+done
+
+# write group managers
+echo "Writing group managers ..."
+i=0
+while [ ${i} -lt ${groups} ]; do
+
+  if [ $(( i % 100)) -eq 0 ]; then
+    echo "  processed ${i} groups"
+  fi
+
+  declare f_group_discounts
+  open_file "GroupManager" ${i} "discounts" f_group_discounts
+  echo "${discountsHeader}" > "${f_group_discounts}"
+
+  j=0
+  while [ ${j} -lt ${g_discounts} ]; do
+    id=$(rand 0 ${m})
+    disc=$(rand 0 100)
+    echo "${id}, ${id}.${disc}" >> "${f_group_discounts}"
+
+    (( ++j ))
+  done
+
+  (( ++i ))
+done
+
+# write customers
+echo "Writing customers ..."
+i=0
+while [ ${i} -lt ${customers} ]; do
+
+  if [ $(( i % 100)) -eq 0 ]; then
+    echo "  processed ${i} customers"
+  fi
+
+  declare f_c_customerInfo
+  open_file "Customer" ${i} "customer_info" f_c_customerInfo
+  echo "${customerInfoHeader}" > "${f_c_customerInfo}"
+  echo "Hubert Blaine Wolfeschlegelsteinhausenbergerdorff,$(( i % groups ))" >> "${f_c_customerInfo}"
+
+  declare f_c_storeVisits
+  open_file "Customer" ${i} "store_visits" f_c_storeVisits
+  echo "${storeVisitsHeader}" > "${f_c_storeVisits}"
+
+  j=0
+  while [ ${j} -lt ${c_storeVisits} ]; do
+    echo "${j},${timeValue},$(( i * j )),${i}.${j},${j}.${i}" >> "${f_c_storeVisits}"
+
+    (( ++j ))
+  done
+
+  (( ++i ))
+done
+
+# write carts
+echo "Writing carts ..."
+i=0
+sessionId=123987
+while [ ${i} -lt ${carts} ]; do
+
+  if [ $(( i % 100)) -eq 0 ]; then
+    echo "  processed ${i} carts"
+  fi
+
+  declare f_c_cartInfo
+  open_file "Cart" ${i} "cart_info" f_c_cartInfo
+  echo "${cartInfoHeader}" > "${f_c_cartInfo}"
+  echo "$(( i % customers )),${i},${sessionId}" >> "${f_c_cartInfo}"
+
+  declare f_c_cartPurchases
+  open_file "Cart" ${i} "cart_purchases" f_c_cartPurchases
+  echo "${cartPurchasesHeader}" > "${f_c_cartPurchases}"
+
+  j=0
+  while [ ${j} -lt ${c_purchases} ]; do
+    iventoryId=$(rand 0 ${m})
+    echo "$(( ((i + 1) * j) % storeSections )),${sessionId},${inventoryId},${inventoryId},${inventoryId}.${inventoryId},${inventoryId}.${inventoryId},${inventoryId}.${inventoryId}" >> "${f_c_cartPurchases}"
+
+    (( ++j ))
+  done
+
+  (( ++i ))
+done
+
+echo "Finished!"
