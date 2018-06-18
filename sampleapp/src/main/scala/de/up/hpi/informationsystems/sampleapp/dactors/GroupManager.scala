@@ -40,16 +40,15 @@ object GroupManager {
 
     override def receive: Receive = {
       case GetFixedDiscounts.Request(ids) =>
-        getFixedDiscounts(ids) match {
-          case Success(result) => sender() ! GetFixedDiscounts.Success(result)
+        getFixedDiscounts(ids).records match {
+          case Success(records) => sender() ! GetFixedDiscounts.Success(Relation(records))
           case Failure(e) => sender() ! GetFixedDiscounts.Failure(e)
         }
     }
 
-    def getFixedDiscounts(ids: Seq[Int]): Try[Relation] = Try(
+    def getFixedDiscounts(ids: Seq[Int]): Relation =
       relations(Discounts)
         .where(Discounts.id -> { id: Int => ids.contains(id) })
-      )
   }
 }
 

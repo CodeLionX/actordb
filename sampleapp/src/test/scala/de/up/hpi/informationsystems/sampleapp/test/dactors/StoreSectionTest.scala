@@ -68,7 +68,7 @@ class StoreSectionTest(_system: ActorSystem)
       "return empty when calling GetPrice for non-existent inventoryIds" in {
         val probe = new TestProbe(system)
         storeSection1.tell(StoreSection.GetPrice.Request(Seq(10, 11)), probe.ref)
-        probe.expectMsg(StoreSection.GetPrice.Success(Relation(Seq.empty)))
+        probe.expectMsg(StoreSection.GetPrice.Success(Relation.empty))
       }
 
       // TODO Failure cases
