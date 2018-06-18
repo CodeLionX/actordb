@@ -13,7 +13,7 @@ object Relation {
 
   def apply(data: Seq[Record]): Relation = new TransientRelation(Try(data))
 
-  def empty = new TransientRelation(Try(Seq.empty))
+  val empty = new TransientRelation(Try(Seq.empty))
 }
 
 trait Relation {
