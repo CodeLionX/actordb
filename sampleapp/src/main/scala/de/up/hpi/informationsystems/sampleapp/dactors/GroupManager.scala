@@ -5,7 +5,7 @@ import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessageHandling, RequestResponseProtocol}
 import de.up.hpi.informationsystems.adbms.record.Record
-import de.up.hpi.informationsystems.adbms.relation.MutableRelation
+import de.up.hpi.informationsystems.adbms.relation.{MutableRelation, Relation}
 import de.up.hpi.informationsystems.sampleapp.DataInitializer
 
 import scala.util.{Failure, Success, Try}
@@ -20,7 +20,7 @@ object GroupManager {
 
     case class Request(ids: Seq[Int]) extends RequestResponseProtocol.Request
     // results: i_id, fixed_disc
-    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
+    case class Success(result: Relation) extends RequestResponseProtocol.Success
     case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
 
   }
@@ -40,17 +40,15 @@ object GroupManager {
 
     override def receive: Receive = {
       case GetFixedDiscounts.Request(ids) =>
-        getFixedDiscounts(ids) match {
-          case Success(result) => sender() ! GetFixedDiscounts.Success(result)
+        getFixedDiscounts(ids).records match {
+          case Success(records) => sender() ! GetFixedDiscounts.Success(Relation(records))
           case Failure(e) => sender() ! GetFixedDiscounts.Failure(e)
         }
     }
 
-    def getFixedDiscounts(ids: Seq[Int]): Try[Seq[Record]] =
+    def getFixedDiscounts(ids: Seq[Int]): Relation =
       relations(Discounts)
         .where(Discounts.id -> { id: Int => ids.contains(id) })
-        .records
-
   }
 }
 

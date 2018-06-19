@@ -12,6 +12,8 @@ object Relation {
   def apply(dataTry: Try[Seq[Record]]): Relation = new TransientRelation(dataTry)
 
   def apply(data: Seq[Record]): Relation = new TransientRelation(Try(data))
+
+  val empty = new TransientRelation(Try(Seq.empty))
 }
 
 trait Relation {

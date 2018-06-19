@@ -10,6 +10,7 @@ import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol.InsertIntoRelation
 import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.record.Record
+import de.up.hpi.informationsystems.adbms.relation.Relation
 import de.up.hpi.informationsystems.sampleapp.dactors.Cart.{CartInfo, CartPurchases}
 import de.up.hpi.informationsystems.sampleapp.dactors.Customer.{CustomerInfo, StoreVisits}
 import de.up.hpi.informationsystems.sampleapp.dactors.GroupManager.Discounts
@@ -163,7 +164,7 @@ class SystemTest(_system: ActorSystem)
           sectionId = 14,
           quantity = 20
         )), 22), probe.ref)
-        probe.expectMsg(Cart.AddItems.Success(Seq(Record(Set(ColumnDef[Int]("session_id")))(ColumnDef[Int]("session_id") ~> 1).build())))
+        probe.expectMsg(Cart.AddItems.Success(Relation(Seq(Record(Set(ColumnDef[Int]("session_id")))(ColumnDef[Int]("session_id") ~> 1).build()))))
 
 //        cart42.tell(Cart.AddItems.Request(Seq.empty, 22), probe.ref)
 //        probe.expectMsg(Cart.AddItems.Success(Seq(Record(Set(ColumnDef[Int]("session_id")))(ColumnDef[Int]("session_id") ~> 2).build())))

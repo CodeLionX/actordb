@@ -82,6 +82,10 @@ class TransientRelationTest extends WordSpec with Matchers {
     "empty" should {
       val emptyRelation = Relation(Seq.empty)
 
+      "equal another empty relation with the same column definition" in {
+        emptyRelation shouldEqual Relation(Seq.empty)
+      }
+
       "return an empty result set for any where query" in {
         emptyRelation
           .where(colFirstname, (_: String) => true)
@@ -111,6 +115,14 @@ class TransientRelationTest extends WordSpec with Matchers {
 
     "full" should {
       val fullRelation = Relation(Seq(record1, record2))
+
+      "equal another relation with the same columns and contents" in {
+        fullRelation shouldEqual Relation(Seq(record1, record2))
+      }
+
+      "not equal another relation with the same columns but different contents" in {
+        fullRelation should not equal Relation(Seq(record1))
+      }
 
       "return the appropriate result set for a where query including the empty result set" in {
         fullRelation

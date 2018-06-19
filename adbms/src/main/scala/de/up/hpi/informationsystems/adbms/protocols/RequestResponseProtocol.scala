@@ -1,6 +1,6 @@
 package de.up.hpi.informationsystems.adbms.protocols
 
-import de.up.hpi.informationsystems.adbms.record.Record
+import de.up.hpi.informationsystems.adbms.relation.Relation
 
 object RequestResponseProtocol {
 
@@ -18,7 +18,7 @@ object RequestResponseProtocol {
     * @see[[de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol.Response]]
     */
   trait Success extends Response {
-    def result: Seq[Record]
+    def result: Relation
   }
 
   /** A failure Response that is used to inform about some failure during answering to a Request.

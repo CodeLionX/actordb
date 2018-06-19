@@ -113,6 +113,9 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
   /** @inheritdoc */
   override def toString: String = s"${this.getClass.getSimpleName}:\n" + Util.prettyTable(columns, data)
 
+  /** @inheritdoc*/
+  override def immutable: Relation = Relation(data)
+
   @throws[IncompatibleColumnDefinitionException]
   private def exceptionWhenNotSubset(incomingColumns: Iterable[UntypedColumnDef]): Unit =
     if (!(incomingColumns.toSet subsetOf columns)) {

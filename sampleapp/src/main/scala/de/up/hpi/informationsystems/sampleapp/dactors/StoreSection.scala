@@ -22,10 +22,8 @@ object StoreSection {
   object GetPrice {
 
     case class Request(inventoryIds: Seq[Int]) extends RequestResponseProtocol.Request
-
     // result: i_id, i_price, i_min_price
-    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
-
+    case class Success(result: Relation) extends RequestResponseProtocol.Success
     case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
 
   }
@@ -37,10 +35,8 @@ object StoreSection {
 
     // order items: i_id, i_quantity, i_min_price, i_price, i_fixed_disc
     case class Request(customerId: Int, cartTime: ZonedDateTime, orderItems: Relation) extends RequestResponseProtocol.Request
-
     // result: amount, fixed_disc, var_disc
-    case class Success(result: Seq[Record]) extends RequestResponseProtocol.Success
-
+    case class Success(result: Relation) extends RequestResponseProtocol.Success
     case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
 
   }
@@ -73,24 +69,23 @@ object StoreSection {
 
     override def receive: Receive = {
       case GetPrice.Request(inventoryIds) =>
-        getPrice(inventoryIds) match {
-          case Success(result) => sender() ! GetPrice.Success(result)
+        getPrice(inventoryIds).records match {
+          case Success(result) => sender() ! GetPrice.Success(Relation(result))
           case Failure(e) => sender() ! GetPrice.Failure(e)
         }
 
       case GetVariableDiscountUpdateInventory.Request(customerId, cartTime, orderItems) =>
         getVariableDiscountUpdateInventory(customerId, cartTime, orderItems) match {
-          case Success(something) => sender() ! GetVariableDiscountUpdateInventory.Success(something)
+          case Success(totals: Seq[Record]) => sender() ! GetVariableDiscountUpdateInventory.Success(Relation(totals))
           case Failure(e) => sender() ! GetVariableDiscountUpdateInventory.Failure(e)
         }
     }
 
-    def getPrice(inventoryIds: Seq[Int]): Try[Seq[Record]] = {
+    def getPrice(inventoryIds: Seq[Int]): Relation = {
       val resultSchema: Set[UntypedColumnDef] = Set(Inventory.inventoryId, Inventory.price, Inventory.minPrice)
       relations(Inventory)
         .project(resultSchema)
         .where[Int](Inventory.inventoryId -> { id => inventoryIds.contains(id) })
-        .records
     }
 
     /**

@@ -59,6 +59,11 @@ trait MutableRelation extends Relation {
   // FIXME: insertAll is not atomic and insertions before a possible failure will stay in the relation
   def insertAll(records: Seq[Record]): Try[Seq[Record]] = Try(records.map(r => insert(r).get))
 
+  /**
+    * Returns an immutable copy of this relation.
+    * @return an [[de.up.hpi.informationsystems.adbms.relation.TransientRelation]] as an immutable copy of this relation
+    */
+  def immutable: Relation
 
   // helper
   /**
