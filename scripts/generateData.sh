@@ -240,7 +240,7 @@ while [ ${i} -lt ${customers} ]; do
   declare f_c_passwd
   open_file "Customer" ${i} "passwd" f_c_passwd
   echo "${passwdHeader}" > "${f_c_passwd}"
-  echo "lkj435432lkh532lkj45325lh43253ölk432:DSA_FSA:R$:§" > "${f_c_passwd}"
+  echo "lkj435432lkh532lkj45325lh43253ölk432:DSA_FSA:R$:§" >> "${f_c_passwd}"
 
   declare f_c_storeVisits
   open_file "Customer" ${i} "store_visits" f_c_storeVisits
