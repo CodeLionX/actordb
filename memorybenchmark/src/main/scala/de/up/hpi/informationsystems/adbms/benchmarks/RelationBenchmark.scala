@@ -9,7 +9,7 @@ import de.up.hpi.informationsystems.sampleapp.dactors._
 import scala.annotation.tailrec
 
 object RelationBenchmark extends App {
-  val dataDir = "/Users/frederic/repos/uni/actordb/memorybenchmark/data/"
+  val dataDir = "/data_big"
 
   val nameValMapping = Map(
     "cart_info" -> Cart.CartInfo,
@@ -33,8 +33,9 @@ object RelationBenchmark extends App {
   }
 
   // === Main ===
-  val fileList = recursiveListFiles(new File(dataDir))
-  println(fileList)
+  val dataURL = getClass.getResource(dataDir)
+  val fileList = recursiveListFiles(new File(dataURL.getPath))
+
   val relations = fileList.map(relationFromFile)
 
   while (true) { }

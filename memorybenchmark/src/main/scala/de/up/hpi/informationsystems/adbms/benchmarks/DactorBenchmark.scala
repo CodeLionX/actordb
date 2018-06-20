@@ -51,7 +51,7 @@ object SystemInitializer {
 class SystemInitializer extends Actor with ActorLogging {
   import SystemInitializer._
 
-  val dataDir = "/data"
+  val dataDir = "/data_big"
 
   ///// state machine
   override def receive: Receive = down orElse commonBehavior
