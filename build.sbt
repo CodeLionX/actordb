@@ -37,3 +37,13 @@ lazy val root = (project in file("."))
     version := Common.frameworkVersion,
     scalaVersion := Common.scalaVersion
   )
+
+lazy val memorybenchmark = (project in file("memorybenchmark"))
+  .settings(
+    Common.commonSettings,
+    // I don't know why they are not accepted at the commonSettings key
+    organization := Common.organization,
+    scalaVersion := Common.scalaVersion,
+    libraryDependencies ++= Dependencies.akkaActorDependencies
+  )
+  .dependsOn(adbms, sampleapp)
