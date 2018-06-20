@@ -133,6 +133,7 @@ discountsHeader="i_id,fixed_disc"
 # - Customer
 customerInfoHeader="cust_name,c_g_id"
 storeVisitsHeader="store_id,time,amount,fixed_disc,var_disc"
+passwdHeader="enc_passwd"
 
 # - Cart
 cartInfoHeader="c_id,store_id,session_id"
@@ -235,6 +236,11 @@ while [ ${i} -lt ${customers} ]; do
   open_file "Customer" ${i} "customer_info" f_c_customerInfo
   echo "${customerInfoHeader}" > "${f_c_customerInfo}"
   echo "Hubert Blaine Wolfeschlegelsteinhausenbergerdorff,$(( i % groups ))" >> "${f_c_customerInfo}"
+
+  declare f_c_passwd
+  open_file "Customer" ${i} "passwd" f_c_passwd
+  echo "${passwdHeader}" > "${f_c_passwd}"
+  echo "lkj435432lkh532lkj45325lh43253ölk432:DSA_FSA:R$:§" > "${f_c_passwd}"
 
   declare f_c_storeVisits
   open_file "Customer" ${i} "store_visits" f_c_storeVisits
