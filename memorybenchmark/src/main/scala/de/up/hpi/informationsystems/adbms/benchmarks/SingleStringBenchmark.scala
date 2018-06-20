@@ -5,7 +5,7 @@ import java.io.File
 import scala.io.Source
 
 object SingleStringBenchmark extends App {
-  val dataDir = "/Users/frederic/repos/uni/actordb/memorybenchmark/data/"
+  val dataDir = "/data_big"
 
   // == Dependency Setup ==
   def recursiveListFiles(d: File): List[File] = {
@@ -21,13 +21,16 @@ object SingleStringBenchmark extends App {
   }
 
   // ======= Main ========
-  val fileList = recursiveListFiles(new File(dataDir))
+  val dataURL = getClass.getResource(dataDir)
+  val fileList = recursiveListFiles(new File(dataURL.getPath))
 
   var string = ""
   fileList.foreach(f => {
     string = string.concat(readStringFromFile(f))
   })
   // val strings = fileList.map(readStringFromFile)
+
+  println("loading done")
 
   while (true) {}
 
