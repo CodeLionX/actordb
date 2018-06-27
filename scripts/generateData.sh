@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+###############################################################################
+# Function declarations
+###############################################################################
+
+# prints the help information using `cat` and a HEREDOC
 function printHelp() {
 cat <<HELP
 This script generates data files in CSV format for load testing.
@@ -21,6 +26,43 @@ Example:
 > $0 -k 10 -o output
 HELP
 }
+
+# opens a file handle to a dynamically created file path
+# arg1: dactor name
+# arg2: id of dactor
+# arg3: relation name
+# arg4: return variable reference
+function open_file() {
+  local dactor=$1
+  local id=$2
+  local relation=$3
+  # creates a nameref pointing to the variable denoted by `$4`
+  # see https://stackoverflow.com/questions/3236871/how-to-return-a-string-value-from-a-bash-function/38997681#38997681
+  declare -n file=$4
+
+  folder="${outputFolder}/${dactor}-${id}"
+  mkdir -p ${folder}
+  file="${folder}/${relation}.csv"
+}
+
+# pseudo-rand function using a simple counter
+# arg1: min
+# arg2: max
+# returns result via `echo`
+rand_counter=0
+function rand() {
+  local min=$1
+  local max=$2
+  local next=${rand_counter}
+
+  (( ++rand_counter ))
+  echo $(( min + (next % max) ))
+}
+
+
+###############################################################################
+# Parsing and checking input
+###############################################################################
 
 # variables with default values for switch handling
 n=100
@@ -60,9 +102,14 @@ else
   fi
 fi
 
+
+###############################################################################
+# Init vars
+###############################################################################
+
 scriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-# user info about to be generated stuff
+# calculate all counts depending on input
 customers=$(( n ))
 c_storeVisits=$(( k * 4 ))
 groups=$(( n / 20 + 1 )) # bash only supports integer division!
@@ -73,6 +120,7 @@ storeSections=$(( m / 400 + 1))
 s_inventory=$(( 400 ))
 s_purchases=$(( 2 * (carts * c_purchases) / storeSections ))
 
+# user info about to be generated stuff
 echo "Generating data in CSV format for load testing:"
 echo "  ${customers} customers"
 echo "  ${m} items"
@@ -92,30 +140,8 @@ echo ""
 echo "Output folder: ${outputFolder}"
 echo ""
 
-function open_file() {
-  local dactor=$1
-  local id=$2
-  local relation=$3
-  # creates a nameref pointing to the variable denoted by `$4`
-  # see https://stackoverflow.com/questions/3236871/how-to-return-a-string-value-from-a-bash-function/38997681#38997681
-  declare -n file=$4
-
-  folder="${outputFolder}/${dactor}-${id}"
-  mkdir -p ${folder}
-  file="${folder}/${relation}.csv"
-}
-
-
-# pseudo-rand function
-rand_counter=0
-function rand() {
-  local min=$1
-  local max=$2
-  local next=${rand_counter}
-
-  (( ++rand_counter ))
-  echo $(( min + (next % max) ))
-}
+# default time value
+timeValue="2017-05-02T11:01:32Z"
 
 # headers:
 # - StoreSection
@@ -135,20 +161,21 @@ cartInfoHeader="c_id,store_id,session_id"
 cartPurchasesHeader="sec_id,session_id,i_id,i_quantity,i_fixed_disc,i_min_price,i_price"
 
 
-# generate inventory data
+# generate inventory data using an array
 items=( )
 
 i=0
 while [ ${i} -lt ${m} ]; do
   quantity=$(( i * 10 ))
   items[${i}]="${i},${i}.${i},${i}.${i},${quantity},${i}.5"
+
   (( ++i ))
 done
-#echo "number of items ${#items[@]}"
 
-# default time value
-timeValue="2017-05-02T11:01:32Z"
 
+###############################################################################
+# Main script: Generate data and write it into files
+###############################################################################
 
 # write store sections
 echo "Writing store sections ..."
