@@ -1,4 +1,4 @@
-# actordb [![Build Status](https://travis-ci.com/CodeLionX/actordb.svg?branch=master)](https://travis-ci.com/CodeLionX/actordb)
+# actordb [![Build Status](https://travis-ci.com/CodeLionX/actordb.svg?branch=master)](https://travis-ci.com/CodeLionX/actordb) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/abdd28a9ddd441e49bbb3e73a05d7779)](https://www.codacy.com/app/sebastian-schmidl/actordb?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=CodeLionX/actordb&amp;utm_campaign=Badge_Grade)
 Actor Database System
 
 
