@@ -14,7 +14,7 @@ Usage: $0
     -n sets the total number of customers (default=100)
     -m sets the total number of items (default=100000)
     -k sets the number of carts per customer (default=20)
-    -o
+    -o output folder that must already exist before running this script
 
 Example:
 > mkdir output
@@ -96,6 +96,8 @@ function open_file() {
   local dactor=$1
   local id=$2
   local relation=$3
+  # creates a nameref pointing to the variable denoted by `$4`
+  # see https://stackoverflow.com/questions/3236871/how-to-return-a-string-value-from-a-bash-function/38997681#38997681
   declare -n file=$4
 
   folder="${outputFolder}/${dactor}-${id}"
@@ -103,21 +105,14 @@ function open_file() {
   file="${folder}/${relation}.csv"
 }
 
+
+# pseudo-rand function
 rand_counter=0
 function rand() {
   local min=$1
   local max=$2
-
-  # too slow
-  #echo $(python -S -c "import random; print random.randrange(${min},${max})")
-
-  # external script
-  # still too slow --> 34.8m for default arguments (see above)
-  #echo $("${scriptDir}/rand.sh" "$@")
-
-  # pseudo-rand
-  # takes only 2.1m for default arguments
   local next=${rand_counter}
+
   (( ++rand_counter ))
   echo $(( min + (next % max) ))
 }
