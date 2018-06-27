@@ -59,6 +59,148 @@ function rand() {
   echo $(( min + (next % max) ))
 }
 
+# write store section files
+function writeStoreSections() {
+  echo "Writing store sections ..."
+
+  i=0
+  while [ ${i} -lt ${storeSections} ]; do
+
+    if [ $(( i % 100)) -eq 0 ]; then
+      echo "  processed ${i} sections"
+    fi
+
+    declare f_ss_inventory
+    open_file "StoreSection" ${i} "inventory" f_ss_inventory
+    echo "${inventoryHeader}" > "${f_ss_inventory}"
+
+    j=0
+    while [ ${j} -lt ${s_inventory} ]; do
+      echo "${items[$(( (i * s_inventory) + j ))]}" >> "${f_ss_inventory}"
+
+      (( ++j ))
+    done
+
+    declare f_ss_purchases
+    open_file "StoreSection" ${i} "purchase_history" f_ss_purchases
+    echo "${purchaseHistoryHeader}" > "${f_ss_purchases}"
+
+    j=0
+    maxCustomerId=$(( customers - 1 ))
+    minInventoryId=$(( i * s_inventory ))
+    maxInventoryId=$(( (i + 1) * s_inventory ))
+    maxInventoryId=$(( maxInventoryId < m ? maxInventoryId : m ))
+
+    while [ ${j} -lt ${s_purchases} ]; do
+      customerId=$(rand 0 ${maxCustomerId})
+      inventoryId=$(rand ${minInventoryId} ${maxInventoryId})
+      echo "${inventoryId},${timeValue},${j},${customerId}" >> "${f_ss_purchases}"
+
+      (( ++j ))
+    done
+
+
+    (( ++i ))
+  done
+}
+
+# write group manager files
+function writeGroupManagers() {
+  echo "Writing group managers ..."
+
+  i=0
+  while [ ${i} -lt ${groups} ]; do
+
+    if [ $(( i % 100)) -eq 0 ]; then
+      echo "  processed ${i} groups"
+    fi
+
+    declare f_group_discounts
+    open_file "GroupManager" ${i} "discounts" f_group_discounts
+    echo "${discountsHeader}" > "${f_group_discounts}"
+
+    j=0
+    while [ ${j} -lt ${g_discounts} ]; do
+      id=$(rand 0 ${m})
+      disc=$(rand 0 100)
+      echo "${id}, ${id}.${disc}" >> "${f_group_discounts}"
+
+      (( ++j ))
+    done
+
+    (( ++i ))
+  done
+}
+
+# write customer files
+function writeCustomers() {
+  echo "Writing customers ..."
+
+  i=0
+  while [ ${i} -lt ${customers} ]; do
+
+    if [ $(( i % 100)) -eq 0 ]; then
+      echo "  processed ${i} customers"
+    fi
+
+    declare f_c_customerInfo
+    open_file "Customer" ${i} "customer_info" f_c_customerInfo
+    echo "${customerInfoHeader}" > "${f_c_customerInfo}"
+    echo "Hubert Blaine Wolfeschlegelsteinhausenbergerdorff,$(( i % groups ))" >> "${f_c_customerInfo}"
+
+    declare f_c_passwd
+    open_file "Customer" ${i} "passwd" f_c_passwd
+    echo "${passwdHeader}" > "${f_c_passwd}"
+    echo "lkj435432lkh532lkj45325lh43253ölk432:DSA_FSA:R$:§" >> "${f_c_passwd}"
+
+    declare f_c_storeVisits
+    open_file "Customer" ${i} "store_visits" f_c_storeVisits
+    echo "${storeVisitsHeader}" > "${f_c_storeVisits}"
+
+    j=0
+    while [ ${j} -lt ${c_storeVisits} ]; do
+      echo "${j},${timeValue},$(( i * j )),${i}.${j},${j}.${i}" >> "${f_c_storeVisits}"
+
+      (( ++j ))
+    done
+
+    (( ++i ))
+  done
+}
+
+# write cart files
+function writeCarts() {
+  echo "Writing carts ..."
+
+  i=0
+  sessionId=123987
+  while [ ${i} -lt ${carts} ]; do
+
+    if [ $(( i % 100)) -eq 0 ]; then
+      echo "  processed ${i} carts"
+    fi
+
+    declare f_c_cartInfo
+    open_file "Cart" ${i} "cart_info" f_c_cartInfo
+    echo "${cartInfoHeader}" > "${f_c_cartInfo}"
+    echo "$(( i % customers )),${i},${sessionId}" >> "${f_c_cartInfo}"
+
+    declare f_c_cartPurchases
+    open_file "Cart" ${i} "cart_purchases" f_c_cartPurchases
+    echo "${cartPurchasesHeader}" > "${f_c_cartPurchases}"
+
+    j=0
+    while [ ${j} -lt ${c_purchases} ]; do
+      iventoryId=$(rand 0 ${m})
+      echo "$(( ((i + 1) * j) % storeSections )),${sessionId},${inventoryId},${inventoryId},${inventoryId}.${inventoryId},${inventoryId}.${inventoryId},${inventoryId}.${inventoryId}" >> "${f_c_cartPurchases}"
+
+      (( ++j ))
+    done
+
+    (( ++i ))
+  done
+}
+
 
 ###############################################################################
 # Parsing and checking input
@@ -177,135 +319,31 @@ done
 # Main script: Generate data and write it into files
 ###############################################################################
 
-# write store sections
-echo "Writing store sections ..."
-i=0
-while [ ${i} -lt ${storeSections} ]; do
+# store pids of sub processes in array
+pids=( )
 
-  if [ $(( i % 100)) -eq 0 ]; then
-    echo "  processed ${i} sections"
-  fi
+writeStoreSections &
+pids[0]=$!
 
-  declare f_ss_inventory
-  open_file "StoreSection" ${i} "inventory" f_ss_inventory
-  echo "${inventoryHeader}" > "${f_ss_inventory}"
+writeGroupManagers &
+pids[1]=$!
 
-  j=0
-  while [ ${j} -lt ${s_inventory} ]; do
-    echo "${items[$(( (i * s_inventory) + j ))]}" >> "${f_ss_inventory}"
+writeCustomers &
+pids[2]=$!
 
-    (( ++j ))
-  done
+writeCarts &
+pids[3]=$!
 
-  declare f_ss_purchases
-  open_file "StoreSection" ${i} "purchase_history" f_ss_purchases
-  echo "${purchaseHistoryHeader}" > "${f_ss_purchases}"
-
-  j=0
-  maxCustomerId=$(( customers - 1 ))
-  minInventoryId=$(( i * s_inventory ))
-  maxInventoryId=$(( (i + 1) * s_inventory ))
-  maxInventoryId=$(( maxInventoryId < m ? maxInventoryId : m ))
-  #echo "store section ${i}: minId=${minInventoryId}, maxId=${maxInventoryId}"
-
-  while [ ${j} -lt ${s_purchases} ]; do
-    customerId=$(rand 0 ${maxCustomerId})
-    inventoryId=$(rand ${minInventoryId} ${maxInventoryId})
-    echo "${inventoryId},${timeValue},${j},${customerId}" >> "${f_ss_purchases}"
-
-    (( ++j ))
-  done
-
-
-  (( ++i ))
+# wait for sub processes to finish and catch failure
+resultCode=0
+for pid in ${pids[*]}; do
+  wait ${pid} || resultCode=1
 done
 
-# write group managers
-echo "Writing group managers ..."
-i=0
-while [ ${i} -lt ${groups} ]; do
-
-  if [ $(( i % 100)) -eq 0 ]; then
-    echo "  processed ${i} groups"
-  fi
-
-  declare f_group_discounts
-  open_file "GroupManager" ${i} "discounts" f_group_discounts
-  echo "${discountsHeader}" > "${f_group_discounts}"
-
-  j=0
-  while [ ${j} -lt ${g_discounts} ]; do
-    id=$(rand 0 ${m})
-    disc=$(rand 0 100)
-    echo "${id}, ${id}.${disc}" >> "${f_group_discounts}"
-
-    (( ++j ))
-  done
-
-  (( ++i ))
-done
-
-# write customers
-echo "Writing customers ..."
-i=0
-while [ ${i} -lt ${customers} ]; do
-
-  if [ $(( i % 100)) -eq 0 ]; then
-    echo "  processed ${i} customers"
-  fi
-
-  declare f_c_customerInfo
-  open_file "Customer" ${i} "customer_info" f_c_customerInfo
-  echo "${customerInfoHeader}" > "${f_c_customerInfo}"
-  echo "Hubert Blaine Wolfeschlegelsteinhausenbergerdorff,$(( i % groups ))" >> "${f_c_customerInfo}"
-
-  declare f_c_passwd
-  open_file "Customer" ${i} "passwd" f_c_passwd
-  echo "${passwdHeader}" > "${f_c_passwd}"
-  echo "lkj435432lkh532lkj45325lh43253ölk432:DSA_FSA:R$:§" >> "${f_c_passwd}"
-
-  declare f_c_storeVisits
-  open_file "Customer" ${i} "store_visits" f_c_storeVisits
-  echo "${storeVisitsHeader}" > "${f_c_storeVisits}"
-
-  j=0
-  while [ ${j} -lt ${c_storeVisits} ]; do
-    echo "${j},${timeValue},$(( i * j )),${i}.${j},${j}.${i}" >> "${f_c_storeVisits}"
-
-    (( ++j ))
-  done
-
-  (( ++i ))
-done
-
-# write carts
-echo "Writing carts ..."
-i=0
-sessionId=123987
-while [ ${i} -lt ${carts} ]; do
-
-  if [ $(( i % 100)) -eq 0 ]; then
-    echo "  processed ${i} carts"
-  fi
-
-  declare f_c_cartInfo
-  open_file "Cart" ${i} "cart_info" f_c_cartInfo
-  echo "${cartInfoHeader}" > "${f_c_cartInfo}"
-  echo "$(( i % customers )),${i},${sessionId}" >> "${f_c_cartInfo}"
-
-  declare f_c_cartPurchases
-  open_file "Cart" ${i} "cart_purchases" f_c_cartPurchases
-  echo "${cartPurchasesHeader}" > "${f_c_cartPurchases}"
-
-  j=0
-  while [ ${j} -lt ${c_purchases} ]; do
-    iventoryId=$(rand 0 ${m})
-    echo "$(( ((i + 1) * j) % storeSections )),${sessionId},${inventoryId},${inventoryId},${inventoryId}.${inventoryId},${inventoryId}.${inventoryId},${inventoryId}.${inventoryId}" >> "${f_c_cartPurchases}"
-
-    (( ++j ))
-  done
-
-  (( ++i ))
-done
+if [ "${resultCode}" != "0" ]; then
+  echo "There was an error during data generation"
+  exit 1
+fi
 
 echo "Finished!"
+exit 0
