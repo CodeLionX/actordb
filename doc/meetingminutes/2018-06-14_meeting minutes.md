@@ -7,7 +7,6 @@ Participants:
 - Thorsten
 - Sebastian
 - Frederic
-
 ## Agenda
 
 1. Framework description, show and tesll
