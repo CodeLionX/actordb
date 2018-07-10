@@ -80,6 +80,9 @@ final class ColumnDef[T](pName: String, pDefault: T)(implicit ct: ClassTag[T]) e
 
   override def toString: String = s"""${this.getClass.getSimpleName}[$tpe](name="$name", default=$default)"""
 
+  // proper way to implement equals() in scala:
+  // https://www.safaribooksonline.com/library/view/scala-cookbook/9781449340292/ch04s16.html
+  // -----
   override def hashCode(): Int = Objects.hash(name, tpe) + (if(default == null) 0 else default.hashCode())
 
   def canEqual(o: Any): Boolean = o.isInstanceOf[ColumnDef[T]]
@@ -88,4 +91,5 @@ final class ColumnDef[T](pName: String, pDefault: T)(implicit ct: ClassTag[T]) e
     case o: ColumnDef[T] => o.canEqual(this) && this.hashCode() == o.hashCode()
     case _ => false
   }
+  // -----
 }
