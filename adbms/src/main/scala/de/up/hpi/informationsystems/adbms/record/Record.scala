@@ -58,7 +58,7 @@ class Record private (cells: Map[UntypedColumnDef, Any])
     * Use [[de.up.hpi.informationsystems.adbms.record.Record#get]] instead!
     * It takes care of types!
     */
-  @Deprecated
+  @deprecated
   override def get(key: UntypedColumnDef): Option[Any] = get(key.asInstanceOf[ColumnDef[Any]])
 
   override def iterator: Iterator[(UntypedColumnDef, Any)] = data.iterator
