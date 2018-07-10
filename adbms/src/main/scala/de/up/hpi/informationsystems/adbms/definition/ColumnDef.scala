@@ -83,22 +83,20 @@ final class ColumnDef[T](pName: String, pDefault: T)(implicit ct: ClassTag[T]) e
   override def hashCode(): Int = Objects.hash(name, tpe) * (if(default != null) 12 + default.hashCode() else 1)
 
   override def equals(o: Any): Boolean = {
-    def equalsIfNotNull(d1: Any, d2: Any): Boolean =
-      if (d1 == null && d2 == null) true
-      else if (d1 == null || d2 == null) false
-      else d1.equals(d2)
+    def equalsIfNotNull(defaultValue1: Any, defaultValue2: Any): Boolean = (defaultValue1, defaultValue2) match {
+      case (d1, d2) if d1 == null && d2 == null => true
+      case (d1, d2) if d1 == null || d2 == null => false
+      case (d1, d2)                             => d1.equals(d2)
+    }
 
     if (o == null || getClass != o.getClass)
       false
     else {
       // cast other object
       val otherTypedColumnDef: ColumnDef[T] = o.asInstanceOf[ColumnDef[T]]
-      if (this.name.equals(otherTypedColumnDef.name) &&
-        this.tpe.equals(otherTypedColumnDef.tpe) &&
-        equalsIfNotNull(this.default, otherTypedColumnDef.default))
-        true
-      else
-        false
+
+      this.name.equals(otherTypedColumnDef.name) && this.tpe.equals(otherTypedColumnDef.tpe) &&
+        equalsIfNotNull(this.default, otherTypedColumnDef.default)
     }
   }
 }
