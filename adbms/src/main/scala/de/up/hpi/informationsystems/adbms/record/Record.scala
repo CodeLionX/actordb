@@ -86,17 +86,12 @@ class Record private (cells: Map[UntypedColumnDef, Any])
 
   override def hashCode(): Int = Objects.hash(columns, data)
 
-  override def equals(o: scala.Any): Boolean =
-    if (o == null || getClass != o.getClass)
-      false
-    else {
-      // cast other object
-      val otherRecord: Record = o.asInstanceOf[Record]
-      if (this.columns.equals(otherRecord.columns) && this.data.equals(otherRecord.data))
-        true
-      else
-        false
-    }
+  override def canEqual(o: Any): Boolean = o.isInstanceOf[Record]
+
+  override def equals(o: Any): Boolean = o match {
+    case that: Record => that.canEqual(this) && this.columns.equals(that.columns) && this.data.equals(that.data)
+    case _ => false
+  }
 
   // FIXME: I don't know what to do here.
   // removing this line leads to a compiler error
