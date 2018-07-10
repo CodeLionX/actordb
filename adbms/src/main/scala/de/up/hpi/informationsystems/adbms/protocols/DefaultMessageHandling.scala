@@ -2,6 +2,7 @@ package de.up.hpi.informationsystems.adbms.protocols
 
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.record.Record
+import de.up.hpi.informationsystems.adbms.relation.Relation
 
 import scala.util.Try
 
@@ -28,6 +29,11 @@ trait DefaultMessageHandling extends Dactor {
         case util.Success(_) => sender() ! akka.actor.Status.Success
         case util.Failure(e) => sender() ! akka.actor.Status.Failure(e)
       }
+    case DefaultMessagingProtocol.RelationQuery(relationName) =>
+      handleGenericRelationQuery(relationName) match {
+        case util.Success(relation) => sender() ! DefaultMessagingProtocol.RelationQueryResponse(relation)
+        case util.Failure(e) => sender() ! akka.actor.Status.Failure(e)
+      }
   }
 
   /**
@@ -41,4 +47,8 @@ trait DefaultMessageHandling extends Dactor {
     relationFromName(relationName).insertAll(records).map(_.count(_ => true))
   }.flatten
 
+  // TODO add scaladoc
+  private def handleGenericRelationQuery(relationName: String): Try[Relation] = Try{
+    relationFromName(relationName).immutable
+  }
 }

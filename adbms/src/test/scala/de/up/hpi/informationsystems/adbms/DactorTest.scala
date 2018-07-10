@@ -162,6 +162,57 @@ class DactorTest extends TestKit(ActorSystem("test-system"))
           response.cause shouldBe a[IncompatibleColumnDefinitionException]
         }
       }
+
+      "prefilled relations available" should {
+        import DactorTest.DactorWithRelation.TestRelation
+
+        val probe = TestProbe()
+        val dut = Dactor.dactorOf(system, classOf[DactorTest.DactorWithRelation], 2)
+
+        val insertMessage = DefaultMessagingProtocol.InsertIntoRelation(TestRelation.name, Seq(
+          Record(TestRelation.columns)(
+            TestRelation.col1 ~> 1 &
+              TestRelation.col2 ~> "1"
+          ).build(),
+          Record(TestRelation.columns)(
+            TestRelation.col1 ~> 2 &
+              TestRelation.col2 ~> "2"
+          ).build(),
+          Record(TestRelation.columns)(
+            TestRelation.col1 ~> 3 &
+              TestRelation.col2 ~> "3"
+          ).build()
+        ))
+        dut.tell(insertMessage, probe.ref)
+        probe.expectMsg(akka.actor.Status.Success)
+
+        "return an immutable copy of existing relation" in {
+          val queryMessage = DefaultMessagingProtocol.RelationQuery(TestRelation.name)
+          dut.tell(queryMessage, probe.ref)
+          val response = probe.expectMsgType[DefaultMessagingProtocol.RelationQueryResponse]
+          response.relation.records shouldEqual util.Success(Seq(
+            Record(TestRelation.columns)(
+              TestRelation.col1 ~> 1 &
+                TestRelation.col2 ~> "1"
+            ).build(),
+            Record(TestRelation.columns)(
+              TestRelation.col1 ~> 2 &
+                TestRelation.col2 ~> "2"
+            ).build(),
+            Record(TestRelation.columns)(
+              TestRelation.col1 ~> 3 &
+                TestRelation.col2 ~> "3"
+            ).build()
+          ))
+        }
+
+        "fail on requests for non existing relations" in {
+          val queryMessage = DefaultMessagingProtocol.RelationQuery("fail_please")
+          dut.tell(queryMessage, probe.ref)
+          val response = probe.expectMsgType[akka.actor.Status.Failure]
+          response.cause shouldBe a[java.util.NoSuchElementException]
+        }
+      }
     }
   }
 

@@ -1,6 +1,7 @@
 package de.up.hpi.informationsystems.adbms.protocols
 
 import de.up.hpi.informationsystems.adbms.record.Record
+import de.up.hpi.informationsystems.adbms.relation.Relation
 
 /**
   * Provides default messages for the `adbms` framework.
@@ -17,4 +18,7 @@ object DefaultMessagingProtocol {
     */
   case class InsertIntoRelation(relation: String, records: Seq[Record])
 
+  // TODO add scaladoc
+  case class RelationQuery(relation: String)
+  case class RelationQueryResponse(relation: Relation)
 }
