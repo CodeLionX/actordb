@@ -82,7 +82,7 @@ final class ColumnDef[T](pName: String, pDefault: T)(implicit ct: ClassTag[T]) e
 
   override def hashCode(): Int = Objects.hash(name, tpe) * (if(default != null) 12 + default.hashCode() else 1)
 
-  override def equals(o: scala.Any): Boolean = {
+  override def equals(o: Any): Boolean = {
     def equalsIfNotNull(d1: Any, d2: Any): Boolean =
       if (d1 == null && d2 == null) true
       else if (d1 == null || d2 == null) false
@@ -101,6 +101,4 @@ final class ColumnDef[T](pName: String, pDefault: T)(implicit ct: ClassTag[T]) e
         false
     }
   }
-
-  override def clone(): AnyRef = new ColumnDef[T](this.name, this.default)(this.tpe)
 }
