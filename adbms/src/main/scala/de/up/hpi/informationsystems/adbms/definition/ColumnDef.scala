@@ -80,23 +80,12 @@ final class ColumnDef[T](pName: String, pDefault: T)(implicit ct: ClassTag[T]) e
 
   override def toString: String = s"""${this.getClass.getSimpleName}[$tpe](name="$name", default=$default)"""
 
-  override def hashCode(): Int = Objects.hash(name, tpe) * (if(default != null) 12 + default.hashCode() else 1)
+  override def hashCode(): Int = Objects.hash(name, tpe) + (if(default == null) 0 else default.hashCode())
 
-  override def equals(o: Any): Boolean = {
-    def equalsIfNotNull(defaultValue1: Any, defaultValue2: Any): Boolean = (defaultValue1, defaultValue2) match {
-      case (d1, d2) if d1 == null && d2 == null => true
-      case (d1, d2) if d1 == null || d2 == null => false
-      case (d1, d2)                             => d1.equals(d2)
-    }
+  def canEqual(o: Any): Boolean = o.isInstanceOf[ColumnDef[T]]
 
-    if (o == null || getClass != o.getClass)
-      false
-    else {
-      // cast other object
-      val otherTypedColumnDef: ColumnDef[T] = o.asInstanceOf[ColumnDef[T]]
-
-      this.name.equals(otherTypedColumnDef.name) && this.tpe.equals(otherTypedColumnDef.tpe) &&
-        equalsIfNotNull(this.default, otherTypedColumnDef.default)
-    }
+  override def equals(o: Any): Boolean = o match {
+    case o: ColumnDef[T] => o.canEqual(this) && this.hashCode() == o.hashCode()
+    case _ => false
   }
 }
