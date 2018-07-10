@@ -18,7 +18,22 @@ object DefaultMessagingProtocol {
     */
   case class InsertIntoRelation(relation: String, records: Seq[Record])
 
-  // TODO add scaladoc
+  /**
+    * Use this message to request the contents of a relation from a `Dactor` implementing
+    * [[de.up.hpi.informationsystems.adbms.protocols.DefaultMessageHandling]].
+    * The `Dactor` will return a
+    * [[de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol.RelationQuerySuccess]]
+    * message in case of success, or a [[akka.actor.Status.Failure]] in case of failure.
+    * @note Use with caution! This message relies on internal details of `Dactor`s and could lead to tight coupling.
+    * @param relation name of the requested relation
+    */
   case class RelationQuery(relation: String)
-  case class RelationQueryResponse(relation: Relation)
+
+  /**
+    * Message type returned after successful processing of a
+    * [[de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol.RelationQuery]]
+    * by `Dactor`s implementing [[de.up.hpi.informationsystems.adbms.protocols.DefaultMessageHandling]].
+    * @param relation immutable copy of the requested relation
+    */
+  case class RelationQuerySuccess(relation: Relation)
 }

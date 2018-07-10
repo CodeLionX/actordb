@@ -189,7 +189,7 @@ class DactorTest extends TestKit(ActorSystem("test-system"))
         "return an immutable copy of existing relation" in {
           val queryMessage = DefaultMessagingProtocol.RelationQuery(TestRelation.name)
           dut.tell(queryMessage, probe.ref)
-          val response = probe.expectMsgType[DefaultMessagingProtocol.RelationQueryResponse]
+          val response = probe.expectMsgType[DefaultMessagingProtocol.RelationQuerySuccess]
           response.relation.records shouldEqual util.Success(Seq(
             Record(TestRelation.columns)(
               TestRelation.col1 ~> 1 &
@@ -210,7 +210,7 @@ class DactorTest extends TestKit(ActorSystem("test-system"))
           val queryMessage = DefaultMessagingProtocol.RelationQuery("fail_please")
           dut.tell(queryMessage, probe.ref)
           val response = probe.expectMsgType[akka.actor.Status.Failure]
-          response.cause shouldBe a[java.util.NoSuchElementException]
+          response.cause shouldBe a[NoSuchElementException]
         }
       }
     }
