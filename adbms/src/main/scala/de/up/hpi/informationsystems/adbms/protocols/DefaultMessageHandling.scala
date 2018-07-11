@@ -2,6 +2,7 @@ package de.up.hpi.informationsystems.adbms.protocols
 
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.record.Record
+import de.up.hpi.informationsystems.adbms.relation.Relation
 
 import scala.util.Try
 
@@ -28,6 +29,11 @@ trait DefaultMessageHandling extends Dactor {
         case util.Success(_) => sender() ! akka.actor.Status.Success
         case util.Failure(e) => sender() ! akka.actor.Status.Failure(e)
       }
+    case DefaultMessagingProtocol.SelectAllFromRelation.Request(relationName) =>
+      handleGenericRelationQuery(relationName) match {
+        case util.Success(relation) => sender() ! DefaultMessagingProtocol.SelectAllFromRelation.Success(relation)
+        case util.Failure(e) => sender() ! DefaultMessagingProtocol.SelectAllFromRelation.Failure(e)
+      }
   }
 
   /**
@@ -41,4 +47,14 @@ trait DefaultMessageHandling extends Dactor {
     relationFromName(relationName).insertAll(records).map(_.count(_ => true))
   }.flatten
 
+  /**
+    * Returns an immutable copy of the requested relation if the `Dactor` has a `Relation` of this name,
+    * otherwise returns a [[NoSuchElementException]] Failure.
+    *
+    * @param relationName
+    * @return an immutable copy of the requested `Relation` or a [[NoSuchElementException]]
+    */
+  private def handleGenericRelationQuery(relationName: String): Try[Relation] = Try{
+    relationFromName(relationName).immutable
+  }
 }
