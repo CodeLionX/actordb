@@ -50,9 +50,25 @@ object DactorTest {
 
       override def receive: Receive = Actor.emptyBehavior
     }
+
+    val testRelationRecords: Seq[Record] = Seq(
+      Record(TestRelation.columns)(
+        TestRelation.col1 ~> 1 &
+          TestRelation.col2 ~> "1"
+      ).build(),
+      Record(TestRelation.columns)(
+        TestRelation.col1 ~> 2 &
+          TestRelation.col2 ~> "2"
+      ).build(),
+      Record(TestRelation.columns)(
+        TestRelation.col1 ~> 3 &
+          TestRelation.col2 ~> "3"
+      ).build()
+    )
   }
 
   class DactorWithRelation(id: Int) extends DactorWithRelation.DactorWithRelationBase(id) with DefaultMessageHandling
+
 }
 
 class DactorTest extends TestKit(ActorSystem("test-system"))
@@ -116,6 +132,7 @@ class DactorTest extends TestKit(ActorSystem("test-system"))
 
       "relations available" should {
         import DactorTest.DactorWithRelation.TestRelation
+        import DactorTest.DactorWithRelation.testRelationRecords
 
         val probe = TestProbe()
         val dut = Dactor.dactorOf(system, classOf[DactorTest.DactorWithRelation], 1)
@@ -132,20 +149,7 @@ class DactorTest extends TestKit(ActorSystem("test-system"))
         }
 
         "insert multiple matching records successfully" in {
-          val insertMessage = DefaultMessagingProtocol.InsertIntoRelation(TestRelation.name, Seq(
-            Record(TestRelation.columns)(
-              TestRelation.col1 ~> 1 &
-                TestRelation.col2 ~> "1"
-            ).build(),
-            Record(TestRelation.columns)(
-              TestRelation.col1 ~> 2 &
-                TestRelation.col2 ~> "2"
-            ).build(),
-            Record(TestRelation.columns)(
-              TestRelation.col1 ~> 3 &
-                TestRelation.col2 ~> "3"
-            ).build()
-          ))
+          val insertMessage = DefaultMessagingProtocol.InsertIntoRelation(TestRelation.name, testRelationRecords)
           dut.tell(insertMessage, probe.ref)
           probe.expectMsg(akka.actor.Status.Success)
         }
@@ -165,24 +169,13 @@ class DactorTest extends TestKit(ActorSystem("test-system"))
 
       "prefilled relations available" should {
         import DactorTest.DactorWithRelation.TestRelation
+        import DactorTest.DactorWithRelation.testRelationRecords
 
         val probe = TestProbe()
         val dut = Dactor.dactorOf(system, classOf[DactorTest.DactorWithRelation], 2)
 
-        val insertMessage = DefaultMessagingProtocol.InsertIntoRelation(TestRelation.name, Seq(
-          Record(TestRelation.columns)(
-            TestRelation.col1 ~> 1 &
-              TestRelation.col2 ~> "1"
-          ).build(),
-          Record(TestRelation.columns)(
-            TestRelation.col1 ~> 2 &
-              TestRelation.col2 ~> "2"
-          ).build(),
-          Record(TestRelation.columns)(
-            TestRelation.col1 ~> 3 &
-              TestRelation.col2 ~> "3"
-          ).build()
-        ))
+        val insertMessage = DefaultMessagingProtocol.InsertIntoRelation(TestRelation.name, testRelationRecords)
+
         dut.tell(insertMessage, probe.ref)
         probe.expectMsg(akka.actor.Status.Success)
 
@@ -190,20 +183,7 @@ class DactorTest extends TestKit(ActorSystem("test-system"))
           val queryMessage = DefaultMessagingProtocol.SelectAllFromRelation.Request(TestRelation.name)
           dut.tell(queryMessage, probe.ref)
           val response = probe.expectMsgType[DefaultMessagingProtocol.SelectAllFromRelation.Success]
-          response.relation.records shouldEqual util.Success(Seq(
-            Record(TestRelation.columns)(
-              TestRelation.col1 ~> 1 &
-                TestRelation.col2 ~> "1"
-            ).build(),
-            Record(TestRelation.columns)(
-              TestRelation.col1 ~> 2 &
-                TestRelation.col2 ~> "2"
-            ).build(),
-            Record(TestRelation.columns)(
-              TestRelation.col1 ~> 3 &
-                TestRelation.col2 ~> "3"
-            ).build()
-          ))
+          response.relation.records shouldEqual util.Success(testRelationRecords)
         }
 
         "fail on requests for non existing relations" in {
