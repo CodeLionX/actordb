@@ -29,10 +29,10 @@ trait DefaultMessageHandling extends Dactor {
         case util.Success(_) => sender() ! akka.actor.Status.Success
         case util.Failure(e) => sender() ! akka.actor.Status.Failure(e)
       }
-    case DefaultMessagingProtocol.RelationQuery(relationName) =>
+    case DefaultMessagingProtocol.SelectAllFromRelation.Request(relationName) =>
       handleGenericRelationQuery(relationName) match {
-        case util.Success(relation) => sender() ! DefaultMessagingProtocol.RelationQuerySuccess(relation)
-        case util.Failure(e) => sender() ! akka.actor.Status.Failure(e)
+        case util.Success(relation) => sender() ! DefaultMessagingProtocol.SelectAllFromRelation.Success(relation)
+        case util.Failure(e) => sender() ! DefaultMessagingProtocol.SelectAllFromRelation.Failure(e)
       }
   }
 
