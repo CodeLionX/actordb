@@ -131,8 +131,7 @@ class DactorTest extends TestKit(ActorSystem("test-system"))
       }
 
       "relations available" should {
-        import DactorTest.DactorWithRelation.TestRelation
-        import DactorTest.DactorWithRelation.testRelationRecords
+        import DactorTest.DactorWithRelation.{TestRelation, testRelationRecords}
 
         val probe = TestProbe()
         val dut = Dactor.dactorOf(system, classOf[DactorTest.DactorWithRelation], 1)
@@ -168,8 +167,7 @@ class DactorTest extends TestKit(ActorSystem("test-system"))
       }
 
       "prefilled relations available" should {
-        import DactorTest.DactorWithRelation.TestRelation
-        import DactorTest.DactorWithRelation.testRelationRecords
+        import DactorTest.DactorWithRelation.{TestRelation, testRelationRecords}
 
         val probe = TestProbe()
         val dut = Dactor.dactorOf(system, classOf[DactorTest.DactorWithRelation], 2)
