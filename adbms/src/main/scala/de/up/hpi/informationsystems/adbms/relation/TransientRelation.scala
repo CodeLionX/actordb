@@ -6,6 +6,97 @@ import de.up.hpi.informationsystems.adbms.{IncompatibleColumnDefinitionException
 
 import scala.util.Try
 
+private object TransientRelation {
+  object BinOps {
+
+    def innerJoin(left: TransientRelation, right: TransientRelation, on: Relation.RecordComparator): Relation =
+      if(left.isFailure)
+        left
+      else if(right.isFailure)
+        right
+      else
+        Relation(Try(
+          for {
+            lside <- left.internal_data
+            rside <- right.internal_data
+            if on(lside, rside)
+          } yield rside ++ lside
+        ))
+
+    def leftJoin(left: TransientRelation, right: TransientRelation, on: Relation.RecordComparator): Relation =
+      if(left.isFailure)
+        left
+      else if(right.isFailure)
+        right
+      else
+        Relation(Try(
+          left.internal_data.flatMap(rec => {
+            val res = right.internal_data
+              .filter(on.curried(rec))
+              .map(rside => rside ++ rec)
+            if (res.isEmpty)
+              Seq(Record(right.columns).build() ++ rec)
+            else res
+          })
+        ))
+
+    def rightJoin(left: TransientRelation, right: TransientRelation, on: Relation.RecordComparator): Relation =
+      leftJoin(right, left, on)
+
+    def outerJoin(left: TransientRelation, right: TransientRelation, on: Relation.RecordComparator): Relation =
+      union(leftJoin(left, right, on).asInstanceOf[TransientRelation], rightJoin(left, right, on).asInstanceOf[TransientRelation])
+
+    def innerEquiJoin[T](left: TransientRelation, right: TransientRelation, on: (ColumnDef[T], ColumnDef[T])): Relation =
+      if(left.isFailure)
+        left
+      else if(right.isFailure)
+        right
+      else
+        Relation(Try{
+          if(!left.columns.contains(on._1))
+            throw IncompatibleColumnDefinitionException(s"the left relation does not contain the specified column {${on._1}}")
+          else if(!right.columns.contains(on._2))
+            throw IncompatibleColumnDefinitionException(s"the right relation does not contain the specified column {${on._2}}")
+          else {
+            val recMap = right.internal_data.groupBy(_.get(on._2))
+            left.internal_data.flatMap(record => {
+              val matchingRecords = recMap.getOrElse(record.get(on._1), Seq.empty)
+              matchingRecords.map(otherRecord =>
+                record ++ otherRecord
+              )
+            })
+          }
+        })
+
+    def unionAll(left: TransientRelation, right: TransientRelation): Relation =
+      if(left.isFailure)
+        left
+      else if(right.isFailure)
+        right
+      else
+        Relation(Try{
+          if(!left.columns.equals(right.columns))
+            throw IncompatibleColumnDefinitionException(s"the columns of this and the other relation does not match\nleft: ${left.columns}\nright: ${right.columns}")
+          else
+            left.internal_data ++ right.internal_data
+        })
+
+    def union(left: TransientRelation, right: TransientRelation): Relation =
+      if(left.isFailure)
+        left
+      else if(right.isFailure)
+        right
+      else
+        Relation(Try{
+          if(!left.columns.equals(right.columns))
+            throw IncompatibleColumnDefinitionException(s"the columns of this and the other relation does not match\nleft: ${left.columns}\nright: ${right.columns}")
+          else
+            (left.internal_data ++ right.internal_data).distinct
+        })
+
+  }
+}
+
 private[relation] final class TransientRelation(data: Try[Seq[Record]]) extends Relation with Immutable {
 
   private val internal_data = data.getOrElse(Seq.empty)
@@ -69,65 +160,24 @@ private[relation] final class TransientRelation(data: Try[Seq[Record]]) extends 
       ))
 
   /** @inheritdoc */
-  override def innerJoin(other: Relation, on: Relation.RecordComparator): Relation = {
-    if(isFailure)
-      this
-    else
-      Relation(Try(
-        for {
-          lside <- internal_data
-          rside <- other.records.get
-          if on(lside, rside)
-        } yield rside ++ lside
-      ))
-  }
+  override def innerJoin(other: Relation, on: Relation.RecordComparator): Relation =
+    RelationBinOps.innerJoin(this, other, on)
 
   /** @inheritdoc */
-  override def leftJoin(other: Relation, on: Relation.RecordComparator): Relation = {
-    val empty = Record.empty
-    if(isFailure)
-      this
-    else
-      Relation(Try(
-        internal_data.flatMap(rec => {
-          val res = other.records.get
-            .filter(on.curried(rec))
-            .map(rside => rside ++ rec)
-          if (res.isEmpty)
-            Seq(Record(other.columns).build() ++ rec)
-          else res
-        })
-      ))
-  }
+  override def leftJoin(other: Relation, on: Relation.RecordComparator): Relation =
+    RelationBinOps.leftJoin(this, other, on)
 
   /** @inheritdoc */
-  override def rightJoin(other: Relation, on: Relation.RecordComparator): Relation = other.leftJoin(this, on)
+  override def rightJoin(other: Relation, on: Relation.RecordComparator): Relation =
+    RelationBinOps.rightJoin(this, other, on)
 
   /** @inheritdoc */
-  override def outerJoin(other: Relation, on: Relation.RecordComparator): Relation = Relation(Try(
-    this.leftJoin(other, on).records.get.union(this.rightJoin(other, on).records.get).distinct
-  ))
+  override def outerJoin(other: Relation, on: Relation.RecordComparator): Relation =
+    RelationBinOps.outerJoin(this, other, on)
 
   /** @inheritdoc */
   override def innerEquiJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
-    if(isFailure)
-      this
-    else
-      Relation(Try{
-        if(!columns.contains(on._1))
-          throw IncompatibleColumnDefinitionException(s"this relation does not contain the specified column {${on._1}}")
-        else if(!other.columns.contains(on._2))
-          throw IncompatibleColumnDefinitionException(s"the other relation does not contain the specified column {${on._2}}")
-        else {
-          val recMap = other.records.get.groupBy(_.get(on._2))
-          internal_data.flatMap(record => {
-            val matchingRecords = recMap.getOrElse(record.get(on._1), Seq.empty)
-            matchingRecords.map(otherRecord =>
-              record ++ otherRecord
-            )
-          })
-        }
-      })
+    RelationBinOps.innerEquiJoin(this, other, on)
 
   /** @inheritdoc*/
   override def applyOn[T](col: ColumnDef[T], f: T => T): Relation =
@@ -145,15 +195,7 @@ private[relation] final class TransientRelation(data: Try[Seq[Record]]) extends 
 
   /** @inheritdoc */
   override def union(other: Relation): Relation =
-    if(isFailure)
-      this
-    else
-      Relation(Try{
-        if(!this.columns.equals(other.columns))
-          throw IncompatibleColumnDefinitionException(s"the columns of this and the other relation does not match\nthis: $columns\nother: ${other.columns}")
-        else
-          internal_data ++ other.records.get
-      })
+    RelationBinOps.union(this, other)
 
   /** @inheritdoc */
   override def records: Try[Seq[Record]] = data
