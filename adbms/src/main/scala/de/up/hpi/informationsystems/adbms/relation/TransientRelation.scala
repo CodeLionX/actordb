@@ -1,5 +1,7 @@
 package de.up.hpi.informationsystems.adbms.relation
 
+import java.util.Objects
+
 import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, UntypedColumnDef}
 import de.up.hpi.informationsystems.adbms.record.Record
 import de.up.hpi.informationsystems.adbms.{IncompatibleColumnDefinitionException, Util}
@@ -18,13 +20,15 @@ private[relation] final class TransientRelation(data: Try[Seq[Record]]) extends 
     else
       data.get.head.columns
 
-  /** @inheritdoc*/
-  override def equals(obj: scala.Any): Boolean =
-    obj.isInstanceOf[TransientRelation] &&
-      (hashCode() == obj.asInstanceOf[TransientRelation].hashCode())
+  override def hashCode(): Int = Objects.hashCode(internal_data, isFailure, columns)
 
-  override def hashCode(): Int =
-    internal_data.hashCode() + isFailure.hashCode() + columns.hashCode()
+  def canEqual(o: Any): Boolean = o.isInstanceOf[TransientRelation]
+
+  override def equals(obj: Any): Boolean = obj match {
+    case that: TransientRelation => that.canEqual(this) && this.hashCode() == that.hashCode()
+    case _ => false
+  }
+
 
   /** @inheritdoc */
   override def where[T](f: (ColumnDef[T], T => Boolean)): Relation =
