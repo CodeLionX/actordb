@@ -7,26 +7,36 @@ import scala.util.Try
 
 object MutableRelation {
   object BinOps {
+
+    private type BinRelationOp = (Relation, Relation) => Relation
+
     def innerJoin(relation1: MutableRelation, relation2: Relation, on: Relation.RecordComparator): Relation =
-      relation1.immutable.innerJoin(relation2, on)
+      checkedBinaryOp(relation1, relation2, (rel1, rel2) => rel1.innerJoin(rel2, on))
 
     def outerJoin(relation1: MutableRelation, relation2: Relation, on: Relation.RecordComparator): Relation =
-      relation1.immutable.outerJoin(relation2, on)
+      checkedBinaryOp(relation1, relation2, (rel1, rel2) => rel1.outerJoin(rel2, on))
 
     def leftJoin(relation1: MutableRelation, relation2: Relation, on: Relation.RecordComparator): Relation =
-      relation1.immutable.leftJoin(relation2, on)
+      checkedBinaryOp(relation1, relation2, (rel1, rel2) => rel1.leftJoin(rel2, on))
 
     def rightJoin(relation1: MutableRelation, relation2: Relation, on: Relation.RecordComparator): Relation =
-      relation1.rightJoin(relation2, on)
+      checkedBinaryOp(relation1, relation2, (rel1, rel2) => rel1.rightJoin(rel2, on))
 
     def innerEquiJoin[T](relation1: MutableRelation, relation2: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
-      relation1.immutable.innerEquiJoin(relation2, on)
+      checkedBinaryOp(relation1, relation2, (rel1, rel2) => rel1.innerEquiJoin(rel2, on))
 
     def union(relation1: MutableRelation, relation2: Relation): Relation =
-      relation1.immutable.union(relation2)
+      checkedBinaryOp(relation1, relation2, (rel1, rel2) => rel1.union(rel2))
 
     def unionAll(relation1: MutableRelation, relation2: Relation): Relation =
-      relation1.immutable.unionAll(relation2)
+      checkedBinaryOp(relation1, relation2, (rel1, rel2) => rel1.unionAll(rel2))
+
+    private def checkedBinaryOp(relation1: MutableRelation, relation2: Relation, op: BinRelationOp): Relation =
+      relation2 match {
+        case otherRel: MutableRelation => op(relation1.immutable, otherRel.immutable)
+        case otherRel: TransientRelation => op(relation1.immutable, otherRel)
+        case r => throw new UnsupportedOperationException(s"${r.getClass.getSimpleName} can not be an operand to a binary operation on MutableRelation")
+      }
   }
 }
 trait MutableRelation extends Relation {
