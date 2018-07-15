@@ -21,17 +21,20 @@ class Record private (cells: Map[UntypedColumnDef, Any])
   val columns: Set[UntypedColumnDef] = cells.keys.toSet
 
   /**
-    * Optionally returns the cell's value of a specified column.
+    * Returns the cell's value of a specified column.
+    * If the column is not part of this record a Exception will be thrown.
     * @note This call is typesafe!
+    *
     * @param columnDef typed column definition specifying the column
     * @tparam T type of the cell's value
-    * @return the value of the column's cell wrapped in an `Option`
+    * @return the value of the column's cell
     */
-  def get[T](columnDef: ColumnDef[T]): Option[T] =
+  @throws[IncompatibleColumnDefinitionException]
+  def get[T](columnDef: ColumnDef[T]): T =
     if(data.contains(columnDef))
-      Option(data(columnDef).asInstanceOf[T])
+      data(columnDef).asInstanceOf[T]
     else
-      None
+      throw IncompatibleColumnDefinitionException(s"$columnDef is not part of this record!")
 
   /**
     * Iff `columnDefs` is a subset of this record,
@@ -52,14 +55,14 @@ class Record private (cells: Map[UntypedColumnDef, Any])
   // from MapLike
   override def empty: Record = new Record(Map.empty)
 
-  override def default(key: UntypedColumnDef): Any = null
+  override def default(key: UntypedColumnDef): Any = key.default
 
   /**
     * Use [[de.up.hpi.informationsystems.adbms.record.Record#get]] instead!
     * It takes care of types!
     */
   @deprecated
-  override def get(key: UntypedColumnDef): Option[Any] = get(key.asInstanceOf[ColumnDef[Any]])
+  override def get(key: UntypedColumnDef): Option[Any] = Try(get[Any](key.asInstanceOf[ColumnDef[Any]])).toOption
 
   override def iterator: Iterator[(UntypedColumnDef, Any)] = data.iterator
 
@@ -131,7 +134,7 @@ object Record {
 
   private[adbms] def fromMap(columnDefMap: Map[UntypedColumnDef, Any]) = new Record(columnDefMap)
 
-  val empty: Record = Record.empty
+  val empty: Record = new Record(Map.empty)
 
   /**
     * Builder for a [[de.up.hpi.informationsystems.adbms.record.Record]].
@@ -168,7 +171,7 @@ object Record {
       */
     def build(): Record =
       if(columnDefs.isEmpty)
-        new Record(Map.empty)
+        Record.empty
       else {
         val data: Map[UntypedColumnDef, Any] = columnDefs
           .map{ colDef => Map(colDef -> recordData.getOrElse(colDef, colDef.default)) }

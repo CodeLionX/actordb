@@ -6,7 +6,7 @@ import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, UntypedColumnDe
 import de.up.hpi.informationsystems.adbms.record.Record
 import de.up.hpi.informationsystems.adbms.{IncompatibleColumnDefinitionException, Util}
 
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 private[relation] final class TransientRelation(data: Try[Seq[Record]]) extends Relation with Immutable {
 
@@ -35,7 +35,12 @@ private[relation] final class TransientRelation(data: Try[Seq[Record]]) extends 
     if(isFailure)
       this
     else
-      Relation(internal_data.filter{ record => record.get[T](f._1).exists(f._2) })
+      Relation(internal_data.filter( record =>
+        record.get[T](f._1) match {
+          case v: T => f._2(v)
+          case _ => false
+        }
+      ))
 
   /** @inheritdoc */
   override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation =
@@ -88,7 +93,6 @@ private[relation] final class TransientRelation(data: Try[Seq[Record]]) extends 
 
   /** @inheritdoc */
   override def leftJoin(other: Relation, on: Relation.RecordComparator): Relation = {
-    val empty = Record.empty
     if(isFailure)
       this
     else
@@ -139,11 +143,12 @@ private[relation] final class TransientRelation(data: Try[Seq[Record]]) extends 
       this
     else
       Relation(Try{
-        internal_data.map( record => record.get(col) match {
-          case Some(value) =>
+        internal_data.map( record => Try{record.get(col)} match {
+          case Success(null) => record
+          case Failure(_) => record
+          case Success(value) =>
             val newValue = f(value)
             record.updated(col, newValue)
-          case None => record
         })
       })
 
