@@ -108,33 +108,33 @@ object StoreSection {
       orderItems.records.get.map(item => {
         // update inventory for this item
         val inventoryEntryForItem = relations(Inventory)
-          .where[Int]((Inventory.inventoryId, _ == item.get(CartPurchases.inventoryId).get))
+          .where[Int]((Inventory.inventoryId, _ == item.get(CartPurchases.inventoryId)))
           .records.get.head
 
-        val currentQuantity = inventoryEntryForItem.get(Inventory.quantity).get
+        val currentQuantity = inventoryEntryForItem.get(Inventory.quantity)
 
         import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
         relations(Inventory)
-          .update(Inventory.quantity ~> (currentQuantity - item.get(CartPurchases.quantity).get))
-          .where[Int]((Inventory.inventoryId, _ == item.get(CartPurchases.inventoryId).get))
+          .update(Inventory.quantity ~> (currentQuantity - item.get(CartPurchases.quantity)))
+          .where[Int]((Inventory.inventoryId, _ == item.get(CartPurchases.inventoryId)))
 
         // get recent sales to calculate var_disc
         val recentSalesQuantities = relations(PurchaseHistory)
           .whereAll(Map(
             PurchaseHistory.inventoryId.untyped -> {
-              _ == item.get(CartPurchases.inventoryId).get
+              _ == item.get(CartPurchases.inventoryId)
             },
             PurchaseHistory.time.untyped -> { time: Any => time.asInstanceOf[ZonedDateTime].isAfter(cartTime.minusDays(K)) }
           ))
           .records.get
-          .map(_.get(PurchaseHistory.quantity).getOrElse(0))
+          .map(_.get(PurchaseHistory.quantity))
 
         // add purchase to purchase history
         relations(PurchaseHistory)
           .insert(PurchaseHistory.newRecord(
-            PurchaseHistory.inventoryId ~> item.get(CartPurchases.inventoryId).get &
+            PurchaseHistory.inventoryId ~> item.get(CartPurchases.inventoryId) &
               PurchaseHistory.time ~> cartTime &
-              PurchaseHistory.quantity ~> item.get(CartPurchases.quantity).get &
+              PurchaseHistory.quantity ~> item.get(CartPurchases.quantity).toLong &
               PurchaseHistory.customerId ~> customerId
           ).build())
 
@@ -147,14 +147,14 @@ object StoreSection {
 
         val varDiscFactor: Double = mean + C * std_dev match {
           case 0 => 0
-          case divisor: Double => inventoryEntryForItem.get(Inventory.varDisc).get * item.get(CartPurchases.quantity).get / divisor
+          case divisor: Double => inventoryEntryForItem.get(Inventory.varDisc) * item.get(CartPurchases.quantity) / divisor
         }
 
         // IGNORE check if amount - fixedDisc - varDisc < min_price and if yes possibly change amount
 
         // generate response format tuple
-        val amount: Double = item.get(CartPurchases.price).get * item.get(CartPurchases.quantity).get
-        val fixedDisc: Double = item.get(CartPurchases.fixedDiscount).get * amount
+        val amount: Double = item.get(CartPurchases.price) * item.get(CartPurchases.quantity)
+        val fixedDisc: Double = item.get(CartPurchases.fixedDiscount) * amount
         val varDisc: Double = amount * varDiscFactor
 
         Record(Set(amountCol, fixedDiscCol, varDiscCol))(
