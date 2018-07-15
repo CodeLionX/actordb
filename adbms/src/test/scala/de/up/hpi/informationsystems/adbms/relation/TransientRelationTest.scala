@@ -241,7 +241,7 @@ class TransientRelationTest extends WordSpec with Matchers {
 
       "return an appropriate result for innerJoin with itself using different column values" in {
         val diffColumnsJoined = fullRelation
-          .innerJoin(fullRelation, (lside, rside) => lside.get(colFirstname).get == rside.get(colLastname).get)
+          .innerJoin(fullRelation, (lside, rside) => lside.get(colFirstname) == rside.get(colLastname))
 
         diffColumnsJoined.columns shouldEqual columns
         diffColumnsJoined.records shouldEqual Success(Seq(record1))
@@ -249,7 +249,7 @@ class TransientRelationTest extends WordSpec with Matchers {
 
       "return itself for innerJoin with itself using the same column values" in {
         val sameColumnJoined = fullRelation
-          .innerJoin(fullRelation, (left, right) => left.get(colFirstname).get == right.get(colFirstname).get)
+          .innerJoin(fullRelation, (left, right) => left.get(colFirstname) == right.get(colFirstname))
 
         sameColumnJoined.columns shouldEqual columns
         sameColumnJoined.records shouldEqual Success(Seq(record1, record2))
@@ -284,10 +284,10 @@ class TransientRelationTest extends WordSpec with Matchers {
 
       "fail to innerJoin on wrong column definition" in {
         val joined1 = fullRelation
-          .innerJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")).get == right.get(colFirstname).get)
+          .innerJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")) == right.get(colFirstname))
           .records
         val joined2 = fullRelation
-          .innerJoin(fullRelation, (left, right) => left.get(colFirstname).get == right.get(ColumnDef[String]("something")).get)
+          .innerJoin(fullRelation, (left, right) => left.get(colFirstname) == right.get(ColumnDef[String]("something")))
           .records
 
         joined1.isFailure shouldBe true
@@ -335,10 +335,10 @@ class TransientRelationTest extends WordSpec with Matchers {
 
       "fail to outerJoin on wrong column definition" in {
         val joined1 = fullRelation
-          .outerJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")).get == right.get(colFirstname).get)
+          .outerJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")) == right.get(colFirstname))
           .records
         val joined2 = fullRelation
-          .outerJoin(fullRelation, (left, right) => left.get(colFirstname).get == right.get(ColumnDef[String]("something")).get)
+          .outerJoin(fullRelation, (left, right) => left.get(colFirstname) == right.get(ColumnDef[String]("something")))
           .records
 
         joined1.isFailure shouldBe true
@@ -381,10 +381,10 @@ class TransientRelationTest extends WordSpec with Matchers {
 
       "fail to leftJoin on wrong column definition" in {
         val joined1 = fullRelation
-          .leftJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")).get == right.get(colFirstname).get)
+          .leftJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")) == right.get(colFirstname))
           .records
         val joined2 = fullRelation
-          .leftJoin(fullRelation, (left, right) => left.get(colFirstname).get == right.get(ColumnDef[String]("something")).get)
+          .leftJoin(fullRelation, (left, right) => left.get(colFirstname) == right.get(ColumnDef[String]("something")))
           .records
 
         joined1.isFailure shouldBe true
@@ -427,10 +427,10 @@ class TransientRelationTest extends WordSpec with Matchers {
 
       "fail to rightJoin on wrong column definition" in {
         val joined1 = fullRelation
-          .rightJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")).get == right.get(colFirstname).get)
+          .rightJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")) == right.get(colFirstname))
           .records
         val joined2 = fullRelation
-          .rightJoin(fullRelation, (left, right) => left.get(colFirstname).get == right.get(ColumnDef[String]("something")).get)
+          .rightJoin(fullRelation, (left, right) => left.get(colFirstname) == right.get(ColumnDef[String]("something")))
           .records
 
         joined1.isFailure shouldBe true

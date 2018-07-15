@@ -89,7 +89,7 @@ object Cart {
         .askDactor(system, classOf[Customer], groupIdRequest)
 
       val fixedDiscount: FutureRelation = groupId.flatTransform( gid => {
-        val id = gid.records.get.head.get(Customer.CustomerInfo.custGroupId).get
+        val id = gid.records.get.head.get(Customer.CustomerInfo.custGroupId)
         val fixedDiscountRequest = Map(id -> GroupManager.GetFixedDiscounts.Request(orders.map(_.inventoryId)))
         Dactor.askDactor(system, classOf[GroupManager], fixedDiscountRequest)
       })
@@ -114,13 +114,13 @@ object Cart {
       val result = FutureRelation.fromRecordSeq(priceDiscOrder.future.map(_.records.get
         .map( (rec: Record) => rec + (CartPurchases.sessionId -> currentSessionId))
         .map( (rec: Record) => CartPurchases.newRecord(
-          CartPurchases.sectionId ~> rec.get(CartPurchases.sectionId).get &
-          CartPurchases.sessionId ~> rec.get(CartPurchases.sessionId).get &
-          CartPurchases.quantity ~> rec.get(CartPurchases.quantity).get &
-          CartPurchases.inventoryId ~> rec.get(StoreSection.Inventory.inventoryId).get &
-          CartPurchases.fixedDiscount ~> rec.get(GroupManager.Discounts.fixedDisc).get &
-          CartPurchases.minPrice ~> rec.get(StoreSection.Inventory.minPrice).get &
-          CartPurchases.price ~> rec.get(StoreSection.Inventory.price).get
+          CartPurchases.sectionId ~> rec.get(CartPurchases.sectionId) &
+          CartPurchases.sessionId ~> rec.get(CartPurchases.sessionId) &
+          CartPurchases.quantity ~> rec.get(CartPurchases.quantity) &
+          CartPurchases.inventoryId ~> rec.get(StoreSection.Inventory.inventoryId) &
+          CartPurchases.fixedDiscount ~> rec.get(GroupManager.Discounts.fixedDisc) &
+          CartPurchases.minPrice ~> rec.get(StoreSection.Inventory.minPrice) &
+          CartPurchases.price ~> rec.get(StoreSection.Inventory.price)
         ).build())
       ))
       // FutureRelation: i_id, i_price, i_min_price, i_fixed_disc, sec_id, i_quantity, session_id
@@ -150,9 +150,9 @@ object Cart {
         Relation(Seq(
           relation.records.get.reduce( (rec1, rec2) =>
             Record(rec1.columns)(
-              amountCol ~> (rec1.get(amountCol).get + rec2.get(amountCol).get) &
-              fixedDiscCol ~> (rec1.get(fixedDiscCol).get + rec2.get(fixedDiscCol).get) &
-              varDiscCol ~> (rec1.get(varDiscCol).get + rec2.get(varDiscCol).get)
+              amountCol ~> (rec1.get(amountCol) + rec2.get(amountCol)) &
+              fixedDiscCol ~> (rec1.get(fixedDiscCol) + rec2.get(fixedDiscCol)) &
+              varDiscCol ~> (rec1.get(varDiscCol) + rec2.get(varDiscCol))
             ).build()
           )
         ))
@@ -164,9 +164,9 @@ object Cart {
         val msg = Customer.AddStoreVisit.Request(
           storeId,
           time,
-          record.get(amountCol).get,
-          record.get(fixedDiscCol).get,
-          record.get(varDiscCol).get
+          record.get(amountCol).toDouble,
+          record.get(fixedDiscCol),
+          record.get(varDiscCol)
         )
         Dactor.dactorSelection(system, classOf[Customer], customerId) ! msg
         relation
@@ -175,7 +175,7 @@ object Cart {
       // wrap into message and send back to actor
       result.pipeAsMessageTo(relation =>
         CartHelper.HandledCheckout(
-          relation.records.get.head.get(amountCol).get,
+          relation.records.get.head.get(amountCol),
           replyTo
         ), recipient)
     }
@@ -213,15 +213,15 @@ object Cart {
         // TODO: check there is only one entry
         val customerId: Int = relations(CartInfo)
           .records.get
-          .map(_.get(CartInfo.customerId).get).head
+          .map(_.get(CartInfo.customerId)).head
         val storeId: Int = relations(CartInfo)
           .records.get
-          .map(_.get(CartInfo.storeId).get).head
+          .map(_.get(CartInfo.storeId)).head
 
         val sections: Seq[Int] = relations(CartPurchases)
           .where[Int](CartPurchases.sessionId -> { _ == sessionId })
           .project(Set(CartPurchases.sectionId))
-          .records.get.map(_.get(CartPurchases.sectionId).get).distinct
+          .records.get.map(_.get(CartPurchases.sectionId)).distinct
 
         val cartItems: Relation = relations(CartPurchases)
           .whereAll(

@@ -1,5 +1,6 @@
 package de.up.hpi.informationsystems.adbms.record
 
+import de.up.hpi.informationsystems.adbms.IncompatibleColumnDefinitionException
 import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, ColumnTypeDefaults}
 import org.scalatest.{Matchers, WordSpec}
@@ -59,7 +60,7 @@ class RecordTest extends WordSpec with Matchers {
       }
 
       "not return any data" in {
-        emptyRecord.get(anyCol) shouldBe empty
+        a[IncompatibleColumnDefinitionException] should be thrownBy emptyRecord.get(anyCol)
       }
 
       "project to itself, when projected by an empty list" in {
@@ -83,10 +84,10 @@ class RecordTest extends WordSpec with Matchers {
       }
 
       "return default values, when accessing any column" in {
-        record.get(anyCol) shouldBe None
-        record.get(col1) shouldBe Some(ColumnTypeDefaults.value[String])
-        record.get(col2) shouldBe Some(ColumnTypeDefaults.value[Int])
-        record.get(col3) shouldBe Some(ColumnTypeDefaults.value[Double])
+        a[IncompatibleColumnDefinitionException] should be thrownBy record.get(anyCol)
+        record.get(col1) shouldBe ColumnTypeDefaults.value[String]
+        record.get(col2) shouldBe ColumnTypeDefaults.value[Int]
+        record.get(col3) shouldBe ColumnTypeDefaults.value[Double]
       }
 
       "project to empty record, when projected by an empty list" in {
@@ -118,18 +119,18 @@ class RecordTest extends WordSpec with Matchers {
         .build()
 
       "return the column's cell value" in {
-        record.get(anyCol) shouldBe None
-        record.get(col1) shouldBe Some(val1)
-        record.get(col2) shouldBe Some(val2)
-        record.get(col3) shouldBe Some(val3)
+        a[IncompatibleColumnDefinitionException] should be thrownBy record.get(anyCol)
+        record.get(col1) shouldBe val1
+        record.get(col2) shouldBe val2
+        record.get(col3) shouldBe val3
       }
 
       "retain values of projected columns and drop others" in {
         record.project(Set(col1)) match {
           case Success(r) =>
-            r.get(col1) shouldBe Some(val1)
-            r.get(col2) shouldBe None
-            r.get(col3) shouldBe None
+            r.get(col1) shouldBe val1
+            a[IncompatibleColumnDefinitionException] should be thrownBy r.get(col2)
+            a[IncompatibleColumnDefinitionException] should be thrownBy r.get(col3)
           case Failure(_) => fail("Projection by column sequence failed, but it should succeed")
         }
       }
