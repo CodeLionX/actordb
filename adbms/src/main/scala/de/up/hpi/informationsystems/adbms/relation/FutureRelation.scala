@@ -62,8 +62,6 @@ trait FutureRelation extends Relation with Immutable with Awaitable[Try[Seq[Reco
 
 object FutureRelation {
 
-  private type BinRelationOp = (Relation, Relation) => Relation
-
   val defaultTimeout: Duration = 5 seconds
 
   def fromRecordSeq(data: Future[Seq[Record]]): FutureRelation =
@@ -75,6 +73,8 @@ object FutureRelation {
   def apply(data: Future[Relation], timeout: Duration) = new FutureRelationImpl(data, timeout)
 
   object BinOps{
+
+    private type BinRelationOp = (Relation, Relation) => Relation
 
     def innerJoin(relation1: FutureRelation, relation2: Relation, on: RecordComparator): FutureRelation =
       futureCheckedBinaryTransformation(relation1, relation2, (rel1, rel2) => rel1.innerJoin(rel2, on))
@@ -116,7 +116,8 @@ object FutureRelation {
             rel2 <- fr.future
           } yield op(rel1, rel2)
 
-          case otherRel => relation1.future.map(rel => op(rel, otherRel))
+          case otherRel: MutableRelation => relation1.future.map(rel => op(rel, otherRel.immutable))
+          case otherRel: TransientRelation => relation1.future.map(rel => op(rel, otherRel))
         }
       )
   }
