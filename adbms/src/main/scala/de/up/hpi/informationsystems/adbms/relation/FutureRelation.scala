@@ -77,25 +77,25 @@ object FutureRelation {
     private type BinRelationOp = (Relation, Relation) => Relation
 
     def innerJoin(relation1: FutureRelation, relation2: Relation, on: RecordComparator): FutureRelation =
-      futureCheckedBinaryTransformation(relation1, relation2, (rel1, rel2) => rel1.innerJoin(rel2, on))
+      futureCheckedBinaryOperation(relation1, relation2, (rel1, rel2) => rel1.innerJoin(rel2, on))
 
     def outerJoin(relation1: FutureRelation, relation2: Relation, on: RecordComparator): FutureRelation =
-      futureCheckedBinaryTransformation(relation1, relation2, (rel1, rel2) => rel1.outerJoin(rel2, on))
+      futureCheckedBinaryOperation(relation1, relation2, (rel1, rel2) => rel1.outerJoin(rel2, on))
 
     def leftJoin(relation1: FutureRelation, relation2: Relation, on: RecordComparator): FutureRelation =
-      futureCheckedBinaryTransformation(relation1, relation2, (rel1, rel2) => rel1.leftJoin(rel2, on))
+      futureCheckedBinaryOperation(relation1, relation2, (rel1, rel2) => rel1.leftJoin(rel2, on))
 
     def rightJoin(relation1: FutureRelation, relation2: Relation, on: RecordComparator): FutureRelation =
-      futureCheckedBinaryTransformation(relation1, relation2, (rel1, rel2) => rel1.rightJoin(rel2, on))
+      futureCheckedBinaryOperation(relation1, relation2, (rel1, rel2) => rel1.rightJoin(rel2, on))
 
     def innerEquiJoin[T](relation1: FutureRelation, relation2: Relation, on: (ColumnDef[T], ColumnDef[T])): FutureRelation =
-      futureCheckedBinaryTransformation(relation1, relation2, (rel1, rel2) => rel1.innerEquiJoin(rel2, on))
+      futureCheckedBinaryOperation(relation1, relation2, (rel1, rel2) => rel1.innerEquiJoin(rel2, on))
 
     def union(relation1: FutureRelation, relation2: Relation): FutureRelation =
-      futureCheckedBinaryTransformation(relation1, relation2, (rel1, rel2) => rel1.union(rel2))
+      futureCheckedBinaryOperation(relation1, relation2, (rel1, rel2) => rel1.union(rel2))
 
     def unionAll(relation1: FutureRelation, relation2: Relation): Relation =
-      futureCheckedBinaryTransformation(relation1, relation2, (rel1, rel2) => rel1.unionAll(rel2))
+      futureCheckedBinaryOperation(relation1, relation2, (rel1, rel2) => rel1.unionAll(rel2))
 
     /**
       * Creates a new Relation from `relation1` and `relation2` by applying `op` to them.
@@ -108,7 +108,7 @@ object FutureRelation {
       * @param op         BinRelationOp to apply
       * @return           a new Relation returned from `op` after application to `relation1` and `relation2`
       */
-    private def futureCheckedBinaryTransformation(relation1: FutureRelation, relation2: Relation, op: BinRelationOp): FutureRelation =
+    private def futureCheckedBinaryOperation(relation1: FutureRelation, relation2: Relation, op: BinRelationOp): FutureRelation =
       FutureRelation(
         relation2 match {
           case fr: FutureRelation => for {

@@ -16,6 +16,7 @@ class RelationBinOpsTest extends WordSpec with Matchers {
   // result sets are equal if their order is not!
   implicit val sortedRecordSeqEquality: Equality[Try[Seq[Record]]] = new Equality[Try[Seq[Record]]] {
 
+    // define ordering without semantic meaning for comparison of Seq[Record] in test matchers
     implicit val recordOrdering: Ordering[Record] = (x: Record, y: Record) => x.hashCode() - y.hashCode()
 
     def areEqual(a: Try[Seq[Record]], b: Any): Boolean =

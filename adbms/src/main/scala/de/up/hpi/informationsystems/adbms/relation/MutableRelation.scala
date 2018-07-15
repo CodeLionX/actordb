@@ -39,6 +39,7 @@ object MutableRelation {
       }
   }
 }
+
 trait MutableRelation extends Relation {
 
   /**
