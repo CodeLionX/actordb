@@ -85,13 +85,6 @@ class ColumnDefTest extends WordSpec with Matchers {
       colInt.untyped.hashCode() shouldNot equal(ColumnDef[Int]("integerColumn", 12).untyped.hashCode())
     }
 
-    "provide clones of itself" in {
-      val cloneColInt = colInt.clone()
-
-      colInt should equal(cloneColInt)
-      colInt shouldNot be theSameInstanceAs cloneColInt
-    }
-
     "contain its type in form of a classTag" in {
       colInt.tpe should equal(classTag[Int])
       colInt.tpe shouldNot equal(classTag[Byte])
