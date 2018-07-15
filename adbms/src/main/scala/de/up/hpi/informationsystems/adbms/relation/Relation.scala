@@ -51,70 +51,6 @@ trait Relation {
   def project(columnDefs: Set[UntypedColumnDef]): Relation
 
   /**
-    * Performs an inner join with another relation on a comparator function.
-    *
-    * @param other relation to join with
-    * @param on `RecordComparator`, i.e. (Record, Record) => Boolean, which determines which
-    *          pairs of records from the respective relations are in the result set. The
-    *          result set contains exactly the records made up of the pairs of records for
-    *          which `on` returns `true`.
-    * @return a new relation comprised of the joined records from `this` and `other`
-    */
-  def innerJoin(other: Relation, on: Relation.RecordComparator): Relation
-
-  /**
-    * Performs an outer join with another relation on a comparator function.
-    * @param other relation to join with
-    * @param on `RecordComparator`, i.e. (Record, Record) => Boolean, which determines which
-    *          pairs of records from the respective relations are in the result set. The
-    *          result set contains exactly the records made up of the pairs of records for
-    *          which `on` returns `true`.
-    * @return a new relation comprised of the joined records from `this` and `other`
-    */
-  def outerJoin(other: Relation, on: Relation.RecordComparator): Relation
-
-  /**
-    * Performs an left join with another relation on a comparator function.
-    * @param other relation to join with
-    * @param on `RecordComparator`, i.e. (Record, Record) => Boolean, which determines which
-    *          pairs of records from the respective relations are in the result set. The
-    *          result set contains exactly the records made up of the pairs of records for
-    *          which `on` returns `true`.
-    * @return a new relation comprised of the joined records from `this` and `other`
-    */
-  def leftJoin(other: Relation, on: Relation.RecordComparator): Relation
-
-  /**
-    * Performs an right join with another relation on a comparator function.
-    * @param other relation to join with
-    * @param on `RecordComparator`, i.e. (Record, Record) => Boolean, which determines which
-    *          pairs of records from the respective relations are in the result set. The
-    *          result set contains exactly the records made up of the pairs of records for
-    *          which `on` returns `true`.
-    * @return a new relation comprised of the joined records from `this` and `other`
-    */
-  def rightJoin(other: Relation, on: Relation.RecordComparator): Relation
-
-  /**
-    * Performs an equality join of this relation with another one on the specified columns.
-    *
-    * @note Currently the column types of the join columns must be the same!
-    * @param other relation to join with
-    * @param on tuple of `ColumnDef[T]`s which determine which columns' attributes are
-    *           compared for the equality join
-    * @tparam T
-    * @return a new relation comprised of the joined records from `this` and `other`
-    */
-  def innerEquiJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation
-
-  /**
-    * Performs a union with another relation, iff the relations have the same schema definition.
-    * @param other relation to join with
-    * @return a new relation containing the records from both relations
-    */
-  def union(other: Relation): Relation
-
-  /**
     * Applies `f` on all values of the column `col`.
     * @param col column, whos values should be changed
     * @param f transformation function
@@ -137,5 +73,86 @@ trait Relation {
     * @return initialized RecordBuilder
     */
   def newRecord: RecordBuilder = Record(columns)
+
+  // binary operations are handle by RelationBinOps class
+  /**
+    * Performs an inner join with another relation on a comparator function.
+    *
+    * @param other relation to join with
+    * @param on `RecordComparator`, i.e. (Record, Record) => Boolean, which determines which
+    *          pairs of records from the respective relations are in the result set. The
+    *          result set contains exactly the records made up of the pairs of records for
+    *          which `on` returns `true`.
+    * @return a new relation comprised of the joined records from `this` and `other`
+    */
+  final def innerJoin(other: Relation, on: Relation.RecordComparator): Relation =
+    RelationBinOps.innerJoin(this, other, on)
+
+  /**
+    * Performs an outer join with another relation on a comparator function.
+    * @param other relation to join with
+    * @param on `RecordComparator`, i.e. (Record, Record) => Boolean, which determines which
+    *          pairs of records from the respective relations are in the result set. The
+    *          result set contains exactly the records made up of the pairs of records for
+    *          which `on` returns `true`.
+    * @return a new relation comprised of the joined records from `this` and `other`
+    */
+  final def outerJoin(other: Relation, on: Relation.RecordComparator): Relation =
+    RelationBinOps.outerJoin(this, other, on)
+
+  /**
+    * Performs an left join with another relation on a comparator function.
+    * @param other relation to join with
+    * @param on `RecordComparator`, i.e. (Record, Record) => Boolean, which determines which
+    *          pairs of records from the respective relations are in the result set. The
+    *          result set contains exactly the records made up of the pairs of records for
+    *          which `on` returns `true`.
+    * @return a new relation comprised of the joined records from `this` and `other`
+    */
+  final def leftJoin(other: Relation, on: Relation.RecordComparator): Relation =
+    RelationBinOps.leftJoin(this, other, on)
+
+  /**
+    * Performs an right join with another relation on a comparator function.
+    * @param other relation to join with
+    * @param on `RecordComparator`, i.e. (Record, Record) => Boolean, which determines which
+    *          pairs of records from the respective relations are in the result set. The
+    *          result set contains exactly the records made up of the pairs of records for
+    *          which `on` returns `true`.
+    * @return a new relation comprised of the joined records from `this` and `other`
+    */
+  final def rightJoin(other: Relation, on: Relation.RecordComparator): Relation =
+    RelationBinOps.rightJoin(this, other, on)
+
+  /**
+    * Performs an equality join of this relation with another one on the specified columns.
+    *
+    * @note Currently the column types of the join columns must be the same!
+    * @param other relation to join with
+    * @param on tuple of `ColumnDef[T]`s which determine which columns' attributes are
+    *           compared for the equality join
+    * @tparam T
+    * @return a new relation comprised of the joined records from `this` and `other`
+    */
+  final def innerEquiJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
+    RelationBinOps.innerEquiJoin(this, other, on)
+
+  /**
+    * Performs a union with another relation, iff the relations have the same schema definition,
+    * and removes duplicates.
+    *
+    * @param other relation to join with
+    * @return a new relation containing the distinct records from both relations
+    */
+  final def union(other: Relation): Relation =
+    RelationBinOps.union(this, other)
+
+  /**
+    * Performs a union with another relation, iff the relations have the same schema definition.
+    * @param other relation to join with
+    * @return a new relation containing all records from both relations
+    */
+  final def unionAll(other: Relation): Relation =
+    RelationBinOps.unionAll(this, other)
 
 }

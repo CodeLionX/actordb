@@ -159,26 +159,6 @@ private[relation] final class TransientRelation(data: Try[Seq[Record]]) extends 
           throw IncompatibleColumnDefinitionException(s"this relation does not contain all specified columns {$columnDefs}")
       ))
 
-  /** @inheritdoc */
-  override def innerJoin(other: Relation, on: Relation.RecordComparator): Relation =
-    RelationBinOps.innerJoin(this, other, on)
-
-  /** @inheritdoc */
-  override def leftJoin(other: Relation, on: Relation.RecordComparator): Relation =
-    RelationBinOps.leftJoin(this, other, on)
-
-  /** @inheritdoc */
-  override def rightJoin(other: Relation, on: Relation.RecordComparator): Relation =
-    RelationBinOps.rightJoin(this, other, on)
-
-  /** @inheritdoc */
-  override def outerJoin(other: Relation, on: Relation.RecordComparator): Relation =
-    RelationBinOps.outerJoin(this, other, on)
-
-  /** @inheritdoc */
-  override def innerEquiJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
-    RelationBinOps.innerEquiJoin(this, other, on)
-
   /** @inheritdoc*/
   override def applyOn[T](col: ColumnDef[T], f: T => T): Relation =
     if(isFailure || !Set(col).subsetOf(columns))
@@ -192,10 +172,6 @@ private[relation] final class TransientRelation(data: Try[Seq[Record]]) extends 
           case None => record
         })
       })
-
-  /** @inheritdoc */
-  override def union(other: Relation): Relation =
-    RelationBinOps.union(this, other)
 
   /** @inheritdoc */
   override def records: Try[Seq[Record]] = data

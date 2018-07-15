@@ -79,30 +79,6 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
   /** @inheritdoc */
   override def project(columnDefs: Set[UntypedColumnDef]): Relation = Relation(data).project(columnDefs)
 
-  /** @inheritdoc*/
-  override def innerEquiJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
-    Relation(data).innerEquiJoin(other, on)
-
-  /** @inheritdoc */
-  override def innerJoin(other: Relation, on: RecordComparator): Relation =
-    Relation(records).innerJoin(other, on)
-
-  /** @inheritdoc */
-  override def outerJoin(other: Relation, on: RecordComparator): Relation =
-    Relation(records).outerJoin(other, on)
-
-  /** @inheritdoc */
-  override def leftJoin(other: Relation, on: RecordComparator): Relation =
-    Relation(records).leftJoin(other, on)
-
-  /** @inheritdoc */
-  override def rightJoin(other: Relation, on: RecordComparator): Relation =
-    Relation(records).rightJoin(other, on)
-
-  /** @inheritdoc */
-  override def union(other: Relation): Relation =
-    Relation(records).union(other)
-
   /** @inheritdoc */
   override def applyOn[T](col: ColumnDef[T], f: T => T): Relation =
     Relation(records).applyOn(col, f)

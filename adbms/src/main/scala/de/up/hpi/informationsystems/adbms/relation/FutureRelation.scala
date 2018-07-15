@@ -58,35 +58,6 @@ trait FutureRelation extends Relation with Immutable with Awaitable[Try[Seq[Reco
     */
   def flatTransform(f: Relation => FutureRelation): FutureRelation
 
-  /** @inheritdoc */
-  override def where[T](f: (ColumnDef[T], T => Boolean)): FutureRelation
-
-  /** @inheritdoc */
-  override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): FutureRelation
-
-  /** @inheritdoc */
-  override def project(columnDefs: Set[UntypedColumnDef]): FutureRelation
-
-  /** @inheritdoc */
-  override def innerJoin(other: Relation, on: RecordComparator): FutureRelation
-
-  /** @inheritdoc */
-  override def outerJoin(other: Relation, on: RecordComparator): FutureRelation
-
-  /** @inheritdoc */
-  override def leftJoin(other: Relation, on: RecordComparator): FutureRelation
-
-  /** @inheritdoc */
-  override def rightJoin(other: Relation, on: RecordComparator): FutureRelation
-
-  /** @inheritdoc */
-  override def innerEquiJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): FutureRelation
-
-  /** @inheritdoc */
-  override def union(other: Relation): FutureRelation
-
-  /** @inheritdoc */
-  override def applyOn[T](col: ColumnDef[T], f: T => T): FutureRelation
 }
 
 object FutureRelation {
@@ -103,6 +74,52 @@ object FutureRelation {
   def apply(data: Future[Relation]): FutureRelation = apply(data, defaultTimeout)
   def apply(data: Future[Relation], timeout: Duration) = new FutureRelationImpl(data, timeout)
 
+  object BinOps{
+
+    def innerJoin(relation1: FutureRelation, relation2: Relation, on: RecordComparator): FutureRelation =
+      futureCheckedBinaryTransformation(relation1, relation2, (rel1, rel2) => rel1.innerJoin(rel2, on))
+
+    def outerJoin(relation1: FutureRelation, relation2: Relation, on: RecordComparator): FutureRelation =
+      futureCheckedBinaryTransformation(relation1, relation2, (rel1, rel2) => rel1.outerJoin(rel2, on))
+
+    def leftJoin(relation1: FutureRelation, relation2: Relation, on: RecordComparator): FutureRelation =
+      futureCheckedBinaryTransformation(relation1, relation2, (rel1, rel2) => rel1.leftJoin(rel2, on))
+
+    def rightJoin(relation1: FutureRelation, relation2: Relation, on: RecordComparator): FutureRelation =
+      futureCheckedBinaryTransformation(relation1, relation2, (rel1, rel2) => rel1.rightJoin(rel2, on))
+
+    def innerEquiJoin[T](relation1: FutureRelation, relation2: Relation, on: (ColumnDef[T], ColumnDef[T])): FutureRelation =
+      futureCheckedBinaryTransformation(relation1, relation2, (rel1, rel2) => rel1.innerEquiJoin(rel2, on))
+
+    def union(relation1: FutureRelation, relation2: Relation): FutureRelation =
+      futureCheckedBinaryTransformation(relation1, relation2, (rel1, rel2) => rel1.union(rel2))
+
+    def unionAll(relation1: FutureRelation, relation2: Relation): Relation =
+      futureCheckedBinaryTransformation(relation1, relation2, (rel1, rel2) => rel1.unionAll(rel2))
+
+    /**
+      * Creates a new Relation from `relation1` and `relation2` by applying `op` to them.
+      * Checks whether `relation2` is of type FutureRelation or not and resolves `relation2` and the first FutureRelation
+      * simultaneously before applying `op` to both. If `relation2` is not of type FutureRelation `op` is applied to
+      * `relation2` upon `relation1`'s successful completion.
+      *
+      * @param relation1  first Relation to apply BinRelationOp to
+      * @param relation2  second Relation to apply BinRelationOp to
+      * @param op         BinRelationOp to apply
+      * @return           a new Relation returned from `op` after application to `relation1` and `relation2`
+      */
+    private def futureCheckedBinaryTransformation(relation1: FutureRelation, relation2: Relation, op: BinRelationOp): FutureRelation =
+      FutureRelation(
+        relation2 match {
+          case fr: FutureRelation => for {
+            rel1 <- relation1.future
+            rel2 <- fr.future
+          } yield op(rel1, rel2)
+
+          case otherRel => relation1.future.map(rel => op(rel, otherRel))
+        }
+      )
+  }
 
   private[FutureRelation] class FutureRelationImpl(pData: Future[Relation], defaultTimeout: Duration) extends FutureRelation {
 
@@ -130,30 +147,6 @@ object FutureRelation {
     /** @inheritdoc */
     override def project(columnDefs: Set[UntypedColumnDef]): FutureRelation =
       FutureRelation(data.map(_.project(columnDefs)))
-
-    /** @inheritdoc */
-    override def innerJoin(other: Relation, on: RecordComparator): FutureRelation =
-      futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.innerJoin(rel2, on))
-
-    /** @inheritdoc */
-    override def outerJoin(other: Relation, on: RecordComparator): FutureRelation =
-      futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.outerJoin(rel2, on))
-
-    /** @inheritdoc */
-    override def leftJoin(other: Relation, on: RecordComparator): FutureRelation =
-      futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.leftJoin(rel2, on))
-
-    /** @inheritdoc */
-    override def rightJoin(other: Relation, on: RecordComparator): FutureRelation =
-      futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.rightJoin(rel2, on))
-
-    /** @inheritdoc */
-    override def innerEquiJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): FutureRelation =
-      futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.innerEquiJoin(rel2, on))
-
-    /** @inheritdoc*/
-    override def union(other: Relation): FutureRelation =
-      futureCheckedBinaryTransformation(other, (rel1, rel2) => rel1.union(rel2))
 
     /** @inheritdoc */
     override def applyOn[T](col: ColumnDef[T], f: T => T): FutureRelation =
@@ -195,27 +188,6 @@ object FutureRelation {
     override def flatTransform(f: Relation => FutureRelation): FutureRelation =
       FutureRelation(data.flatMap(rel => f(rel).future))
 
-    /**
-      * Creates a new Relation from `this` and `other` by applying `op` to them.
-      * Checks whether `other` is of type FutureRelation or not and resolves `other` and this FutureRelation
-      * simultaneously before applying `op` to both. If `other` is not of type FutureRelation `op` is applied to this
-      * FutureRelation and `other` upon this FutureRelations successful completion.
-      *
-      * @param other  Relation to apply BinRelationOp `op` with `this` to
-      * @param op     BinRelationOp to apply
-      * @return       a new Relation returned from `op` after application to `this` and `other`
-      */
-    private def futureCheckedBinaryTransformation(other: Relation, op: BinRelationOp): FutureRelation =
-      FutureRelation(
-        other match {
-          case fr: FutureRelation => for {
-              rel1 <- data
-              rel2 <- fr.future
-            } yield op(rel1, rel2)
-
-          case otherRel => data.map(rel => op(rel, otherRel))
-        }
-      )
   }
 }
 
