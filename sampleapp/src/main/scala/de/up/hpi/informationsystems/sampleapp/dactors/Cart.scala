@@ -116,12 +116,12 @@ object Cart {
           .map( (rec: Record) => rec + (CartPurchases.sessionId -> currentSessionId))
           .map( (rec: Record) => CartPurchases.newRecord(
             CartPurchases.sectionId ~> rec.get(CartPurchases.sectionId).get &
-              CartPurchases.sessionId ~> rec.get(CartPurchases.sessionId).get &
-              CartPurchases.quantity ~> rec.get(CartPurchases.quantity).get &
-              CartPurchases.inventoryId ~> rec.get(StoreSection.Inventory.inventoryId).get &
-              CartPurchases.fixedDiscount ~> rec.get(GroupManager.Discounts.fixedDisc).get &
-              CartPurchases.minPrice ~> rec.get(StoreSection.Inventory.minPrice).get &
-              CartPurchases.price ~> rec.get(StoreSection.Inventory.price).get
+            CartPurchases.sessionId ~> rec.get(CartPurchases.sessionId).get &
+            CartPurchases.quantity ~> rec.get(CartPurchases.quantity).get &
+            CartPurchases.inventoryId ~> rec.get(StoreSection.Inventory.inventoryId).get &
+            CartPurchases.fixedDiscount ~> rec.get(GroupManager.Discounts.fixedDisc).get &
+            CartPurchases.minPrice ~> rec.get(StoreSection.Inventory.minPrice).get &
+            CartPurchases.price ~> rec.get(StoreSection.Inventory.price).get
           ).build())
       ))
       // FutureRelation: i_id, i_price, i_min_price, i_fixed_disc, sec_id, i_quantity, session_id

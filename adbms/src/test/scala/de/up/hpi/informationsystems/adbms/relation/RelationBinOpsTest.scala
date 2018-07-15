@@ -4,7 +4,6 @@ import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, RelationDef, UntypedColumnDef}
 import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.record.Record
-import org.scalactic.Equality
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -12,19 +11,6 @@ import scala.concurrent.Future
 import scala.util.{Success, Try}
 
 class RelationBinOpsTest extends WordSpec with Matchers {
-
-  // result sets are equal if their order is not!
-  implicit val sortedRecordSeqEquality: Equality[Try[Seq[Record]]] = new Equality[Try[Seq[Record]]] {
-
-    // define ordering without semantic meaning for comparison of Seq[Record] in test matchers
-    implicit val recordOrdering: Ordering[Record] = (x: Record, y: Record) => x.hashCode() - y.hashCode()
-
-    def areEqual(a: Try[Seq[Record]], b: Any): Boolean =
-      b match {
-        case Success(r: Seq[Record]) => a.get.sorted.equals(r.sorted)
-        case _ => false
-      }
-  }
 
   val colFirstname: ColumnDef[String] = ColumnDef("Firstname")
   val colLastname: ColumnDef[String] = ColumnDef("Lastname")
@@ -61,6 +47,15 @@ class RelationBinOpsTest extends WordSpec with Matchers {
       colLastname ~> "Gross"
     ).build()
   )
+
+  implicit class RecordSeqMatcher(left: Try[Seq[Record]]) {
+
+    // define ordering based on id column
+    val recordOrdering: Ordering[Record] = (x: Record, y: Record) => x.get(colId).get - y.get(colId).get
+
+    def shouldEqual(right: Try[Seq[Record]]): org.scalatest.Assertion =
+      left.get.sorted(recordOrdering) shouldEqual right.get.sorted(recordOrdering)
+  }
 
   "A binary relation operation" when {
 
