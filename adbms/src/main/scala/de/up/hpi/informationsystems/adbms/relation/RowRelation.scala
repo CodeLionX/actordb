@@ -28,7 +28,10 @@ object RowRelation {
 
 private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends MutableRelation {
 
-  private var data: Seq[Record] = Seq.empty
+  private val cols: Vector[UntypedColumnDef] = passedColumns.toVector
+  private var data: Vector[Vector[Any]] = Vector.empty
+
+  private def toRecord: Vector[Any] => Record = Record.fromVector(cols)
 
   /** @inheritdoc */
   override val columns: Set[UntypedColumnDef] = passedColumns
@@ -36,16 +39,17 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
   /** @inheritdoc */
   override def insert(record: Record): Try[Record] = Try{
     exceptionWhenNotEqual(record.columns)
-    data = data :+ record
+    data = data :+ cols.map( col => record(col) ) // ensure ordering is the same than `cols`
     record
   }
 
   /** @inheritdoc*/
   override def delete(record: Record): Try[Record] = Try{
     exceptionWhenNotEqual(record.columns)
-    if(!data.contains(record))
+    val tuple = cols.map( col => record(col) )
+    if(!data.contains(tuple))
       throw RecordNotFoundException(s"this relation does not contain the record: $record")
-    data = data.filterNot(_ == record)
+    data = data.filterNot(_ == tuple)
     record
   }
 
@@ -55,42 +59,74 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
       ): Try[Int] = Try {
     exceptionWhenNotSubset(updateData.keys)
     var counter = 0
-    data = data.map( record => {
+    data = data.map( tuple => {
       val allFiltersApply = fs.keys
-        .map { col: UntypedColumnDef => fs(col)(record(col)) }
+        .map { col: UntypedColumnDef => fs(col)(tuple(cols.indexOf(col))) }
         .forall(_ == true)
 
       if(allFiltersApply){
         counter += 1
-        updateData.keys.foldLeft(record)((record, updateCol) => record.updated(updateCol, updateData(updateCol)))
+        updateData.keys.foldLeft(tuple)((t, updateCol) => t.updated(cols.indexOf(updateCol), updateData(updateCol)))
       }
       else
-        record
+        tuple
     })
     counter
   }
 
   /** @inheritdoc */
-  override def where[T](f: (ColumnDef[T], T => Boolean)): Relation = Relation(data).where(f)
+  override def where[T](f: (ColumnDef[T], T => Boolean)): Relation = {
+    val (columnDef, condition) = f
+    val index = cols.indexOf(columnDef)
+    Relation(data.filter{ tuple => condition(tuple(index).asInstanceOf[T]) }.map(toRecord))
+  }
 
   /** @inheritdoc */
-  override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation = Relation(data).whereAll(fs)
+  override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation = {
+    Relation(
+      data.filter{ tuple =>
+        fs.keys
+          .map( col => {
+            val index = cols.indexOf(col)
+            fs(col)(tuple(index))
+          })
+          .forall(_ == true)
+      }.map(toRecord)
+    )
+  }
 
   /** @inheritdoc */
-  override def project(columnDefs: Set[UntypedColumnDef]): Relation = Relation(data).project(columnDefs)
+  override def project(columnDefs: Set[UntypedColumnDef]): Relation =
+    Relation(Try(
+      if(columnDefs subsetOf columns) {
+        val newCols = columnDefs.toVector
+        def toNewRecord: Vector[Any] => Record = Record.fromVector(newCols)
+        data.map(tuple => newCols.map( colDef => tuple(cols.indexOf(colDef))) ).map(toNewRecord)
+      } else
+        throw IncompatibleColumnDefinitionException(s"this relation does not contain all specified columns {$columnDefs}")
+    ))
 
   /** @inheritdoc */
   override def applyOn[T](col: ColumnDef[T], f: T => T): Relation =
-    Relation(records).applyOn(col, f)
+      if(!columns.contains(col))
+        this.immutable
+      else
+        Relation(Try{
+          val index = cols.indexOf(col)
+          data.map( tuple => {
+            val newValue = f(tuple(index).asInstanceOf[T])
+            tuple.updated(index, newValue)
+          }).map(toRecord)
+        })
 
   /** @inheritdoc */
-  override def records: Try[Seq[Record]] = Try(data)
+  override def records: Try[Seq[Record]] = Try(data.map(toRecord))
 
   /** @inheritdoc */
-  override def toString: String = s"${this.getClass.getSimpleName}:\n" + Util.prettyTable(columns, data)
+  override def toString: String = s"${this.getClass.getSimpleName}:\n" + Util.prettyTable(columns, data.map(toRecord))
 
   /** @inheritdoc*/
-  override def immutable: Relation = Relation(data)
+  override def immutable: Relation = Relation(data.map(toRecord))
 
   @throws[IncompatibleColumnDefinitionException]
   private def exceptionWhenNotSubset(incomingColumns: Iterable[UntypedColumnDef]): Unit =
