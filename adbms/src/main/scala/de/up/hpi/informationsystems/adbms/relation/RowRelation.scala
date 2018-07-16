@@ -31,7 +31,16 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
   private val cols: Vector[UntypedColumnDef] = passedColumns.toVector
   private var data: Vector[Vector[Any]] = Vector.empty
 
-  private def toRecord: Vector[Any] => Record = Record.fromVector(cols)
+  private implicit class RichDataVector(in: Vector[Vector[Any]]) {
+    /**
+      * Convertes this `Vector[ Vector[Any] ]` into a sequence of records `Seq[Record]`.
+      * This is the preferred data type meant for the user of this framework.
+      * @param columns used to match the column definition with the cell contents
+      * @return a sequence of records containing the data of this array
+      */
+    def toRecordSeq(columns: Vector[UntypedColumnDef]): Seq[Record] =
+      in.map(Record.fromVector(columns))
+  }
 
   /** @inheritdoc */
   override val columns: Set[UntypedColumnDef] = passedColumns
@@ -78,20 +87,22 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
   override def where[T](f: (ColumnDef[T], T => Boolean)): Relation = {
     val (columnDef, condition) = f
     val index = cols.indexOf(columnDef)
-    Relation(data.filter{ tuple => condition(tuple(index).asInstanceOf[T]) }.map(toRecord))
+    Relation(
+      data.filter{ tuple =>
+        condition(tuple(index).asInstanceOf[T])
+      }.toRecordSeq(cols)
+    )
   }
 
   /** @inheritdoc */
   override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation = {
     Relation(
       data.filter{ tuple =>
-        fs.keys
-          .map( col => {
-            val index = cols.indexOf(col)
-            fs(col)(tuple(index))
-          })
-          .forall(_ == true)
-      }.map(toRecord)
+        fs.keys.map( col => {
+          val index = cols.indexOf(col)
+          fs(col)(tuple(index))
+        }).forall(_ == true)
+      }.toRecordSeq(cols)
     )
   }
 
@@ -101,9 +112,11 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
       if(columnDefs subsetOf columns) {
         val newCols = columnDefs.toVector
         def toNewRecord: Vector[Any] => Record = Record.fromVector(newCols)
-        data.map(tuple => newCols.map( colDef => tuple(cols.indexOf(colDef))) ).map(toNewRecord)
-      } else
-        throw IncompatibleColumnDefinitionException(s"this relation does not contain all specified columns {$columnDefs}")
+        data.map(tuple =>
+          newCols.map( colDef => tuple(cols.indexOf(colDef)))
+        ).toRecordSeq(newCols)
+
+      } else throw IncompatibleColumnDefinitionException(s"this relation does not contain all specified columns {$columnDefs}")
     ))
 
   /** @inheritdoc */
@@ -116,17 +129,17 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
           data.map( tuple => {
             val newValue = f(tuple(index).asInstanceOf[T])
             tuple.updated(index, newValue)
-          }).map(toRecord)
+          }).toRecordSeq(cols)
         })
 
   /** @inheritdoc */
-  override def records: Try[Seq[Record]] = Try(data.map(toRecord))
+  override def records: Try[Seq[Record]] = Try(data.toRecordSeq(cols))
 
   /** @inheritdoc */
-  override def toString: String = s"${this.getClass.getSimpleName}:\n" + Util.prettyTable(columns, data.map(toRecord))
+  override def toString: String = s"${this.getClass.getSimpleName}:\n" + Util.prettyTable(columns, data.toRecordSeq(cols))
 
   /** @inheritdoc*/
-  override def immutable: Relation = Relation(data.map(toRecord))
+  override def immutable: Relation = Relation(data.toRecordSeq(cols))
 
   @throws[IncompatibleColumnDefinitionException]
   private def exceptionWhenNotSubset(incomingColumns: Iterable[UntypedColumnDef]): Unit =
