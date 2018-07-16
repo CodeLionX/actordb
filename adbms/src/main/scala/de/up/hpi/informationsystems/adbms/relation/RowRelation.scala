@@ -108,16 +108,14 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
 
   /** @inheritdoc */
   override def project(columnDefs: Set[UntypedColumnDef]): Relation =
-    Relation(Try(
-      if(columnDefs subsetOf columns) {
-        val newCols = columnDefs.toVector
-        def toNewRecord: Vector[Any] => Record = Record.fromVector(newCols)
-        data.map(tuple =>
-          newCols.map( colDef => tuple(cols.indexOf(colDef)))
-        ).toRecordSeq(newCols)
+    Relation(Try {
+      exceptionWhenNotSubset(columnDefs)
+      val newCols = columnDefs.toVector
 
-      } else throw IncompatibleColumnDefinitionException(s"this relation does not contain all specified columns {$columnDefs}")
-    ))
+      data.map(tuple =>
+        newCols.map(colDef => tuple(cols.indexOf(colDef)))
+      ).toRecordSeq(newCols)
+    })
 
   /** @inheritdoc */
   override def applyOn[T](col: ColumnDef[T], f: T => T): Relation =
