@@ -1,8 +1,9 @@
 package de.up.hpi.informationsystems.adbms.relation
 
 import de.up.hpi.informationsystems.adbms.RecordNotFoundException
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
-import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, RelationDef, UntypedColumnDef}
+import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, RelationDef}
 import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.record.Record
 import org.scalatest.{Matchers, WordSpec}
@@ -14,9 +15,9 @@ class RowRelationTest extends WordSpec with Matchers {
   "A row relation" should {
 
     object Customer extends RelationDef {
-      val colFirstname: ColumnDef[String] = ColumnDef("Firstname")
-      val colLastname: ColumnDef[String] = ColumnDef("Lastname")
-      val colAge: ColumnDef[Int] = ColumnDef("Age")
+      val colFirstname: ColumnDef[String] = ColumnDef[String]("Firstname")
+      val colLastname: ColumnDef[String] = ColumnDef[String]("Lastname")
+      val colAge: ColumnDef[Int] = ColumnDef[Int]("Age")
 
       override val columns: Set[UntypedColumnDef] = Set(colFirstname, colLastname, colAge)
       override val name: String = "customer"
@@ -71,9 +72,9 @@ class RowRelationTest extends WordSpec with Matchers {
 
     "allow updating records with simple where" in {
       object Test extends RelationDef {
-        val col1: ColumnDef[Int] = ColumnDef("ID")
-        val col2: ColumnDef[String] = ColumnDef("Firstname")
-        val col3: ColumnDef[String] = ColumnDef("Lastname")
+        val col1: ColumnDef[Int] = ColumnDef[Int]("ID")
+        val col2: ColumnDef[String] = ColumnDef[String]("Firstname")
+        val col3: ColumnDef[String] = ColumnDef[String]("Lastname")
 
         override val columns: Set[UntypedColumnDef] = Set(col1, col2, col3)
         override val name: String = "test"
@@ -104,9 +105,9 @@ class RowRelationTest extends WordSpec with Matchers {
 
     "allow updating records with multiple where conditions" in {
       object Test extends RelationDef {
-        val col1: ColumnDef[Int] = ColumnDef("ID")
-        val col2: ColumnDef[String] = ColumnDef("Firstname")
-        val col3: ColumnDef[String] = ColumnDef("Lastname")
+        val col1: ColumnDef[Int] = ColumnDef[Int]("ID")
+        val col2: ColumnDef[String] = ColumnDef[String]("Firstname")
+        val col3: ColumnDef[String] = ColumnDef[String]("Lastname")
 
         override val columns: Set[UntypedColumnDef] = Set(col1, col2, col3)
         override val name: String = "test"
@@ -124,8 +125,8 @@ class RowRelationTest extends WordSpec with Matchers {
 
       val result = test.update(col2 ~> "Hans" & col3 ~> "Maier")
         .whereAll(
-          Map(col1.untyped -> { id: Any => id.asInstanceOf[Int] % 2 == 0 }) ++
-          Map(col2.untyped -> { firstname: Any => firstname.asInstanceOf[String] == "Firstname2" })
+          Map(col1 -> { id: Any => id.asInstanceOf[Int] % 2 == 0 }) ++
+          Map(col2 -> { firstname: Any => firstname.asInstanceOf[String] == "Firstname2" })
         )
       result shouldBe Success(1)
 
@@ -140,9 +141,9 @@ class RowRelationTest extends WordSpec with Matchers {
 
     "allow deletion of records" in {
       object Test extends RelationDef {
-        val col1: ColumnDef[Int] = ColumnDef("ID")
-        val col2: ColumnDef[String] = ColumnDef("Firstname")
-        val col3: ColumnDef[String] = ColumnDef("Lastname")
+        val col1: ColumnDef[Int] = ColumnDef[Int]("ID")
+        val col2: ColumnDef[String] = ColumnDef[String]("Firstname")
+        val col3: ColumnDef[String] = ColumnDef[String]("Lastname")
 
         override val columns: Set[UntypedColumnDef] = Set(col1, col2, col3)
         override val name: String = "test"
@@ -172,9 +173,9 @@ class RowRelationTest extends WordSpec with Matchers {
 
     "throw error when trying to delete non-existing record" in {
       object Test extends RelationDef {
-        val col1: ColumnDef[Int] = ColumnDef("ID")
-        val col2: ColumnDef[String] = ColumnDef("Firstname")
-        val col3: ColumnDef[String] = ColumnDef("Lastname")
+        val col1: ColumnDef[Int] = ColumnDef[Int]("ID")
+        val col2: ColumnDef[String] = ColumnDef[String]("Firstname")
+        val col3: ColumnDef[String] = ColumnDef[String]("Lastname")
 
         override val columns: Set[UntypedColumnDef] = Set(col1, col2, col3)
         override val name: String = "test"
