@@ -2,6 +2,7 @@ package de.up.hpi.informationsystems.adbms.record.internal
 
 import scala.language.higherKinds
 
+
 /**
   * A generic trait for an immutable map, which holds a mapping from
   * a type-annotated key and the corresponding value of its type. Use
@@ -24,6 +25,12 @@ trait TypedMapBase[K[+_ <: V], V] {
 
   protected val data: Map[K[V], V]
 
+  /** Creates a new iterator over all key/value pairs of this map
+    *
+    *  @return the new iterator
+    */
+  def iterator: Iterator[(K[V], V)] = data.iterator
+
   // from java.lang.Object
   override def toString: String = s"${this.getClass.getSimpleName}(${data.mkString(", ")})"
 
@@ -35,4 +42,5 @@ trait TypedMapBase[K[+_ <: V], V] {
     case that: TypedMapBase[K, V] => that.canEqual(this) && this.data.equals(that.data)
     case _ => false
   }
+
 }

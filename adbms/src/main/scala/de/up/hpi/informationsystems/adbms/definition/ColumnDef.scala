@@ -8,73 +8,41 @@ import scala.reflect.ClassTag
 
 object ColumnDef {
 
+  type UntypedColumnDef = ColumnDef[Any]
+
   def apply[T](name: String)(implicit default: ColumnTypeDefault[T]): ColumnDef[T] =
     new ColumnDef[T](name, default.default)(default.ct)
 
   def apply[T](name: String, default: T)(implicit ct: ClassTag[T]): ColumnDef[T] =
     new ColumnDef[T](name, default)(ct)
 
-  implicit def columnDefSet2UntypedSet[T](set: Set[ColumnDef[T]]): Set[UntypedColumnDef] =
-    set.asInstanceOf[Set[UntypedColumnDef]]
 }
 
 /**
-  * Column definition consisting of name and type information.
+  * Column definition consisting of name, type information and a default value.
   * Can be used to define a relational schema for storing data.
-  *
-  * @see [[de.up.hpi.informationsystems.adbms.definition.ColumnRelation]]
   */
-sealed trait UntypedColumnDef {
-  /**
-    * Holds the type of the contained values.
-    */
-  type value
+class ColumnDef[+T <: Any](pName: String, pDefault: T)(implicit ct: ClassTag[T]) {
+
+//  override type value = T
 
   /**
     * Returns name of the column
     * @return name of the column
     */
-  def name: String
+  val name: String = pName
 
   /**
     * Returns type of the column as a [[scala.reflect.ClassTag]]
     * @return type of the column as [[scala.reflect.ClassTag]]
     */
-  def tpe: ClassTag[value]
+  val tpe: ClassTag[_] = ct
 
   /**
     * Returns the default value of the column.
     * @return the default value of the column
     */
-  def default: value
-
-  /**
-    * Returns an untyped version of this column definition
-    * @return untyped version of this column definition
-    */
-  def untyped: UntypedColumnDef
-
-  /**
-    * Creates the corresponding [[de.up.hpi.informationsystems.adbms.definition.ColumnStore]]
-    *
-    * @return corresponding Column
-    */
-  protected[definition] def buildColumnStore(): ColumnStore
-}
-
-final class ColumnDef[T](pName: String, pDefault: T)(implicit ct: ClassTag[T]) extends UntypedColumnDef {
-
-  override type value = T
-
-  override val name: String = pName
-
-  override val tpe: ClassTag[T] = ct
-
-  override val default: T = pDefault
-
-  override def untyped: UntypedColumnDef = this.asInstanceOf[UntypedColumnDef]
-
-  override protected[definition] def buildColumnStore(): TypedColumnStore[T] = ColumnStore[T](this)
+  val default: T = pDefault
 
   // overrides of [[java.lang.Object]]
 

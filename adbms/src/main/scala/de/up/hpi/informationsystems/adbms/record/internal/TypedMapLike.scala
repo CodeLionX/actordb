@@ -2,10 +2,8 @@ package de.up.hpi.informationsystems.adbms.record.internal
 
 import java.util.NoSuchElementException
 
-import scala.collection.GenTraversableOnce
-import scala.reflect.ClassTag
-
 import scala.language.higherKinds
+import scala.reflect.ClassTag
 
 
 /**
@@ -25,6 +23,12 @@ trait TypedMapLike[K[+_ <: V], V, This <: TypedMapBase[K, V]] { self: This =>
     * @return a new `This` using the new content
     */
   protected def ctor(cells: Map[K[V], V]): This
+
+  /** Creates a new iterator over all key/value pairs of this map
+    *
+    *  @return the new iterator
+    */
+  def iterator: Iterator[(K[V], V)]
 
   /** Adds a key/value pair to this map, returning a new map.
     *  @param    kv the key/value pair
@@ -47,8 +51,8 @@ trait TypedMapLike[K[+_ <: V], V, This <: TypedMapBase[K, V]] { self: This =>
     *  @param xs      the traversable object consisting of key-value pairs.
     *  @return        a new `This` with the bindings of this map and those from `xs`.
     */
-  def ++[T <: V](xs: GenTraversableOnce[(K[T], T)]): This =
-    ctor(data.++(xs))
+  def ++[T <: V](xs: TypedMapBase[K, T]): This =
+    ctor(data.++(xs.iterator))
 
   /** Creates a new map from this one by removing all keys of another
     *  collection.
@@ -57,8 +61,8 @@ trait TypedMapLike[K[+_ <: V], V, This <: TypedMapBase[K, V]] { self: This =>
     *  @return a new `This` that contains all key/value bindings of the current map
     *  except the key/value bindings of `elems`.
     */
-  def --(xs: GenTraversableOnce[K[V]]): This =
-    ctor(data.--(xs))
+  def --(xs: TypedMapBase[K, V]): This =
+    ctor(data.--(xs.iterator.map(_._1)))
 
   /** Retrieves the value which is associated with the given key. This
     *  method invokes the `default` method of the map if there is no mapping
@@ -107,12 +111,6 @@ trait TypedMapLike[K[+_ <: V], V, This <: TypedMapBase[K, V]] { self: This =>
     */
   def default[T <: V](key: K[T]): T =
     throw new NoSuchElementException("key not found: " + key)
-
-  /** Creates a new iterator over all key/value pairs of this map
-    *
-    *  @return the new iterator
-    */
-  def iterator: Iterator[(K[V], V)] = data.iterator
 
   /** Converts this map to a sequence. As with `toIterable`, it's lazy
     *  in this default implementation, as this `TypedMapLike` may be
