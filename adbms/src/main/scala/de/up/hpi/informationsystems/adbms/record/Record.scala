@@ -13,7 +13,13 @@ class Record(override protected val data: Map[ColumnDef[Any], Any])
   extends TypedMapBase[ColumnDef, Any]
     with TypedMapLike[ColumnDef, Any, Record] {
 
-  val columns: Set[ColumnDef[Any]] = data.keySet
+  def columns: Set[ColumnDef[Any]] = data.keySet
+
+  /** Collects all values of this record in an iterable collection.
+    *
+    *  @return the values of this record as an iterable.
+    */
+  def values: Iterable[Any] = data.values
 
   /**
     * Iff `columnDefs` is a subset of this record,

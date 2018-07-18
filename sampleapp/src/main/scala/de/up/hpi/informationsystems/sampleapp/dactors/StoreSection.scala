@@ -4,6 +4,7 @@ import java.time.{Instant, ZoneOffset, ZonedDateTime}
 
 import akka.actor.Props
 import de.up.hpi.informationsystems.adbms.Dactor
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessageHandling, RequestResponseProtocol}
 import de.up.hpi.informationsystems.adbms.record.Record
@@ -29,9 +30,9 @@ object StoreSection {
   }
 
   object GetVariableDiscountUpdateInventory {
-    val amountCol: ColumnDef[Long] = ColumnDef("amount")
-    val fixedDiscCol: ColumnDef[Double] = ColumnDef("fixed_disc")
-    val varDiscCol: ColumnDef[Double] = ColumnDef("var_disc")
+    val amountCol: ColumnDef[Long] = ColumnDef[Long]("amount")
+    val fixedDiscCol: ColumnDef[Double] = ColumnDef[Double]("fixed_disc")
+    val varDiscCol: ColumnDef[Double] = ColumnDef[Double]("var_disc")
 
     // order items: i_id, i_quantity, i_min_price, i_price, i_fixed_disc
     case class Request(customerId: Int, cartTime: ZonedDateTime, orderItems: Relation) extends RequestResponseProtocol.Request
@@ -42,21 +43,21 @@ object StoreSection {
   }
 
   object Inventory extends RelationDef {
-    val inventoryId: ColumnDef[Int] = ColumnDef("i_id")
-    val price: ColumnDef[Double] = ColumnDef("i_price")
-    val minPrice: ColumnDef[Double] = ColumnDef("i_min_price")
-    val quantity: ColumnDef[Long] = ColumnDef("i_quantity")
-    val varDisc: ColumnDef[Double] = ColumnDef("i_var_disc")
+    val inventoryId: ColumnDef[Int] = ColumnDef[Int]("i_id")
+    val price: ColumnDef[Double] = ColumnDef[Double]("i_price")
+    val minPrice: ColumnDef[Double] = ColumnDef[Double]("i_min_price")
+    val quantity: ColumnDef[Long] = ColumnDef[Long]("i_quantity")
+    val varDisc: ColumnDef[Double] = ColumnDef[Double]("i_var_disc")
 
     override val columns: Set[UntypedColumnDef] = Set(inventoryId, price, minPrice, quantity, varDisc)
     override val name: String = "inventory"
   }
 
   object PurchaseHistory extends RelationDef {
-    val inventoryId: ColumnDef[Int] = ColumnDef("i_id")
-    val time: ColumnDef[ZonedDateTime] = ColumnDef("time", ZonedDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC))
-    val quantity: ColumnDef[Long] = ColumnDef("i_quantity")
-    val customerId: ColumnDef[Int] = ColumnDef("c_id")
+    val inventoryId: ColumnDef[Int] = ColumnDef[Int]("i_id")
+    val time: ColumnDef[ZonedDateTime] = ColumnDef[ZonedDateTime]("time", ZonedDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC))
+    val quantity: ColumnDef[Long] = ColumnDef[Long]("i_quantity")
+    val customerId: ColumnDef[Int] = ColumnDef[Int]("c_id")
 
     override val columns: Set[UntypedColumnDef] = Set(inventoryId, time, quantity, customerId)
     override val name: String = "purchase_history"
@@ -121,10 +122,10 @@ object StoreSection {
         // get recent sales to calculate var_disc
         val recentSalesQuantities = relations(PurchaseHistory)
           .whereAll(Map(
-            PurchaseHistory.inventoryId.untyped -> {
+            PurchaseHistory.inventoryId -> {
               _ == item.get(CartPurchases.inventoryId).get
             },
-            PurchaseHistory.time.untyped -> { time: Any => time.asInstanceOf[ZonedDateTime].isAfter(cartTime.minusDays(K)) }
+            PurchaseHistory.time -> { time => time.asInstanceOf[ZonedDateTime].isAfter(cartTime.minusDays(K)) }
           ))
           .records.get
           .map(_.get(PurchaseHistory.quantity).getOrElse(0))
