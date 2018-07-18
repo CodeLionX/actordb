@@ -1,9 +1,11 @@
 package de.up.hpi.informationsystems.adbms.relation
 
-import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, UntypedColumnDef}
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.record.Record
 import de.up.hpi.informationsystems.adbms.record.Record.RecordBuilder
 
+import scala.reflect.ClassTag
 import scala.util.Try
 
 object Relation {
@@ -31,7 +33,7 @@ trait Relation {
     * @tparam T value type of the column
     * @return a new Relation only containing the data satisfying the condition
     */
-  def where[T](f: (ColumnDef[T], T => Boolean)): Relation
+  def where[T : ClassTag](f: (ColumnDef[T], T => Boolean)): Relation
 
   /**
     * Returns a new Relation only containing the records satisfying all provided conditions.
@@ -57,7 +59,7 @@ trait Relation {
     * @tparam T type of the column
     * @return a new relation with the changed column values
     */
-  def applyOn[T](col: ColumnDef[T], f: T => T): Relation
+  def applyOn[T : ClassTag](col: ColumnDef[T], f: T => T): Relation
 
   /**
     * Converts this Relation to a sequence of Records.
@@ -134,7 +136,7 @@ trait Relation {
     * @tparam T
     * @return a new relation comprised of the joined records from `this` and `other`
     */
-  final def innerEquiJoin[T](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
+  final def innerEquiJoin[T : ClassTag](other: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
     RelationBinOps.innerEquiJoin(this, other, on)
 
   /**

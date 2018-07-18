@@ -1,8 +1,10 @@
 package de.up.hpi.informationsystems.adbms.definition
 import de.up.hpi.informationsystems.adbms.IncompatibleColumnDefinitionException
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.record.Record
 import de.up.hpi.informationsystems.adbms.relation.Relation
 
+import scala.reflect.ClassTag
 import scala.util.Try
 
 /**
@@ -16,7 +18,7 @@ abstract class ColumnRelation extends Relation {
   // needs to be lazy evaluated, because `columns` is not yet defined when this class gets instantiated
   private lazy val data: Map[UntypedColumnDef, ColumnStore] =
     columns.map { colDef: UntypedColumnDef =>
-      Map(colDef -> colDef.buildColumnStore())
+      Map(colDef -> ColumnStore(colDef))
     }.reduce(_ ++ _)
 
   private def getRecord(selectedColumns: Set[UntypedColumnDef])(idx: Int): Record = {
@@ -38,8 +40,8 @@ abstract class ColumnRelation extends Relation {
   }
 
   /** @inheritdoc */
-  override def where[T](f: (ColumnDef[T], T => Boolean)): Relation = {
-    val columnStore = data(f._1.untyped) // needed to get the right type 2 lines below
+  override def where[T : ClassTag](f: (ColumnDef[T], T => Boolean)): Relation = {
+    val columnStore = data(f._1) // needed to get the right type 2 lines below
     Relation(columnStore
       .indicesWhere(f._2.asInstanceOf[columnStore.valueType => Boolean])
       .map(getRecord(columns)(_)))

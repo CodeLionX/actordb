@@ -1,5 +1,6 @@
 package de.up.hpi.informationsystems.adbms.definition
 
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 import org.scalatest.{Matchers, WordSpec}
 
@@ -50,10 +51,6 @@ class ColumnDefTest extends WordSpec with Matchers {
     "equal another ColumnDef if and only if name, type and default value are equal" in {
       colInt should equal (ColumnDef[Int]("integerColumn"))
       colInt should equal (ColumnDef[Int]("integerColumn", 0))
-      colInt should equal (ColumnDef[Int]("integerColumn").untyped)
-      colInt.untyped should equal (ColumnDef[Int]("integerColumn"))
-      colInt.untyped should equal (ColumnDef[Int]("integerColumn", 0))
-      colInt.untyped should equal (ColumnDef[Int]("integerColumn").untyped)
     }
 
     "not equal if either name or type or both are not equal" in {
@@ -62,27 +59,14 @@ class ColumnDefTest extends WordSpec with Matchers {
       colInt shouldNot equal (ColumnDef[Int]("differentName"))
       colInt shouldNot equal (ColumnDef[Int]("integerColumn", 12))
       colInt shouldNot equal (null)
-
-      colInt.untyped shouldNot equal (ColumnDef[Any]("integerColumn", null).untyped)
-      colInt.untyped shouldNot equal (ColumnDef[Byte]("integerColumn").untyped)
-      colInt.untyped shouldNot equal (ColumnDef[Int]("differentName").untyped)
-      colInt.untyped shouldNot equal (ColumnDef[Int]("integerColumn", 12).untyped)
-      colInt.untyped shouldNot equal (null)
     }
 
     "provide a hash that uniquely identifies its name, type and default value" in {
       colInt.hashCode() should equal(ColumnDef[Int]("integerColumn").hashCode())
       colInt.hashCode() should equal(ColumnDef[Int]("integerColumn", 0).hashCode())
-      colInt.hashCode() should equal(ColumnDef[Int]("integerColumn").untyped.hashCode())
       colInt.hashCode() shouldNot equal(ColumnDef[Byte]("integerColumn").hashCode())
       colInt.hashCode() shouldNot equal(ColumnDef[Int]("differentName").hashCode())
       colInt.hashCode() shouldNot equal(ColumnDef[Int]("integerColumn", 12).hashCode())
-
-      colInt.untyped.hashCode() should equal(ColumnDef[Int]("integerColumn").untyped.hashCode())
-      colInt.untyped.hashCode() should equal(ColumnDef[Int]("integerColumn").hashCode())
-      colInt.untyped.hashCode() shouldNot equal(ColumnDef[Byte]("integerColumn").untyped.hashCode())
-      colInt.untyped.hashCode() shouldNot equal(ColumnDef[Int]("differentName").untyped.hashCode())
-      colInt.untyped.hashCode() shouldNot equal(ColumnDef[Int]("integerColumn", 12).untyped.hashCode())
     }
 
     "contain its type in form of a classTag" in {

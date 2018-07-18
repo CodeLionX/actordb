@@ -2,6 +2,7 @@ package de.up.hpi.informationsystems.sampleapp
 
 import akka.actor.{Actor, ActorSystem, Props}
 import de.up.hpi.informationsystems.adbms.Dactor
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol
@@ -55,9 +56,9 @@ object TestDactor {
     * Definition of Columns and Relations for relation "User"
     */
   object User extends RelationDef {
-    val colFirstname: ColumnDef[String] = ColumnDef("Firstname")
-    val colLastname: ColumnDef[String] = ColumnDef("Lastname")
-    val colAge: ColumnDef[Int] = ColumnDef("Age")
+    val colFirstname: ColumnDef[String] = ColumnDef[String]("Firstname")
+    val colLastname: ColumnDef[String] = ColumnDef[String]("Lastname")
+    val colAge: ColumnDef[Int] = ColumnDef[Int]("Age")
 
     override val columns: Set[UntypedColumnDef] = Set(colFirstname, colLastname, colAge)
     override val name: String = "User"
@@ -67,9 +68,9 @@ object TestDactor {
     * Definition of Columns and Relations for relation "Customer"
     */
   object Customer extends RelationDef {
-    val colId: ColumnDef[Int] = ColumnDef("Id")
-    val colName: ColumnDef[String] = ColumnDef("Name")
-    val colDiscount: ColumnDef[Double] = ColumnDef("Discount")
+    val colId: ColumnDef[Int] = ColumnDef[Int]("Id")
+    val colName: ColumnDef[String] = ColumnDef[String]("Name")
+    val colDiscount: ColumnDef[Double] = ColumnDef[Double]("Discount")
 
     override val columns: Set[UntypedColumnDef] = Set(colId, colName, colDiscount)
     override val name: String = "Customer"
@@ -135,15 +136,15 @@ class TestDactor(id: Int) extends Dactor(id) {
     println(
       relations(User)
         .whereAll(
-          Map(User.colFirstname.untyped -> { name: Any => name.asInstanceOf[String] == "Hans" })
-            ++ Map(User.colAge.untyped -> { age: Any => age.asInstanceOf[Int] == 33 })
+          Map(User.colFirstname -> { name: Any => name.asInstanceOf[String] == "Hans" })
+            ++ Map(User.colAge -> { age: Any => age.asInstanceOf[Int] == 33 })
         )
         .records.getOrElse(Seq.empty)
         .pretty
     )
 
     assert(ColumnDef[String]("Firstname") == User.colFirstname)
-    assert(ColumnDef[Int]("Firstname").untyped != User.colFirstname.untyped)
+    assert((ColumnDef[Int]("Firstname"): UntypedColumnDef) != (User.colFirstname: UntypedColumnDef))
 
     println()
     println("Projection of user relation:")
@@ -204,8 +205,8 @@ class TestDactor(id: Int) extends Dactor(id) {
     println(
       relations(Customer)
         .whereAll(
-          Map(Customer.colName.untyped -> isBMW)
-            ++ Map(Customer.colDiscount.untyped -> discountGreaterThan(0.01))
+          Map(Customer.colName -> isBMW)
+            ++ Map(Customer.colDiscount -> discountGreaterThan(0.01))
         )
         .records.getOrElse(Seq.empty)
         .pretty

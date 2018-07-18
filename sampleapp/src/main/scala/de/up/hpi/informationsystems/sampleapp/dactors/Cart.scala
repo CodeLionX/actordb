@@ -5,17 +5,16 @@ import java.time.{ZoneOffset, ZonedDateTime}
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.util.Timeout
 import de.up.hpi.informationsystems.adbms.Dactor
-import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessageHandling, RequestResponseProtocol}
+import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.record.Record
 import de.up.hpi.informationsystems.adbms.relation.{FutureRelation, MutableRelation, Relation}
 import de.up.hpi.informationsystems.sampleapp.DataInitializer
 import de.up.hpi.informationsystems.sampleapp.dactors.Cart.CartBase
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
@@ -39,22 +38,22 @@ object Cart {
   }
 
   object CartInfo extends RelationDef {
-    val customerId: ColumnDef[Int] = ColumnDef("c_id")
-    val storeId: ColumnDef[Int] = ColumnDef("store_id")
-    val sessionId: ColumnDef[Int] = ColumnDef("session_id")
+    val customerId: ColumnDef[Int] = ColumnDef[Int]("c_id")
+    val storeId: ColumnDef[Int] = ColumnDef[Int]("store_id")
+    val sessionId: ColumnDef[Int] = ColumnDef[Int]("session_id")
 
     override val columns: Set[UntypedColumnDef] = Set(customerId, storeId, sessionId)
     override val name: String = "cart_info"
   }
 
   object CartPurchases extends RelationDef {
-    val sectionId: ColumnDef[Int] = ColumnDef("sec_id")
-    val sessionId: ColumnDef[Int] = ColumnDef("session_id")
-    val inventoryId: ColumnDef[Int] = ColumnDef("i_id")
-    val quantity: ColumnDef[Int] = ColumnDef("i_quantity")
-    val fixedDiscount: ColumnDef[Double] = ColumnDef("i_fixed_disc")
-    val minPrice: ColumnDef[Double] = ColumnDef("i_min_price")
-    val price: ColumnDef[Double] = ColumnDef("i_price")
+    val sectionId: ColumnDef[Int] = ColumnDef[Int]("sec_id")
+    val sessionId: ColumnDef[Int] = ColumnDef[Int]("session_id")
+    val inventoryId: ColumnDef[Int] = ColumnDef[Int]("i_id")
+    val quantity: ColumnDef[Int] = ColumnDef[Int]("i_quantity")
+    val fixedDiscount: ColumnDef[Double] = ColumnDef[Double]("i_fixed_disc")
+    val minPrice: ColumnDef[Double] = ColumnDef[Double]("i_min_price")
+    val price: ColumnDef[Double] = ColumnDef[Double]("i_price")
 
     override val columns: Set[UntypedColumnDef] =
       Set(sectionId, sessionId, inventoryId, quantity, fixedDiscount, minPrice, price)
@@ -226,8 +225,8 @@ object Cart {
 
         val cartItems: Relation = relations(CartPurchases)
           .whereAll(
-            Map(CartPurchases.sessionId.untyped -> { sesId: Any => sesId.asInstanceOf[Int] == sessionId}) ++
-              Map(CartPurchases.sectionId.untyped -> { secId: Any => sections.contains(secId.asInstanceOf[Int]) })
+            Map((CartPurchases.sessionId: UntypedColumnDef) -> { sesId: Any => sesId.asInstanceOf[Int] == sessionId}) ++
+              Map((CartPurchases.sectionId: UntypedColumnDef) -> { secId: Any => sections.contains(secId.asInstanceOf[Int]) })
           ).project(Set(
             CartPurchases.inventoryId, CartPurchases.quantity, CartPurchases.price,
             CartPurchases.fixedDiscount, CartPurchases.minPrice

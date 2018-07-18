@@ -5,8 +5,9 @@ import java.util.NoSuchElementException
 import akka.actor.{Actor, ActorNotFound, ActorRef, ActorSystem, InvalidActorNameException}
 import akka.testkit.{TestKit, TestProbe}
 import akka.util.Timeout
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
-import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, RelationDef, UntypedColumnDef}
+import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, RelationDef}
 import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessageHandling, DefaultMessagingProtocol}
 import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.record.Record
@@ -37,8 +38,8 @@ object DactorTest {
   object DactorWithRelation {
 
     object TestRelation extends RelationDef {
-      val col1: ColumnDef[Int] = ColumnDef("col1")
-      val col2: ColumnDef[String] = ColumnDef("col2")
+      val col1: ColumnDef[Int] = ColumnDef[Int]("col1")
+      val col2: ColumnDef[String] = ColumnDef[String]("col2")
 
       override val columns: Set[UntypedColumnDef] = Set(col1, col2)
       override val name: String = "testRelation"

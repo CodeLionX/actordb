@@ -1,7 +1,8 @@
 package de.up.hpi.informationsystems.adbms.relation
 
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
-import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, UntypedColumnDef}
 import de.up.hpi.informationsystems.adbms.record.Record
 import org.scalatest.{Matchers, WordSpec}
 
@@ -13,9 +14,9 @@ class FutureRelationTest extends WordSpec with Matchers {
 
   "A future relation" when {
 
-    val colFirstname: ColumnDef[String] = ColumnDef("Firstname")
-    val colLastname: ColumnDef[String] = ColumnDef("Lastname")
-    val colAge: ColumnDef[Int] = ColumnDef("Age")
+    val colFirstname: ColumnDef[String] = ColumnDef[String]("Firstname")
+    val colLastname: ColumnDef[String] = ColumnDef[String]("Lastname")
+    val colAge: ColumnDef[Int] = ColumnDef[Int]("Age")
 
     val columns: Set[UntypedColumnDef] = Set(colFirstname, colLastname, colAge)
 
@@ -55,8 +56,8 @@ class FutureRelationTest extends WordSpec with Matchers {
           .records shouldEqual Success(Seq.empty)
 
         emptyRelation.whereAll(Map(
-          colFirstname.untyped -> {_: Any => true},
-          colAge.untyped -> {_: Any => true}
+          colFirstname -> {_ => true},
+          colAge -> {_ => true}
         )).records shouldEqual Success(Seq.empty)
       }
 
@@ -83,8 +84,8 @@ class FutureRelationTest extends WordSpec with Matchers {
 
         "return the appropriate result set for a whereAll query including the empty result set" in {
           fullRelation.whereAll(Map(
-            colAge.untyped -> {id: Any => id.asInstanceOf[Int] <= 23},
-            colFirstname.untyped -> {field: Any => field.asInstanceOf[String].contains("Max")}
+            colAge -> {id => id.asInstanceOf[Int] <= 23},
+            colFirstname -> {field => field.asInstanceOf[String].contains("Max")}
           )).records shouldEqual Success(Seq(record2))
         }
 
@@ -110,11 +111,11 @@ class FutureRelationTest extends WordSpec with Matchers {
       }
 
       "joining with other TransientRelations" should {
-        val colOrderId: ColumnDef[Int] = ColumnDef("OrderId")
-        val colOrderdate: ColumnDef[String] = ColumnDef("Orderdate")
-        val colCustomerId: ColumnDef[Int] = ColumnDef("CustomerId")
-        val colFullname: ColumnDef[String] = ColumnDef("Fullname")
-        val colCountry: ColumnDef[String] = ColumnDef("Country")
+        val colOrderId: ColumnDef[Int] = ColumnDef[Int]("OrderId")
+        val colOrderdate: ColumnDef[String] = ColumnDef[String]("Orderdate")
+        val colCustomerId: ColumnDef[Int] = ColumnDef[Int]("CustomerId")
+        val colFullname: ColumnDef[String] = ColumnDef[String]("Fullname")
+        val colCountry: ColumnDef[String] = ColumnDef[String]("Country")
 
         val orderColumns: Set[UntypedColumnDef] = Set(colOrderId, colOrderdate, colCustomerId)
         val customerColumns: Set[UntypedColumnDef] = Set(colCustomerId, colFullname, colCountry)

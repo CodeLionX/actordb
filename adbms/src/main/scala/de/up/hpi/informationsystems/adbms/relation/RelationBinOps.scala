@@ -2,6 +2,8 @@ package de.up.hpi.informationsystems.adbms.relation
 
 import de.up.hpi.informationsystems.adbms.definition.ColumnDef
 
+import scala.reflect.ClassTag
+
 object RelationBinOps {
 
   def innerJoin(left: Relation, right: Relation, on: Relation.RecordComparator): Relation = (left, right) match {
@@ -44,7 +46,7 @@ object RelationBinOps {
     case (r1, r2) => throw new UnsupportedOperationException(s"Binary relation operation for ${r1.getClass.getSimpleName} and ${r2.getClass.getSimpleName} is not supported!")
   }
 
-  def innerEquiJoin[T](left: Relation, right: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation = (left, right) match {
+  def innerEquiJoin[T : ClassTag](left: Relation, right: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation = (left, right) match {
     case (tr1: TransientRelation, tr2: TransientRelation) => TransientRelation.BinOps.innerEquiJoin(tr1, tr2, on)
     case (tr: TransientRelation, fr: FutureRelation) => FutureRelation.BinOps.innerEquiJoin(fr, tr, on)
     case (tr: TransientRelation, mr: MutableRelation) => MutableRelation.BinOps.innerEquiJoin(mr, tr, on)

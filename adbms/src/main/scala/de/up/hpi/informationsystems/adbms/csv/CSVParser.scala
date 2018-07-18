@@ -4,6 +4,7 @@ import java.io._
 import java.time.ZonedDateTime
 
 import com.univocity.parsers.csv._
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.record.Record
 import de.up.hpi.informationsystems.adbms.relation.Relation
