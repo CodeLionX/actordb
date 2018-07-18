@@ -129,7 +129,10 @@ object Record {
     */
   def apply(columnDefs: Set[UntypedColumnDef]): RecordBuilder = new RecordBuilder(columnDefs, Map.empty)
 
-  private[adbms] def fromMap(columnDefMap: Map[UntypedColumnDef, Any]) = new Record(columnDefMap)
+  private[adbms] def fromMap(columnDefMap: Map[UntypedColumnDef, Any]): Record = new Record(columnDefMap)
+
+  private[adbms] def fromVector(columnDefs: Vector[UntypedColumnDef])(data: Vector[Any]): Record =
+    new Record(columnDefs.indices.map{ index => columnDefs(index) -> data(index) }.toMap)
 
   val empty: Record = Record.empty
 
