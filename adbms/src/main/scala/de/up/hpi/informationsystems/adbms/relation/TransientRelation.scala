@@ -51,9 +51,9 @@ private object TransientRelation {
           throwErrorIfColumnNotIn(l.columns, on._1)
           throwErrorIfColumnNotIn(r.columns, on._2)
 
-          val recMap = r.internal_data.groupBy(_(on._2))
+          val recMap = r.internal_data.groupBy(_.get(on._2))
           l.internal_data.flatMap(record => {
-            val matchingRecords = recMap.getOrElse(record(on._1), Seq.empty)
+            val matchingRecords = recMap.getOrElse(record.get(on._1), Seq.empty)
             matchingRecords.map(otherRecord =>
               record ++ otherRecord
             )
@@ -178,7 +178,7 @@ private[relation] final class TransientRelation(data: Try[Seq[Record]]) extends 
           case Some(value) =>
             val newValue = f(value)
             record.updated(col, newValue)
-          case _ => record
+          case None => record
         })
       })
 

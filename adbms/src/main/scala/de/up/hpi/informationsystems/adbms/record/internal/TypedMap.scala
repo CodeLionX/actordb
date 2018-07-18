@@ -1,6 +1,5 @@
 package de.up.hpi.informationsystems.adbms.record.internal
 
-import scala.collection.{IterableLike, mutable}
 import scala.language.higherKinds
 
 

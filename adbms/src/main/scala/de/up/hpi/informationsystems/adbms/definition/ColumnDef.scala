@@ -24,8 +24,6 @@ object ColumnDef {
   */
 class ColumnDef[+T <: Any](pName: String, pDefault: T)(implicit ct: ClassTag[T]) {
 
-//  override type value = T
-
   /**
     * Returns name of the column
     * @return name of the column
