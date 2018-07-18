@@ -174,8 +174,8 @@ private[relation] final class TransientRelation(data: Try[Seq[Record]]) extends 
       this
     else
       Relation(Try{
-        internal_data.map( record => record(col) match {
-          case value: T =>
+        internal_data.map( record => record.get(col) match {
+          case Some(value) =>
             val newValue = f(value)
             record.updated(col, newValue)
           case _ => record
