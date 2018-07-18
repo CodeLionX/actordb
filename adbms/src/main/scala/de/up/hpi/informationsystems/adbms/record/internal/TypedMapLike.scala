@@ -12,6 +12,10 @@ import scala.reflect.ClassTag
   * This trait provides most of the operations of a `TypedMap` independently of its representation.
   * It is typically inherited by concrete implementations of maps.
   *
+  * @note
+  * As [[scala.collection.immutable.MapLike]] does not provide typed accessors, we provide our own implementation of
+  * a `MapLike`. This is an alternative to overloading `apply` and `get`.
+  *
   * @tparam K    the type of the keys
   * @tparam V    the type of the associated values
   * @tparam This the type of the map itself

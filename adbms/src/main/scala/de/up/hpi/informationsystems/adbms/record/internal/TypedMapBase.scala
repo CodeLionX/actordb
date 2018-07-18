@@ -18,6 +18,10 @@ import scala.language.higherKinds
   *   }
   * }}}
   *
+  * @note
+  * As [[scala.collection.immutable.MapLike]] does not provide typed accessors, we provide our own implementation of
+  * * a `MapLike`. This is an alternative to overloading `apply` and `get`.
+  *
   * @tparam K type of key
   * @tparam V type of value
   */
