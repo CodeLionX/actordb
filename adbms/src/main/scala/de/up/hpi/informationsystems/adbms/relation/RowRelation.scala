@@ -95,7 +95,7 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
   }
 
   /** @inheritdoc */
-  override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation = {
+  override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation =
     Relation(
       data.filter{ tuple =>
         fs.keys.map( col => {
@@ -104,7 +104,6 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
         }).forall(_ == true)
       }.toRecordSeq(cols)
     )
-  }
 
   /** @inheritdoc */
   override def project(columnDefs: Set[UntypedColumnDef]): Relation =
@@ -119,16 +118,16 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
 
   /** @inheritdoc */
   override def applyOn[T](col: ColumnDef[T], f: T => T): Relation =
-      if(!columns.contains(col))
-        this.immutable
-      else
-        Relation(Try{
-          val index = cols.indexOf(col)
-          data.map( tuple => {
-            val newValue = f(tuple(index).asInstanceOf[T])
-            tuple.updated(index, newValue)
-          }).toRecordSeq(cols)
-        })
+    if(!columns.contains(col))
+      this.immutable
+    else
+      Relation(Try{
+        val index = cols.indexOf(col)
+        data.map( tuple => {
+          val newValue = f(tuple(index).asInstanceOf[T])
+          tuple.updated(index, newValue)
+        }).toRecordSeq(cols)
+      })
 
   /** @inheritdoc */
   override def records: Try[Seq[Record]] = Try(data.toRecordSeq(cols))
@@ -138,18 +137,5 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
 
   /** @inheritdoc*/
   override def immutable: Relation = Relation(data.toRecordSeq(cols))
-
-  @throws[IncompatibleColumnDefinitionException]
-  private def exceptionWhenNotSubset(incomingColumns: Iterable[UntypedColumnDef]): Unit =
-    if (!(incomingColumns.toSet subsetOf columns)) {
-      val notMatchingColumns = incomingColumns.toSet -- columns
-      throw IncompatibleColumnDefinitionException(s"this relation does not contain following columns: $notMatchingColumns")
-    }
-
-  @throws[IncompatibleColumnDefinitionException]
-  private def exceptionWhenNotEqual(incomingColumns: Iterable[UntypedColumnDef]): Unit =
-    if(incomingColumns != columns)
-      throw IncompatibleColumnDefinitionException(s"the provided column layout does not match this " +
-        s"relation's schema:\n$incomingColumns (provided)\n${this.columns} (relation)")
 
 }

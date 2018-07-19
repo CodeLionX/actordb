@@ -1,5 +1,6 @@
 package de.up.hpi.informationsystems.adbms.relation
 
+import de.up.hpi.informationsystems.adbms.IncompatibleColumnDefinitionException
 import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, UntypedColumnDef}
 import de.up.hpi.informationsystems.adbms.record.{ColumnCellMapping, Record}
 
@@ -101,6 +102,36 @@ trait MutableRelation extends Relation {
   def immutable: Relation
 
   // helper
+
+  /**
+    * Checks incoming columns for being a subset of this relation's columns.
+    * Throws an exception, when it is not the case.
+    * @param incomingColumns columns passed to a function
+    * @throws IncompatibleColumnDefinitionException if `incomingColumns` is not a subset of `columns`
+    */
+  @throws[IncompatibleColumnDefinitionException]
+  protected def exceptionWhenNotSubset(incomingColumns: Iterable[UntypedColumnDef]): Unit =
+    if (!(incomingColumns.toSet subsetOf columns)) {
+      val notMatchingColumns = incomingColumns.toSet -- columns
+      throw IncompatibleColumnDefinitionException(s"this relation does not contain following columns: $notMatchingColumns")
+    }
+
+  /**
+    * Check incoming columns for being equal to this relation's columns.
+    * Throws an exception otherwise.
+    * @param incomingColumns columns passed to a function
+    * @throws IncompatibleColumnDefinitionException if `incomingColumns` is not equal to `columns`
+    */
+  @throws[IncompatibleColumnDefinitionException]
+  protected def exceptionWhenNotEqual(incomingColumns: Iterable[UntypedColumnDef]): Unit =
+    if(incomingColumns != columns)
+      throw IncompatibleColumnDefinitionException(
+        s"""the provided column layout does not match this relation's schema:
+           |$incomingColumns (provided)
+           |${this.columns} (relation)
+           |""".stripMargin
+      )
+
   /**
     * Helps building conditions for updating relations.
     *
