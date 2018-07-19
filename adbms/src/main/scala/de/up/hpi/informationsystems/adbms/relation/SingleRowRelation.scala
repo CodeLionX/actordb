@@ -30,6 +30,23 @@ class SingleRowRelation(pColumns: Set[UntypedColumnDef]) extends MutableRelation
   private val cols: Vector[UntypedColumnDef] = pColumns.toVector
   private var data: Vector[Any] = Vector.empty
 
+  private implicit class RichDataVector(tuple: Vector[Any]) {
+
+    def toRecordSeq(columnDefs: Vector[UntypedColumnDef]): Seq[Record] =
+      if(tuple.isEmpty)
+        Seq.empty
+      else
+        Seq(Record.fromVector(columnDefs)(tuple))
+
+    def toRelation(columnDefs: Vector[UntypedColumnDef]): Relation =
+      if(tuple.isEmpty)
+        Relation.empty
+      else
+        Relation(Seq(
+          Record.fromVector(columnDefs)(tuple)
+        ))
+  }
+
   /** @inheritdoc */
   override val columns: Set[UntypedColumnDef] = pColumns
 
@@ -46,7 +63,7 @@ class SingleRowRelation(pColumns: Set[UntypedColumnDef]) extends MutableRelation
   override def delete(record: Record): Try[Record] = Try{
     exceptionWhenNotEqual(record.columns)
     val tuple = cols.map( col => record(col) )
-    if(data != tuple)
+    if(!data.equals(tuple))
       throw RecordNotFoundException(s"this relation does not contain $record")
     data = Vector.empty
     record
@@ -68,7 +85,7 @@ class SingleRowRelation(pColumns: Set[UntypedColumnDef]) extends MutableRelation
   }
 
   /** @inheritdoc */
-  override def immutable: Relation = Relation(Seq(Record.fromVector(cols)(data)))
+  override def immutable: Relation = data.toRelation(cols)
 
   // from Relation
 
@@ -100,7 +117,7 @@ class SingleRowRelation(pColumns: Set[UntypedColumnDef]) extends MutableRelation
     exceptionWhenNotSubset(columnDefs)
     val newCols = columnDefs.toVector
     val newTuple = newCols.map( colDef => data(cols.indexOf(colDef)))
-    Seq(Record.fromVector(newCols)(newTuple))
+    newTuple.toRecordSeq(newCols)
   })
 
   /** @inheritdoc */
@@ -108,14 +125,14 @@ class SingleRowRelation(pColumns: Set[UntypedColumnDef]) extends MutableRelation
     exceptionWhenNotSubset(Seq(col))
     val index = cols.indexOf(col)
     val newValue = f(data(index).asInstanceOf[T])
-    Seq(Record.fromVector(cols)(data.updated(index, newValue)))
+    data.updated(index, newValue).toRecordSeq(cols)
   })
 
   /** @inheritdoc */
-  override def records: Try[Seq[Record]] = Try(Seq(Record.fromVector(cols)(data)))
+  override def records: Try[Seq[Record]] = Try(data.toRecordSeq(cols))
 
   @throws[UnsupportedOperationException]
   private def exceptionWhenAlreadyFull(op: String): Unit =
-    if(data.length == 1)
+    if(data.nonEmpty)
       throw new UnsupportedOperationException(s"A single row relation can only contain one row! $op is not allowed anymore.")
 }

@@ -62,7 +62,9 @@ class RowRelationTest extends WordSpec with Matchers {
     }
 
     "fail to insert records that do not adhere to the relations schema" in {
-      customer.insert(record4).isFailure should equal (true)
+      val test = RowRelation(Customer)
+      test.insert(record4).isFailure should equal (true)
+      test.records shouldEqual Success(Seq.empty)
     }
 
     "fail to batch insert records with at least one that does not adhere to the relations schema" in {

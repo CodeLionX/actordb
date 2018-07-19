@@ -101,7 +101,7 @@ class SingleRowRelationTest extends WordSpec with Matchers {
 
       result.isFailure shouldBe true
       result.failed.get match {
-        case RecordNotFoundException(e) => e.contains("this relation does not contain the record") shouldBe true
+        case RecordNotFoundException(e) => e.contains("this relation does not contain") shouldBe true
         case t => fail(s"the wrong exception was thrown\nexpected: RecordNotFoundExcpetion\nfound: $t")
       }
       customer.records shouldBe Success(Seq(record1))
