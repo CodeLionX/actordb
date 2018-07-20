@@ -40,6 +40,9 @@ class SystemInitializer extends Actor with ActorLogging {
 
   def down: Receive = {
     case Startup(timeout) =>
+      val adminSession = Dactor.dactorOf(context.system, classOf[AdminSession], 1)
+      context.watch(adminSession)
+
       val empireStrikesBack = Dactor.dactorOf(context.system, classOf[Film], 1)
       context.watch(empireStrikesBack)
 
@@ -59,7 +62,8 @@ class SystemInitializer extends Actor with ActorLogging {
       ).build()
 
       // send message to all Dactors
-      val pendingACKs = Seq(empireStrikesBack, markHamill)
+      val pendingACKs = Seq(adminSession, empireStrikesBack, markHamill)
+      adminSession ! AdminSession.Up
       empireStrikesBack ! InsertIntoRelation("film_info", Seq(empireInfoRec))
       markHamill ! InsertIntoRelation("person_info", Seq(markInfo))
 
