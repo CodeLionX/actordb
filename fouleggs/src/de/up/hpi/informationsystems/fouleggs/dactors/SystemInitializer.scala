@@ -40,7 +40,7 @@ class SystemInitializer extends Actor with ActorLogging {
 
   def down: Receive = {
     case Startup(timeout) =>
-      val adminSession = Dactor.dactorOf(context.system, classOf[AdminSession], 1)
+      val adminSession = context.system.actorOf(AdminSession.props, "AdminSession")
       context.watch(adminSession)
 
       val empireStrikesBack = Dactor.dactorOf(context.system, classOf[Film], 1)
