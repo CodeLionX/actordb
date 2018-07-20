@@ -208,6 +208,36 @@ class RowRelationTest extends WordSpec with Matchers {
         test.newRecord(col1 ~> 4 & col2 ~> "Firstname4" & col3 ~> "Lastname4").build()
       ))
     }
+    "fail on where query with wrong column definition" in {
+      val customer = RowRelation(Customer)
+      customer.insert(record1)
+
+      val result = customer.where(ColumnDef[Double]("WRONG") -> { d: Double => d == 2.1}).records
+
+      result.isFailure shouldBe true
+    }
+
+    "fail on whereAll query with wrong column definition" in {
+      val customer = RowRelation(Customer)
+      customer.insert(record1)
+
+      val result = customer.whereAll(
+        Map(ColumnDef[Double]("WRONG").untyped -> ({ case d: Double => d == 2.1}: Any => Boolean))
+      ).records
+
+      result.isFailure shouldBe true
+    }
+
+    "fail on project query with wrong column definition" in {
+      val customer = RowRelation(Customer)
+      customer.insert(record1)
+
+      val result = customer.project(
+        Set(ColumnDef[Double]("WRONG").untyped)
+      ).records
+
+      result.isFailure shouldBe true
+    }
   }
 
   // queries on and joins with data from RowRelation are performed in TransientRelation and therefore tested in its test

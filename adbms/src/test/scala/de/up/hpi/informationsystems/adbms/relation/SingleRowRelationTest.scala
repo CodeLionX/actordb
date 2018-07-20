@@ -145,5 +145,36 @@ class SingleRowRelationTest extends WordSpec with Matchers {
         Customer.newRecord(Customer.colAge ~> 42 & Customer.colFirstname ~> "Hans" & Customer.colLastname ~> "Maier").build()
       ))
     }
+
+    "fail on where query with wrong column definition" in {
+      val customer = SingleRowRelation(Customer)
+      customer.insert(record1)
+
+      val result = customer.where(ColumnDef[Double]("WRONG") -> { d: Double => d == 2.1}).records
+
+      result.isFailure shouldBe true
+    }
+
+    "fail on whereAll query with wrong column definition" in {
+      val customer = SingleRowRelation(Customer)
+      customer.insert(record1)
+
+      val result = customer.whereAll(
+        Map(ColumnDef[Double]("WRONG").untyped -> ({ case d: Double => d == 2.1}: Any => Boolean))
+      ).records
+
+      result.isFailure shouldBe true
+    }
+
+    "fail on project query with wrong column definition" in {
+      val customer = SingleRowRelation(Customer)
+      customer.insert(record1)
+
+      val result = customer.project(
+        Set(ColumnDef[Double]("WRONG").untyped)
+      ).records
+
+      result.isFailure shouldBe true
+    }
   }
 }
