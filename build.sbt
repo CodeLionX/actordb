@@ -22,8 +22,17 @@ lazy val sampleapp = (project in file("sampleapp"))
   )
   .dependsOn(adbms)
 
+lazy val fouleggs = (project in file("fouleggs"))
+  .settings(
+    Common.commonSettings,
+    organization := Common.organization,
+    scalaVersion := Common.scalaVersion,
+    libraryDependencies ++= Dependencies.akkaActorDependencies
+  )
+  .dependsOn(adbms)
+
 lazy val root = (project in file("."))
-  .aggregate(adbms, sampleapp)
+  .aggregate(adbms, sampleapp, fouleggs)
   .settings(
     version := Common.frameworkVersion,
     scalaVersion := Common.scalaVersion
