@@ -27,5 +27,5 @@ Scaladoc checklist:
 * An optional text block elaborating on the function/class/trait followed by two newlines.
 * If applicable: special notifications (`@note`), possible exceptions (`@throws`), parameters (`@param`), type
   parameters (`@tparam`), return value (`@return`), etc.
-* The names - or types for e.g. `@throws` statements - and descriptions are tab-aligned if reasonable, i.e. the
-  alignment doesn't introduce excessive whitespace.
+* The names - or types for e.g. `@throws` statements - and descriptions are aligned to start in the same column if
+  reasonable, i.e. the alignment doesn't introduce excessive whitespace.
