@@ -1,7 +1,5 @@
 package de.up.hpi.informationsystems.fouleggs.dactors
 
-import akka.actor.AbstractActor
-import akka.actor.Actor.Receive
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition.RelationDef
 import de.up.hpi.informationsystems.adbms.protocols.DefaultMessageHandling
