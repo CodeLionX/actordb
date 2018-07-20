@@ -3,12 +3,13 @@ package de.up.hpi.informationsystems.sampleapp.dactors
 import java.time.{Instant, ZoneOffset, ZonedDateTime}
 
 import akka.actor.Props
-import de.up.hpi.informationsystems.adbms.{Dactor, InconsistentStateException}
-import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessageHandling, RequestResponseProtocol}
+import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.record.Record
 import de.up.hpi.informationsystems.adbms.relation.{MutableRelation, Relation}
+import de.up.hpi.informationsystems.adbms.{Dactor, InconsistentStateException}
 import de.up.hpi.informationsystems.sampleapp.{AuthenticationFailedException, DataInitializer}
 
 import scala.util.{Failure, Success, Try}
@@ -52,26 +53,26 @@ object Customer {
   }
 
   object CustomerInfo extends RelationDef {
-    val custName: ColumnDef[String] = ColumnDef("cust_name")
-    val custGroupId: ColumnDef[Int] = ColumnDef("c_g_id")
+    val custName: ColumnDef[String] = ColumnDef[String]("cust_name")
+    val custGroupId: ColumnDef[Int] = ColumnDef[Int]("c_g_id")
 
     override val columns: Set[UntypedColumnDef] = Set(custName, custGroupId)
     override val name: String = "customer_info"
   }
 
   object StoreVisits extends RelationDef {
-    val storeId: ColumnDef[Int] = ColumnDef("store_id")
-    val timestamp: ColumnDef[ZonedDateTime] = ColumnDef("time", ZonedDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC))
-    val amount: ColumnDef[Double] = ColumnDef("amount")
-    val fixedDiscount: ColumnDef[Double] = ColumnDef("fixed_disc")
-    val varDiscount: ColumnDef[Double] = ColumnDef("var_disc")
+    val storeId: ColumnDef[Int] = ColumnDef[Int]("store_id")
+    val timestamp: ColumnDef[ZonedDateTime] = ColumnDef[ZonedDateTime]("time", ZonedDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC))
+    val amount: ColumnDef[Double] = ColumnDef[Double]("amount")
+    val fixedDiscount: ColumnDef[Double] = ColumnDef[Double]("fixed_disc")
+    val varDiscount: ColumnDef[Double] = ColumnDef[Double]("var_disc")
 
     override val columns: Set[UntypedColumnDef] = Set(storeId, timestamp, amount, fixedDiscount, varDiscount)
     override val name: String = "store_visits"
   }
 
   object Password extends RelationDef /* with Encryption */ {
-    val encryptedPassword: ColumnDef[String] = ColumnDef("enc_passwd")
+    val encryptedPassword: ColumnDef[String] = ColumnDef[String]("enc_passwd")
 
     override val columns: Set[UntypedColumnDef] = Set(encryptedPassword)
     override val name: String = "passwd"

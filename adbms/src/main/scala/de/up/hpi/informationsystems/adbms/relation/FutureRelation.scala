@@ -1,7 +1,8 @@
 package de.up.hpi.informationsystems.adbms.relation
 
 import akka.actor.ActorRef
-import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, UntypedColumnDef}
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.record.Record
 import de.up.hpi.informationsystems.adbms.relation.Relation.RecordComparator
 
@@ -9,6 +10,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Awaitable, CanAwait, Future}
 import scala.language.postfixOps
+import scala.reflect.ClassTag
 import scala.util.Try
 
 
@@ -88,7 +90,7 @@ object FutureRelation {
     def rightJoin(relation1: FutureRelation, relation2: Relation, on: RecordComparator): FutureRelation =
       futureCheckedBinaryOperation(relation1, relation2, (rel1, rel2) => rel1.rightJoin(rel2, on))
 
-    def innerEquiJoin[T](relation1: FutureRelation, relation2: Relation, on: (ColumnDef[T], ColumnDef[T])): FutureRelation =
+    def innerEquiJoin[T : ClassTag](relation1: FutureRelation, relation2: Relation, on: (ColumnDef[T], ColumnDef[T])): FutureRelation =
       futureCheckedBinaryOperation(relation1, relation2, (rel1, rel2) => rel1.innerEquiJoin(rel2, on))
 
     def union(relation1: FutureRelation, relation2: Relation): FutureRelation =
@@ -138,7 +140,7 @@ object FutureRelation {
       scala.concurrent.Await.result(data, defaultTimeout).columns
 
     /** @inheritdoc */
-    override def where[T](f: (ColumnDef[T], T => Boolean)): FutureRelation =
+    override def where[T : ClassTag](f: (ColumnDef[T], T => Boolean)): FutureRelation =
       FutureRelation(data.map(_.where(f)))
 
     /** @inheritdoc */
@@ -150,7 +152,7 @@ object FutureRelation {
       FutureRelation(data.map(_.project(columnDefs)))
 
     /** @inheritdoc */
-    override def applyOn[T](col: ColumnDef[T], f: T => T): FutureRelation =
+    override def applyOn[T : ClassTag](col: ColumnDef[T], f: T => T): FutureRelation =
       FutureRelation(data.map(_.applyOn(col, f)))
 
     /**

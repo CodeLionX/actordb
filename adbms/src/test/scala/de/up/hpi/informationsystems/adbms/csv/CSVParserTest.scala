@@ -3,8 +3,9 @@ package de.up.hpi.informationsystems.adbms.csv
 import java.io._
 import java.net.URI
 
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
-import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, RelationDef, UntypedColumnDef}
+import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, RelationDef}
 import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.relation.Relation
 import org.scalatest.{Matchers, WordSpec}
@@ -13,15 +14,15 @@ import org.scalatest.{Matchers, WordSpec}
 object CSVParserTest {
   
   object TestRelation extends RelationDef {
-    val byteCol: ColumnDef[Byte] = ColumnDef("byteCol")
-    val shortCol: ColumnDef[Short] = ColumnDef("shortCol")
-    val intCol: ColumnDef[Int] = ColumnDef("intCol")
-    val longCol: ColumnDef[Long] = ColumnDef("longCol")
-    val floatCol: ColumnDef[Float] = ColumnDef("floatCol")
-    val doubleCol: ColumnDef[Double] = ColumnDef("doubleCol")
-    val charCol: ColumnDef[Char] = ColumnDef("charCol")
-    val stringCol: ColumnDef[String] = ColumnDef("stringCol")
-    val boolCol: ColumnDef[Boolean] = ColumnDef("boolCol")
+    val byteCol: ColumnDef[Byte] = ColumnDef[Byte]("byteCol")
+    val shortCol: ColumnDef[Short] = ColumnDef[Short]("shortCol")
+    val intCol: ColumnDef[Int] = ColumnDef[Int]("intCol")
+    val longCol: ColumnDef[Long] = ColumnDef[Long]("longCol")
+    val floatCol: ColumnDef[Float] = ColumnDef[Float]("floatCol")
+    val doubleCol: ColumnDef[Double] = ColumnDef[Double]("doubleCol")
+    val charCol: ColumnDef[Char] = ColumnDef[Char]("charCol")
+    val stringCol: ColumnDef[String] = ColumnDef[String]("stringCol")
+    val boolCol: ColumnDef[Boolean] = ColumnDef[Boolean]("boolCol")
 
     override val columns: Set[UntypedColumnDef] =
       Set(byteCol, shortCol, intCol, longCol, floatCol, doubleCol, charCol, stringCol, boolCol)

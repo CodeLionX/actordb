@@ -1,10 +1,11 @@
 package de.up.hpi.informationsystems.adbms.relation
 
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.record.Record
-import de.up.hpi.informationsystems.adbms.relation.Relation.RecordComparator
 import de.up.hpi.informationsystems.adbms.{IncompatibleColumnDefinitionException, RecordNotFoundException, Util}
 
+import scala.reflect.ClassTag
 import scala.util.Try
 
 object RowRelation {
@@ -84,7 +85,7 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
   }
 
   /** @inheritdoc */
-  override def where[T](f: (ColumnDef[T], T => Boolean)): Relation = {
+  override def where[T : ClassTag](f: (ColumnDef[T], T => Boolean)): Relation = {
     val (columnDef, condition) = f
     val index = cols.indexOf(columnDef)
     Relation(
@@ -118,7 +119,7 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
     })
 
   /** @inheritdoc */
-  override def applyOn[T](col: ColumnDef[T], f: T => T): Relation =
+  override def applyOn[T : ClassTag](col: ColumnDef[T], f: T => T): Relation =
       if(!columns.contains(col))
         this.immutable
       else
