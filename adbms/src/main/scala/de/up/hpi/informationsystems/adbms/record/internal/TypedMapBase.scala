@@ -3,7 +3,8 @@ package de.up.hpi.informationsystems.adbms.record.internal
 import scala.language.higherKinds
 
 
-/**
+/** Generic base trait for immutable typed maps.
+  *
   * A generic trait for an immutable map, which holds a mapping from
   * a type-annotated key and the corresponding value of its type. Use
   * [[de.up.hpi.informationsystems.adbms.record.internal.TypedMapLike]]
@@ -20,7 +21,7 @@ import scala.language.higherKinds
   *
   * @note
   * As [[scala.collection.immutable.MapLike]] does not provide typed accessors, we provide our own implementation of
-  * * a `MapLike`. This is an alternative to overloading `apply` and `get`.
+  * a `MapLike`. This is an alternative to overloading `apply` and `get`.
   *
   * @tparam K type of key
   * @tparam V type of value
@@ -31,7 +32,7 @@ trait TypedMapBase[K[+_ <: V], V] {
 
   /** Creates a new iterator over all key/value pairs of this map
     *
-    *  @return the new iterator
+    * @return the new iterator
     */
   def iterator: Iterator[(K[V], V)] = data.iterator
 

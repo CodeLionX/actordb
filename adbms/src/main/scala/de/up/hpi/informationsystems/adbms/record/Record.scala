@@ -17,15 +17,14 @@ class Record(override protected val data: Map[ColumnDef[Any], Any])
 
   /** Collects all values of this record in an iterable collection.
     *
-    *  @return the values of this record as an iterable.
+    * @return the values of this record as an iterable.
     */
   def values: Iterable[Any] = data.values
 
-  /**
-    * Iff `columnDefs` is a subset of this record,
-    * performs a projection of this record to the specified columns,
+  /** Iff `columnDefs` is a subset of this record, performs a projection of this record to the specified columns,
     * or returns an error message.
-    * @param columnDefs columns to project to
+    *
+    * @param  columnDefs columns to project to
     * @return A new record containing only the specified columns
     */
   def project(columnDefs: Set[ColumnDef[Any]]): Try[Record] = Try(internal_project(columnDefs))
@@ -42,8 +41,7 @@ class Record(override protected val data: Map[ColumnDef[Any], Any])
 }
 
 object Record {
-  /**
-    * Creates a [[de.up.hpi.informationsystems.adbms.record.Record]] with the builder pattern.
+  /** Creates a [[de.up.hpi.informationsystems.adbms.record.Record]] with the builder pattern.
     *
     * @example {{{
     * val firstnameCol = ColumnDef[String]("Firstname")
@@ -68,7 +66,10 @@ object Record {
     * }}}
     *
     * This call initiates the [[record.Record.RecordBuilder]] with
-    * the column definitions of the corresponding relational schema
+    * the column definitions of the corresponding relational schema.
+    *
+    * @param columnDefs column definition used to create this record
+    * @return a new [[RecordBuilder]] initialized with the provided columns
     */
   def apply(columnDefs: Set[UntypedColumnDef]): RecordBuilder = new RecordBuilder(columnDefs, Map.empty)
 
@@ -79,8 +80,7 @@ object Record {
 
   val empty: Record = Record.empty
 
-  /**
-    * Builder for a [[de.up.hpi.informationsystems.adbms.record.Record]].
+  /** Builder for a [[de.up.hpi.informationsystems.adbms.record.Record]].
     * Initiates the record builder with the column definition list the record should comply with.
     *
     * @param columnDefs all columns of the corresponding relational schema
@@ -88,27 +88,27 @@ object Record {
     */
   class RecordBuilder(columnDefs: Set[UntypedColumnDef], recordData: Map[UntypedColumnDef, Any]) {
 
-    /**
-      * Sets a cell's value using `colDef ~> &lt;value&gt;` -notation
-      * @param in mapping from column to cell content
+    /** Sets a cell's value using `colDef ~> &lt;value&gt;` -notation
+      *
+      * @param  in mapping from column to cell content
       * @return the updated [[RecordBuilder]]
       */
     def apply(in: ColumnCellMapping): RecordBuilder =
       new RecordBuilder(columnDefs, recordData ++ in.toMap)
 
-    /**
-      * Sets the selected cell's value.
+    /** Sets the selected cell's value.
+      *
       * Curried function for having better compiler and IDE type mismatch errors.
-      * @param colDef cell to set indicated by column definition
-      * @param value value of the cell
-      * @tparam T value type, same as for the column definition
+      *
+      * @param  colDef cell to set indicated by column definition
+      * @param  value  value of the cell
+      * @tparam T      value type, same as for the column definition
       * @return the updated [[RecordBuilder]]
       */
     def withCellContent[T](colDef: ColumnDef[T])(value: T): RecordBuilder =
       new RecordBuilder(columnDefs, recordData ++ Map(colDef -> value))
 
-    /**
-      * Builds the [[de.up.hpi.informationsystems.adbms.record.Record]] instance.
+    /** Builds the [[de.up.hpi.informationsystems.adbms.record.Record]] instance.
       *
       * @return a new record
       */
