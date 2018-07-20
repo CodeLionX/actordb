@@ -59,6 +59,18 @@ class SingleRowRelation(pColumns: Set[UntypedColumnDef]) extends MutableRelation
     record
   }
 
+  /** This operation is not supported for `SingleRowRelation`s.
+    *
+    * Batch insert is only plausible if there are more than one record inserted.
+    * As a `SingleRowRelation` can only contain one record, `insert()` should be
+    * used instead.
+    *
+    * @return `Try[Seq[Record] ]` containing an [[UnsupportedOperationException]]
+    */
+  override def insertAll(records: Seq[Record]): Try[Seq[Record]] = Try{
+    throw new UnsupportedOperationException("A single row relation can only contain one row! Use `insert()` instead.")
+  }
+
   /** @inheritdoc */
   override def delete(record: Record): Try[Record] = Try{
     exceptionWhenNotEqual(record.columns)
