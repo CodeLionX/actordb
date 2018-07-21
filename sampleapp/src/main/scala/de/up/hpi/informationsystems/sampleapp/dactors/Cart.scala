@@ -11,7 +11,7 @@ import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessageHandling, RequestResponseProtocol}
 import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.record.Record
-import de.up.hpi.informationsystems.adbms.relation.{FutureRelation, MutableRelation, Relation}
+import de.up.hpi.informationsystems.adbms.relation._
 import de.up.hpi.informationsystems.sampleapp.DataInitializer
 import de.up.hpi.informationsystems.sampleapp.dactors.Cart.CartBase
 
@@ -187,7 +187,8 @@ object Cart {
     private val helper: CartHelper = CartHelper(context.system, self, timeout)
 
     override protected val relations: Map[RelationDef, MutableRelation] =
-      Dactor.createAsRowRelations(Seq(CartInfo, CartPurchases))
+      Map(CartInfo -> SingleRowRelation(CartInfo)) ++
+      Map(CartPurchases -> RowRelation(CartPurchases))
 
     private var currentSessionId = 0
 
