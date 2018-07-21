@@ -1,5 +1,6 @@
 package de.up.hpi.informationsystems.adbms.relation
 
+import de.up.hpi.informationsystems.adbms.IncompatibleColumnDefinitionException
 import de.up.hpi.informationsystems.adbms.definition.ColumnDef
 import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.record.{ColumnCellMapping, Record}

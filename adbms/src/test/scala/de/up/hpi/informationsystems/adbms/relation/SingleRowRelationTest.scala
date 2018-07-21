@@ -1,10 +1,11 @@
 package de.up.hpi.informationsystems.adbms.relation
 
-import de.up.hpi.informationsystems.adbms.{IncompatibleColumnDefinitionException, RecordNotFoundException}
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
-import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, RelationDef, UntypedColumnDef}
+import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, RelationDef}
 import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.record.Record
+import de.up.hpi.informationsystems.adbms.{IncompatibleColumnDefinitionException, RecordNotFoundException}
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.util.Success
@@ -14,9 +15,9 @@ class SingleRowRelationTest extends WordSpec with Matchers {
   "A single row relation" should {
 
     object Customer extends RelationDef {
-      val colFirstname: ColumnDef[String] = ColumnDef("Firstname")
-      val colLastname: ColumnDef[String] = ColumnDef("Lastname")
-      val colAge: ColumnDef[Int] = ColumnDef("Age")
+      val colFirstname: ColumnDef[String] = ColumnDef[String]("Firstname")
+      val colLastname: ColumnDef[String] = ColumnDef[String]("Lastname")
+      val colAge: ColumnDef[Int] = ColumnDef[Int]("Age")
 
       override val columns: Set[UntypedColumnDef] = Set(colFirstname, colLastname, colAge)
       override val name: String = "customer"
@@ -136,8 +137,8 @@ class SingleRowRelationTest extends WordSpec with Matchers {
 
       val result = customer.update(Customer.colFirstname ~> "Hans" & Customer.colLastname ~> "Maier")
         .whereAll(
-          Map(Customer.colAge.untyped -> ({ case age: Int => age == 42 }: Any => Boolean)) ++
-          Map(Customer.colFirstname.untyped -> ({ case name: String => name == "Test" }: Any => Boolean))
+          Map(Customer.colAge -> ({ case age: Int => age == 42 }: Any => Boolean)) ++
+          Map(Customer.colFirstname -> ({ case name: String => name == "Test" }: Any => Boolean))
         )
       result shouldBe Success(1)
 
@@ -160,7 +161,7 @@ class SingleRowRelationTest extends WordSpec with Matchers {
       customer.insert(record1)
 
       val result = customer.whereAll(
-        Map(ColumnDef[Double]("WRONG").untyped -> ({ case d: Double => d == 2.1}: Any => Boolean))
+        Map(ColumnDef[Double]("WRONG") -> { case d: Double => d == 2.1 })
       ).records
 
       result.isFailure shouldBe true
@@ -171,7 +172,7 @@ class SingleRowRelationTest extends WordSpec with Matchers {
       customer.insert(record1)
 
       val result = customer.project(
-        Set(ColumnDef[Double]("WRONG").untyped)
+        Set(ColumnDef[Double]("WRONG"))
       ).records
 
       result.isFailure shouldBe true

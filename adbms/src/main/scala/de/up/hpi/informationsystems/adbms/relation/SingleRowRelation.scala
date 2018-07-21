@@ -1,9 +1,11 @@
 package de.up.hpi.informationsystems.adbms.relation
 
 import de.up.hpi.informationsystems.adbms.RecordNotFoundException
-import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, RelationDef, UntypedColumnDef}
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
+import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, RelationDef}
 import de.up.hpi.informationsystems.adbms.record.Record
 
+import scala.reflect.ClassTag
 import scala.util.Try
 
 object SingleRowRelation {
@@ -102,7 +104,7 @@ class SingleRowRelation(pColumns: Set[UntypedColumnDef]) extends MutableRelation
   // from Relation
 
   /** @inheritdoc */
-  override def where[T](f: (ColumnDef[T], T => Boolean)): Relation = {
+  override def where[T : ClassTag](f: (ColumnDef[T], T => Boolean)): Relation = {
     val (columnDef, condition) = f
     val index = cols.indexOf(columnDef) // -1 --> IndexOutOfBoundsException
 
@@ -133,7 +135,7 @@ class SingleRowRelation(pColumns: Set[UntypedColumnDef]) extends MutableRelation
   })
 
   /** @inheritdoc */
-  override def applyOn[T](col: ColumnDef[T], f: T => T): Relation = Relation(Try{
+  override def applyOn[T : ClassTag](col: ColumnDef[T], f: T => T): Relation = Relation(Try{
     exceptionWhenNotSubset(Seq(col))
     val index = cols.indexOf(col)
     val newValue = f(data(index).asInstanceOf[T])
