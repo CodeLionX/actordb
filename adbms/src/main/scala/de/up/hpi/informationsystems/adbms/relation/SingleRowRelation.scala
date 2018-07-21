@@ -104,27 +104,29 @@ class SingleRowRelation(pColumns: Set[UntypedColumnDef]) extends MutableRelation
   // from Relation
 
   /** @inheritdoc */
-  override def where[T : ClassTag](f: (ColumnDef[T], T => Boolean)): Relation = {
+  override def where[T : ClassTag](f: (ColumnDef[T], T => Boolean)): Relation = Relation(Try{
     val (columnDef, condition) = f
-    val index = cols.indexOf(columnDef) // -1 --> IndexOutOfBoundsException
+    exceptionWhenNotSubset(Set(columnDef))
 
+    val index = cols.indexOf(columnDef)
     if(condition(data(index).asInstanceOf[T]))
-      this.immutable
+      data.toRecordSeq(cols)
     else
-      Relation.empty
-  }
+      Seq.empty
+  })
 
   /** @inheritdoc */
-  override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation = {
+  override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation = Relation(Try{
+    exceptionWhenNotSubset(fs.keySet)
     val condResults = fs.keys.map( col => {
       val index = cols.indexOf(col)
       fs(col)(data(index))
     })
     if(condResults.forall(_ == true))
-      this.immutable
+      data.toRecordSeq(cols)
     else
-      Relation.empty
-  }
+      Seq.empty
+  })
 
   /** @inheritdoc */
   override def project(columnDefs: Set[UntypedColumnDef]): Relation = Relation(Try{

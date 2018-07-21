@@ -85,26 +85,26 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
   }
 
   /** @inheritdoc */
-  override def where[T : ClassTag](f: (ColumnDef[T], T => Boolean)): Relation = {
+  override def where[T : ClassTag](f: (ColumnDef[T], T => Boolean)): Relation = Relation(Try{
     val (columnDef, condition) = f
+    exceptionWhenNotSubset(Set(columnDef))
+
     val index = cols.indexOf(columnDef)
-    Relation(
-      data.filter{ tuple =>
-        condition(tuple(index).asInstanceOf[T])
-      }.toRecordSeq(cols)
-    )
-  }
+    data.filter{ tuple =>
+      condition(tuple(index).asInstanceOf[T])
+    }.toRecordSeq(cols)
+  })
 
   /** @inheritdoc */
-  override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation =
-    Relation(
+  override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation = Relation(Try{
+      exceptionWhenNotSubset(fs.keySet)
       data.filter{ tuple =>
         fs.keys.map( col => {
           val index = cols.indexOf(col)
           fs(col)(tuple(index))
         }).forall(_ == true)
       }.toRecordSeq(cols)
-    )
+  })
 
   /** @inheritdoc */
   override def project(columnDefs: Set[UntypedColumnDef]): Relation =
