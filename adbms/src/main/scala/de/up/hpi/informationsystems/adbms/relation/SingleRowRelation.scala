@@ -86,16 +86,21 @@ class SingleRowRelation(pColumns: Set[UntypedColumnDef]) extends MutableRelation
   /** @inheritdoc */
   override protected def internalUpdateByWhere(updateData: Map[UntypedColumnDef, Any], fs: Map[UntypedColumnDef, Any => Boolean]): Try[Int] = Try {
     exceptionWhenNotSubset(updateData.keys)
-    val allFiltersApply = fs.keys
-      .map { col: UntypedColumnDef => fs(col)(data(cols.indexOf(col))) }
-      .forall(identity)
+    if(data.nonEmpty) {
+      val allFiltersApply = fs.keys
+        .map { col: UntypedColumnDef => fs(col)(data(cols.indexOf(col))) }
+        .forall(identity)
 
-    if(allFiltersApply){
-      data = updateData.keys.foldLeft(data)((t, updateCol) => t.updated(cols.indexOf(updateCol), updateData(updateCol)))
-      1
-    } else {
+      if(allFiltersApply){
+        data = updateData.keys.foldLeft(data)( (t, updateCol) =>
+          t.updated(cols.indexOf(updateCol), updateData(updateCol))
+        )
+        1
+      } else {
+        0
+      }
+    } else
       0
-    }
   }
 
   /** @inheritdoc */
@@ -108,40 +113,55 @@ class SingleRowRelation(pColumns: Set[UntypedColumnDef]) extends MutableRelation
     val (columnDef, condition) = f
     exceptionWhenNotSubset(Set(columnDef))
 
-    val index = cols.indexOf(columnDef)
-    if(condition(data(index).asInstanceOf[T]))
-      data.toRecordSeq(cols)
-    else
+    if (data.nonEmpty) {
+      val index = cols.indexOf(columnDef)
+      if (condition(data(index).asInstanceOf[T]))
+        data.toRecordSeq(cols)
+      else
+        Seq.empty
+    } else
       Seq.empty
   })
 
   /** @inheritdoc */
   override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation = Relation(Try{
     exceptionWhenNotSubset(fs.keySet)
-    val condResults = fs.keys.map( col => {
-      val index = cols.indexOf(col)
-      fs(col)(data(index))
-    })
-    if(condResults.forall(identity))
-      data.toRecordSeq(cols)
-    else
+
+    if(data.nonEmpty) {
+      val condResults = fs.keys.map(col => {
+        val index = cols.indexOf(col)
+        fs(col)(data(index))
+      })
+      if (condResults.forall(identity))
+        data.toRecordSeq(cols)
+      else
+        Seq.empty
+    } else
       Seq.empty
   })
 
   /** @inheritdoc */
   override def project(columnDefs: Set[UntypedColumnDef]): Relation = Relation(Try{
     exceptionWhenNotSubset(columnDefs)
-    val newCols = columnDefs.toVector
-    val newTuple = newCols.map( colDef => data(cols.indexOf(colDef)))
-    newTuple.toRecordSeq(newCols)
+
+    if (data.nonEmpty) {
+      val newCols = columnDefs.toVector
+      val newTuple = newCols.map(colDef => data(cols.indexOf(colDef)))
+      newTuple.toRecordSeq(newCols)
+    } else
+      Seq.empty
   })
 
   /** @inheritdoc */
   override def applyOn[T : ClassTag](col: ColumnDef[T], f: T => T): Relation = Relation(Try{
     exceptionWhenNotSubset(Seq(col))
-    val index = cols.indexOf(col)
-    val newValue = f(data(index).asInstanceOf[T])
-    data.updated(index, newValue).toRecordSeq(cols)
+
+    if (data.nonEmpty) {
+      val index = cols.indexOf(col)
+      val newValue = f(data(index).asInstanceOf[T])
+      data.updated(index, newValue).toRecordSeq(cols)
+    } else
+      Seq.empty
   })
 
   /** @inheritdoc */
@@ -151,4 +171,5 @@ class SingleRowRelation(pColumns: Set[UntypedColumnDef]) extends MutableRelation
   private def exceptionWhenAlreadyFull(op: String): Unit =
     if(data.nonEmpty)
       throw new UnsupportedOperationException(s"A single row relation can only contain one row! $op is not allowed anymore.")
+
 }
