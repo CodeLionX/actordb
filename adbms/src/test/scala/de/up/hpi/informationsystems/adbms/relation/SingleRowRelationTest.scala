@@ -63,7 +63,8 @@ class SingleRowRelationTest extends WordSpec with Matchers {
       inserted.failed match {
         case Success(e: IncompatibleColumnDefinitionException) =>
           e.getMessage.contains("the provided column layout does not match this relation's schema") shouldBe true
-        case Success(t) => fail(s"the wrong exception was thrown\nexpected: IncompatibleColumnDefinitionException\nfound: $t")
+        case Success(t) =>
+          fail(s"the wrong exception was thrown\nexpected: IncompatibleColumnDefinitionException\nfound: $t")
         case _ => fail("unexpected match!")
       }
       customer.records shouldEqual Success(Seq.empty)
@@ -77,7 +78,8 @@ class SingleRowRelationTest extends WordSpec with Matchers {
       inserted.failed match {
         case Success(e: UnsupportedOperationException) =>
           e.getMessage.contains("A single row relation can only contain one row!") shouldBe true
-        case Success(t) => fail(s"the wrong exception was thrown\nexpected: UnsupportedOperationException\nfound: $t")
+        case Success(t) =>
+          fail(s"the wrong exception was thrown\nexpected: UnsupportedOperationException\nfound: $t")
         case _ => fail("unexpected match!")
       }
       customer.records shouldEqual Success(Seq.empty)
@@ -103,9 +105,12 @@ class SingleRowRelationTest extends WordSpec with Matchers {
       val result = customer.delete(record2)
 
       result.isFailure shouldBe true
-      result.failed.get match {
-        case RecordNotFoundException(e) => e.contains("this relation does not contain") shouldBe true
-        case t => fail(s"the wrong exception was thrown\nexpected: RecordNotFoundExcpetion\nfound: $t")
+      result.failed match {
+        case Success(RecordNotFoundException(e)) =>
+          e.contains("this relation does not contain") shouldBe true
+        case Success(t) =>
+          fail(s"the wrong exception was thrown\nexpected: RecordNotFoundExcpetion\nfound: $t")
+        case _ => fail("unexpected match!")
       }
       customer.records shouldBe Success(Seq(record1))
     }
