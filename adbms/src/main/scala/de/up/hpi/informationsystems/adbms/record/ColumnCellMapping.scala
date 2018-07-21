@@ -1,6 +1,7 @@
 package de.up.hpi.informationsystems.adbms.record
 
-import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, UntypedColumnDef}
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 
 /**
   * Provides implicits for creating a mapping between column definition and cell value
@@ -22,7 +23,7 @@ object ColumnCellMapping {
       * @return a new [[de.up.hpi.informationsystems.adbms.record.ColumnCellMapping]] containing
       *         the column definition and cell value mapping
       */
-    def ~>(value: T): ColumnCellMapping = new ColumnCellMapping(Map(in.untyped -> value))
+    def ~>(value: T): ColumnCellMapping = new ColumnCellMapping(Map(in -> value))
   }
 }
 

@@ -1,6 +1,8 @@
 package de.up.hpi.informationsystems.adbms
 package definition
 
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
+
 import scala.collection.mutable
 
 /**

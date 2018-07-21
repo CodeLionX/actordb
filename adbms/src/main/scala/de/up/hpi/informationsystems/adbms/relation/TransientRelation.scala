@@ -2,10 +2,12 @@ package de.up.hpi.informationsystems.adbms.relation
 
 import java.util.Objects
 
-import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, UntypedColumnDef}
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.record.Record
 import de.up.hpi.informationsystems.adbms.{IncompatibleColumnDefinitionException, Util}
 
+import scala.reflect.ClassTag
 import scala.util.Try
 
 private object TransientRelation {
@@ -43,7 +45,7 @@ private object TransientRelation {
     def outerJoin(left: TransientRelation, right: TransientRelation, on: Relation.RecordComparator): Relation =
       union(leftJoin(left, right, on).asInstanceOf[TransientRelation], rightJoin(left, right, on).asInstanceOf[TransientRelation])
 
-    def innerEquiJoin[T](left: TransientRelation, right: TransientRelation, on: (ColumnDef[T], ColumnDef[T])): Relation =
+    def innerEquiJoin[T : ClassTag](left: TransientRelation, right: TransientRelation, on: (ColumnDef[T], ColumnDef[T])): Relation =
       propagateFailure.orElse({
         case (l, r) => Relation(Try {
           throwErrorIfColumnNotIn(l.columns, on._1)
@@ -125,7 +127,7 @@ private[relation] final class TransientRelation(data: Try[Seq[Record]]) extends 
 
 
   /** @inheritdoc */
-  override def where[T](f: (ColumnDef[T], T => Boolean)): Relation =
+  override def where[T: ClassTag](f: (ColumnDef[T], T => Boolean)): Relation =
     if(isFailure)
       this
     else
@@ -167,8 +169,8 @@ private[relation] final class TransientRelation(data: Try[Seq[Record]]) extends 
       ))
 
   /** @inheritdoc*/
-  override def applyOn[T](col: ColumnDef[T], f: T => T): Relation =
-    if(isFailure || !Set(col).subsetOf(columns))
+  override def applyOn[T : ClassTag](col: ColumnDef[T], f: T => T): Relation =
+    if(isFailure || !Set(col: UntypedColumnDef).subsetOf(columns))
       this
     else
       Relation(Try{
