@@ -88,7 +88,7 @@ class SingleRowRelation(pColumns: Set[UntypedColumnDef]) extends MutableRelation
     exceptionWhenNotSubset(updateData.keys)
     val allFiltersApply = fs.keys
       .map { col: UntypedColumnDef => fs(col)(data(cols.indexOf(col))) }
-      .forall(_ == true)
+      .forall(identity)
 
     if(allFiltersApply){
       data = updateData.keys.foldLeft(data)((t, updateCol) => t.updated(cols.indexOf(updateCol), updateData(updateCol)))
@@ -122,7 +122,7 @@ class SingleRowRelation(pColumns: Set[UntypedColumnDef]) extends MutableRelation
       val index = cols.indexOf(col)
       fs(col)(data(index))
     })
-    if(condResults.forall(_ == true))
+    if(condResults.forall(identity))
       data.toRecordSeq(cols)
     else
       Seq.empty

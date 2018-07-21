@@ -148,9 +148,12 @@ class RowRelationTest extends WordSpec with Matchers {
       val record2Delete = test.newRecord(Test.col1 ~> -1 & Test.col2 ~> "" & Test.col3 ~> "").build()
       val result = test.delete(record2Delete)
       result.isFailure shouldBe true
-      result.failed.get match {
-        case RecordNotFoundException(e) => e.contains("this relation does not contain the record") shouldBe true
-        case t => fail(s"the wrong exception was thrown\nexpected: RecordNotFoundExcpetion\nfound: $t")
+      result.failed match {
+        case Success(RecordNotFoundException(e)) =>
+          e.contains("this relation does not contain the record") shouldBe true
+        case Success(t) =>
+          fail(s"the wrong exception was thrown\nexpected: RecordNotFoundExcpetion\nfound: $t")
+        case _ => fail("unexpected match!")
       }
 
       test.records shouldBe Success(testRecords)
@@ -267,9 +270,12 @@ class RowRelationTest extends WordSpec with Matchers {
           .records
 
         result.isFailure shouldBe true
-        result.failed.get match {
-          case e: StringIndexOutOfBoundsException => e.getMessage.contains("String index out of range") shouldBe true
-          case t => fail(s"the wrong exception was thrown\nexpected: StringIndexOutOfBoundsException\nfound: $t")
+        result.failed match {
+          case Success(e: StringIndexOutOfBoundsException) =>
+            e.getMessage.contains("String index out of range") shouldBe true
+          case Success(t) =>
+            fail(s"the wrong exception was thrown\nexpected: StringIndexOutOfBoundsException\nfound: $t")
+          case _ => fail("unexpected match!")
         }
       }
 
@@ -296,7 +302,7 @@ class RowRelationTest extends WordSpec with Matchers {
       val customer = RowRelation(Customer)
       customer.insert(record1)
 
-      val result = customer.where(ColumnDef[Double]("WRONG") -> { d: Double => d == 2.1}).records
+      val result = customer.where(ColumnDef[Double]("WRONG") -> { d: Double => d == 2.1 }).records
 
       result.isFailure shouldBe true
     }
@@ -306,7 +312,7 @@ class RowRelationTest extends WordSpec with Matchers {
       customer.insert(record1)
 
       val result = customer.whereAll(
-        Map(ColumnDef[Double]("WRONG") -> ({ case d: Double => d == 2.1}: Any => Boolean))
+        Map(ColumnDef[Double]("WRONG") -> { case d: Double => d == 2.1 })
       ).records
 
       result.isFailure shouldBe true

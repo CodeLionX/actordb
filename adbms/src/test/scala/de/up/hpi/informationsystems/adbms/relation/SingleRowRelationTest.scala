@@ -60,10 +60,11 @@ class SingleRowRelationTest extends WordSpec with Matchers {
       val inserted = customer.insert(record3)
 
       inserted.isFailure shouldBe true
-      inserted.failed.get match {
-        case e: IncompatibleColumnDefinitionException =>
+      inserted.failed match {
+        case Success(e: IncompatibleColumnDefinitionException) =>
           e.getMessage.contains("the provided column layout does not match this relation's schema") shouldBe true
-        case t => fail(s"the wrong exception was thrown\nexpected: IncompatibleColumnDefinitionException\nfound: $t")
+        case Success(t) => fail(s"the wrong exception was thrown\nexpected: IncompatibleColumnDefinitionException\nfound: $t")
+        case _ => fail("unexpected match!")
       }
       customer.records shouldEqual Success(Seq.empty)
     }
@@ -73,10 +74,11 @@ class SingleRowRelationTest extends WordSpec with Matchers {
       val inserted = customer.insertAll(Seq(record1, record2))
 
       inserted.isFailure shouldBe true
-      inserted.failed.get match {
-        case e: UnsupportedOperationException =>
+      inserted.failed match {
+        case Success(e: UnsupportedOperationException) =>
           e.getMessage.contains("A single row relation can only contain one row!") shouldBe true
-        case t => fail(s"the wrong exception was thrown\nexpected: UnsupportedOperationException\nfound: $t")
+        case Success(t) => fail(s"the wrong exception was thrown\nexpected: UnsupportedOperationException\nfound: $t")
+        case _ => fail("unexpected match!")
       }
       customer.records shouldEqual Success(Seq.empty)
     }
@@ -151,7 +153,7 @@ class SingleRowRelationTest extends WordSpec with Matchers {
       val customer = SingleRowRelation(Customer)
       customer.insert(record1)
 
-      val result = customer.where(ColumnDef[Double]("WRONG") -> { d: Double => d == 2.1}).records
+      val result = customer.where(ColumnDef[Double]("WRONG") -> { d: Double => d == 2.1 }).records
 
       result.isFailure shouldBe true
     }
