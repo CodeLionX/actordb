@@ -184,5 +184,19 @@ class SingleRowRelationTest extends WordSpec with Matchers {
 
       result.isFailure shouldBe true
     }
+
+    "return empty result on all unary operations when empty" in {
+      val customer = SingleRowRelation(Customer)
+
+      val result1 = customer.project(Set(Customer.colFirstname)).records
+      val result2 = customer.where(Customer.colFirstname -> { s: String => s == "" }).records
+      val result3 = customer.whereAll(Map(Customer.colFirstname -> { case s: String => s == "" })).records
+      val result4 = customer.applyOn(Customer.colFirstname, { s: String => s"$s test" }).records
+
+      result1 shouldEqual Success(Seq.empty)
+      result2 shouldEqual Success(Seq.empty)
+      result3 shouldEqual Success(Seq.empty)
+      result4 shouldEqual Success(Seq.empty)
+    }
   }
 }
