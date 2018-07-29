@@ -76,9 +76,12 @@ object Record {
   private[adbms] def fromMap(columnDefMap: Map[UntypedColumnDef, Any]): Record = new Record(columnDefMap)
 
   private[adbms] def fromVector(columnDefs: Vector[UntypedColumnDef])(data: Vector[Any]): Record =
-    new Record(columnDefs.indices.map{ index => columnDefs(index) -> data(index) }.toMap)
+      if(data.isEmpty)
+        Record.empty
+      else
+        new Record(columnDefs.indices.map{ index => columnDefs(index) -> data(index) }.toMap)
 
-  val empty: Record = Record.empty
+  val empty: Record = new Record(Map.empty)
 
   /** Builder for a [[de.up.hpi.informationsystems.adbms.record.Record]].
     * Initiates the record builder with the column definition list the record should comply with.
