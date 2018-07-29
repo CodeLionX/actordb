@@ -8,7 +8,7 @@ import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessageHandling, RequestResponseProtocol}
 import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.record.Record
-import de.up.hpi.informationsystems.adbms.relation.{MutableRelation, Relation}
+import de.up.hpi.informationsystems.adbms.relation.{MutableRelation, Relation, RowRelation, SingleRowRelation}
 import de.up.hpi.informationsystems.adbms.{Dactor, InconsistentStateException}
 import de.up.hpi.informationsystems.sampleapp.{AuthenticationFailedException, DataInitializer}
 
@@ -81,7 +81,9 @@ object Customer {
   class CustomerBase(id: Int) extends Dactor(id) {
 
     override protected val relations: Map[RelationDef, MutableRelation] =
-      Dactor.createAsRowRelations(Seq(CustomerInfo, StoreVisits, Password))
+      Map(CustomerInfo -> SingleRowRelation(CustomerInfo)) ++
+      Map(StoreVisits -> RowRelation(StoreVisits)) ++
+      Map(Password -> SingleRowRelation(Password))
 
     override def receive: Receive = {
       case GetCustomerInfo.Request() =>
@@ -111,18 +113,10 @@ object Customer {
     }
 
     def getCustomerInfo: Try[Relation] = Try{
-      val rowCount = relations(CustomerInfo).records.get.size
-      if (rowCount > 1) {
-        throw InconsistentStateException(s"this relation was expected to contain at maximum 1 row, but contained $rowCount")
-      }
       relations(CustomerInfo).immutable
     }
 
     def getCustomerGroupId: Try[Relation] = Try{
-      val rowCount = relations(CustomerInfo).records.get.size
-      if (rowCount > 1) {
-        throw InconsistentStateException(s"this relation was expected to contain at maximum 1 row, but contained $rowCount")
-      }
       relations(CustomerInfo)
         .project(Set(CustomerInfo.custGroupId))
     }

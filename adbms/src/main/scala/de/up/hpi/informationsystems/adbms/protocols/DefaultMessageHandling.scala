@@ -43,9 +43,19 @@ trait DefaultMessageHandling extends Dactor {
     * @param records      records to be inserted
     * @return either number of successfully inserted records or a `Throwable` describing the failure
     */
-  private def handleGenericInsert(relationName: String, records: Seq[Record]): Try[Int] = Try {
-    relationFromName(relationName).insertAll(records).map(_.count(_ => true))
-  }.flatten
+  private def handleGenericInsert(relationName: String, records: Seq[Record]): Try[Int] =
+    if(records.length == 1)
+      records.headOption match {
+        case Some(record) =>
+          Try {
+            relationFromName(relationName).insert(record).map( _=> 1)
+          }.flatten
+        case None => Try(0)
+      }
+    else
+      Try {
+        relationFromName(relationName).insertAll(records).map(_.count(_ => true))
+      }.flatten
 
   /**
     * Returns an immutable copy of the requested relation if the `Dactor` has a `Relation` of this name,
