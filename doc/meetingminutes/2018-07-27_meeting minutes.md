@@ -15,10 +15,11 @@ Participants:
 
 - Implicit creation of `Dactor`s by framework and `Dactor` initialization (Sebastian)
 
-## Next Steps
+## Next Steps / ToDos
 
 - Test memory overhead with new internal data structure for `Record` (Sebastian)
 - Set up overleaf for paper (Sebastian)
+- Test if issues #35 #36 persist (Sebastian)
 - Review open PRs: #103, #106 (Frederic)
 - Use `SingleRowRelation` for `Info` relations in `fouleggs` example application (Frederic)
 - Implement `MultiDactorFunction` actors specific to the `fouleggs` example (Frederic)
