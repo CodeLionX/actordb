@@ -1,10 +1,11 @@
 package de.up.hpi.informationsystems.adbms.relation
 
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.record.Record
-import de.up.hpi.informationsystems.adbms.relation.Relation.RecordComparator
-import de.up.hpi.informationsystems.adbms.{IncompatibleColumnDefinitionException, RecordNotFoundException, Util}
+import de.up.hpi.informationsystems.adbms.{RecordNotFoundException, Util}
 
+import scala.reflect.ClassTag
 import scala.util.Try
 
 object RowRelation {
@@ -84,27 +85,26 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
   }
 
   /** @inheritdoc */
-  override def where[T](f: (ColumnDef[T], T => Boolean)): Relation = {
+  override def where[T : ClassTag](f: (ColumnDef[T], T => Boolean)): Relation = Relation(Try{
     val (columnDef, condition) = f
+    exceptionWhenNotSubset(Set(columnDef))
+
     val index = cols.indexOf(columnDef)
-    Relation(
-      data.filter{ tuple =>
-        condition(tuple(index).asInstanceOf[T])
-      }.toRecordSeq(cols)
-    )
-  }
+    data.filter{ tuple =>
+      condition(tuple(index).asInstanceOf[T])
+    }.toRecordSeq(cols)
+  })
 
   /** @inheritdoc */
-  override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation = {
-    Relation(
+  override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation = Relation(Try{
+      exceptionWhenNotSubset(fs.keySet)
       data.filter{ tuple =>
         fs.keys.map( col => {
           val index = cols.indexOf(col)
           fs(col)(tuple(index))
         }).forall(_ == true)
       }.toRecordSeq(cols)
-    )
-  }
+  })
 
   /** @inheritdoc */
   override def project(columnDefs: Set[UntypedColumnDef]): Relation =
@@ -118,7 +118,7 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
     })
 
   /** @inheritdoc */
-  override def applyOn[T](col: ColumnDef[T], f: T => T): Relation =
+  override def applyOn[T : ClassTag](col: ColumnDef[T], f: T => T): Relation =
       if(!columns.contains(col))
         this.immutable
       else
@@ -138,18 +138,5 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
 
   /** @inheritdoc*/
   override def immutable: Relation = Relation(data.toRecordSeq(cols))
-
-  @throws[IncompatibleColumnDefinitionException]
-  private def exceptionWhenNotSubset(incomingColumns: Iterable[UntypedColumnDef]): Unit =
-    if (!(incomingColumns.toSet subsetOf columns)) {
-      val notMatchingColumns = incomingColumns.toSet -- columns
-      throw IncompatibleColumnDefinitionException(s"this relation does not contain following columns: $notMatchingColumns")
-    }
-
-  @throws[IncompatibleColumnDefinitionException]
-  private def exceptionWhenNotEqual(incomingColumns: Iterable[UntypedColumnDef]): Unit =
-    if(incomingColumns != columns)
-      throw IncompatibleColumnDefinitionException(s"the provided column layout does not match this " +
-        s"relation's schema:\n$incomingColumns (provided)\n${this.columns} (relation)")
 
 }

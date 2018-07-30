@@ -2,13 +2,13 @@ package de.up.hpi.informationsystems.sampleapp.dactors
 
 import akka.actor.Props
 import de.up.hpi.informationsystems.adbms.Dactor
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessageHandling, RequestResponseProtocol}
-import de.up.hpi.informationsystems.adbms.record.Record
 import de.up.hpi.informationsystems.adbms.relation.{MutableRelation, Relation}
 import de.up.hpi.informationsystems.sampleapp.DataInitializer
 
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 
 object GroupManager {
   // implicit default values
@@ -26,8 +26,8 @@ object GroupManager {
   }
 
   object Discounts extends RelationDef {
-    val id: ColumnDef[Int] = ColumnDef("i_id")
-    val fixedDisc: ColumnDef[Double] = ColumnDef("fixed_disc")
+    val id: ColumnDef[Int] = ColumnDef[Int]("i_id")
+    val fixedDisc: ColumnDef[Double] = ColumnDef[Double]("fixed_disc")
 
     override val columns: Set[UntypedColumnDef] = Set(id, fixedDisc)
     override val name: String = "discounts"

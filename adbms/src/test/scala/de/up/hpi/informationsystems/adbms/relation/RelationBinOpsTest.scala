@@ -1,7 +1,8 @@
 package de.up.hpi.informationsystems.adbms.relation
 
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
-import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, RelationDef, UntypedColumnDef}
+import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, RelationDef}
 import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.record.Record
 import org.scalatest.{Matchers, WordSpec}
@@ -12,9 +13,9 @@ import scala.util.{Success, Try}
 
 class RelationBinOpsTest extends WordSpec with Matchers {
 
-  val colFirstname: ColumnDef[String] = ColumnDef("Firstname")
-  val colLastname: ColumnDef[String] = ColumnDef("Lastname")
-  val colId: ColumnDef[Int] = ColumnDef("ID")
+  val colFirstname: ColumnDef[String] = ColumnDef[String]("Firstname")
+  val colLastname: ColumnDef[String] = ColumnDef[String]("Lastname")
+  val colId: ColumnDef[Int] = ColumnDef[Int]("ID")
 
   val columnSet1: Set[UntypedColumnDef] = Set(colId, colFirstname)
   val columnSet2: Set[UntypedColumnDef] = Set(colId, colLastname)

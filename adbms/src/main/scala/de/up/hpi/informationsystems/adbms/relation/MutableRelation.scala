@@ -1,8 +1,11 @@
 package de.up.hpi.informationsystems.adbms.relation
 
-import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, UntypedColumnDef}
+import de.up.hpi.informationsystems.adbms.IncompatibleColumnDefinitionException
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.record.{ColumnCellMapping, Record}
 
+import scala.reflect.ClassTag
 import scala.util.Try
 
 object MutableRelation {
@@ -22,7 +25,7 @@ object MutableRelation {
     def rightJoin(relation1: MutableRelation, relation2: Relation, on: Relation.RecordComparator): Relation =
       checkedBinaryOp(relation1, relation2, (rel1, rel2) => rel1.rightJoin(rel2, on))
 
-    def innerEquiJoin[T](relation1: MutableRelation, relation2: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
+    def innerEquiJoin[T : ClassTag](relation1: MutableRelation, relation2: Relation, on: (ColumnDef[T], ColumnDef[T])): Relation =
       checkedBinaryOp(relation1, relation2, (rel1, rel2) => rel1.innerEquiJoin(rel2, on))
 
     def union(relation1: MutableRelation, relation2: Relation): Relation =
@@ -101,6 +104,36 @@ trait MutableRelation extends Relation {
   def immutable: Relation
 
   // helper
+
+  /**
+    * Checks incoming columns for being a subset of this relation's columns.
+    * Throws an exception, when it is not the case.
+    * @param incomingColumns columns passed to a function
+    * @throws IncompatibleColumnDefinitionException if `incomingColumns` is not a subset of `columns`
+    */
+  @throws[IncompatibleColumnDefinitionException]
+  protected def exceptionWhenNotSubset(incomingColumns: Iterable[UntypedColumnDef]): Unit =
+    if (!(incomingColumns.toSet subsetOf columns)) {
+      val notMatchingColumns = incomingColumns.toSet -- columns
+      throw IncompatibleColumnDefinitionException(s"this relation does not contain following columns: $notMatchingColumns")
+    }
+
+  /**
+    * Check incoming columns for being equal to this relation's columns.
+    * Throws an exception otherwise.
+    * @param incomingColumns columns passed to a function
+    * @throws IncompatibleColumnDefinitionException if `incomingColumns` is not equal to `columns`
+    */
+  @throws[IncompatibleColumnDefinitionException]
+  protected def exceptionWhenNotEqual(incomingColumns: Iterable[UntypedColumnDef]): Unit =
+    if(incomingColumns != columns)
+      throw IncompatibleColumnDefinitionException(
+        s"""the provided column layout does not match this relation's schema:
+           |$incomingColumns (provided)
+           |${this.columns} (relation)
+           |""".stripMargin
+      )
+
   /**
     * Helps building conditions for updating relations.
     *
@@ -117,8 +150,11 @@ trait MutableRelation extends Relation {
       * @tparam T value type of the column
       * @return the number of updated records or an exception
       */
-    def where[T <: Any](f: (ColumnDef[T], T => Boolean)): Try[Int] =
-      internalUpdateByWhere(updateData, Map(f._1.untyped -> { value: Any => f._2(value.asInstanceOf[T]) }))
+    def where[T <: Any : ClassTag](f: (ColumnDef[T], T => Boolean)): Try[Int] =
+      internalUpdateByWhere(updateData, Map(f._1 -> {
+        case value: T => f._2(value)
+        case _ => false
+      }))
 
     /**
       * Returns the number of records changed by this update operation.
