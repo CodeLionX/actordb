@@ -4,9 +4,10 @@ import java.time.ZonedDateTime
 
 import akka.actor.Actor
 import de.up.hpi.informationsystems.adbms.Dactor
-import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, RelationDef, UntypedColumnDef}
-import de.up.hpi.informationsystems.adbms.protocols.{DefaultMessageHandling, RequestResponseProtocol}
-import de.up.hpi.informationsystems.adbms.relation.{MutableRelation, Relation}
+import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
+import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, RelationDef}
+import de.up.hpi.informationsystems.adbms.protocols.DefaultMessageHandling
+import de.up.hpi.informationsystems.adbms.relation.{MutableRelation, RowRelation, SingleRowRelation}
 
 object Person {
   // Relation Definitions
@@ -40,7 +41,8 @@ object Person {
       * @return map of relation definition and corresponding relational store
       */
     override protected val relations: Map[RelationDef, MutableRelation] =
-      Dactor.createAsRowRelations(Seq(Person.Info, Person.Filmography))
+      Map(Person.Info -> SingleRowRelation(Person.Info)) ++
+      Map(Person.Filmography -> RowRelation(Person.Filmography))
 
     override def receive: Receive = Actor.emptyBehavior
   }
