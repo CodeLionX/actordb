@@ -83,6 +83,7 @@ class SystemInitializer extends Actor with ActorLogging {
         log.info("finished startup")
         timeout.cancel()
         context.become(up orElse commonBehavior)
+        actorSystem.actorSelection("/user/AdminSession") ! AdminSession.AddCastToFilm.Request(1, 1, "Luke Skywalker")
       } else {
         context.become(waitingForACK(remainingACKs, timeout) orElse commonBehavior)
       }

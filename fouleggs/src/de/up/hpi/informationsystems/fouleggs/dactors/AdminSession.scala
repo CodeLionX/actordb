@@ -1,7 +1,7 @@
 package de.up.hpi.informationsystems.fouleggs.dactors
 
 import akka.actor.Actor.Receive
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol
 import de.up.hpi.informationsystems.adbms.record.Record
@@ -33,7 +33,7 @@ object AdminSession {
 /**
   * Provides top level functionalities
   */
-class AdminSession extends Actor {
+class AdminSession extends Actor with ActorLogging {
   override def receive: Receive = commonBehaviour
 
   def commonBehaviour: Receive = {
@@ -43,7 +43,8 @@ class AdminSession extends Actor {
   }
 
   def addCastToFilm(personId: Int, filmId: Int, roleName: String): Unit = {
-    context.system.actorOf(Props(new CastAndFilmographyFunctor(personId, filmId, roleName, self)))
+    val functor: ActorRef = context.system.actorOf(Props(new CastAndFilmographyFunctor(personId, filmId, roleName, self)))
+    context.become(waitingForSuccess(functor))
 
     /*
     Nested MultiDactorFunction:
@@ -51,6 +52,14 @@ class AdminSession extends Actor {
     1) Person.GetInfo -> Film.AddCast
     2) Film.GetInfo -> Person.AddFilm
      */
+  }
+
+  def waitingForSuccess(from: ActorRef): Receive = {
+    case akka.actor.Status.Success if sender == from => {
+      log.info("SUCCCCCCESS")
+
+
+    }
   }
 }
 
