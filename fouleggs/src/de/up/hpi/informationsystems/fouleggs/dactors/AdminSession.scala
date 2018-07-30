@@ -40,11 +40,12 @@ class AdminSession extends Actor with ActorLogging {
     case AdminSession.Up => sender() ! akka.actor.Status.Success
     case AdminSession.AddCastToFilm.Request(personId, filmId, roleName) =>
       addCastToFilm(personId, filmId, roleName)
+    case DefaultMessagingProtocol.SelectAllFromRelation.Success(rel) => log.info(rel.toString)
   }
 
   def addCastToFilm(personId: Int, filmId: Int, roleName: String): Unit = {
     val functor: ActorRef = context.system.actorOf(Props(new CastAndFilmographyFunctor(personId, filmId, roleName, self)))
-    context.become(waitingForSuccess(functor))
+    context.become(waitingForSuccess(functor) orElse commonBehaviour)
 
     /*
     Nested MultiDactorFunction:
@@ -56,9 +57,14 @@ class AdminSession extends Actor with ActorLogging {
 
   def waitingForSuccess(from: ActorRef): Receive = {
     case akka.actor.Status.Success if sender == from => {
-      log.info("SUCCCCCCESS")
+      context.become(commonBehaviour)
+      log.info("Connected cast to film")
 
+      val empire = Dactor.dactorSelection(context.system, classOf[Film], 1)
+      val mark = Dactor.dactorSelection(context.system, classOf[Person], 1)
 
+      empire ! DefaultMessagingProtocol.SelectAllFromRelation.Request(Film.Cast.name)
+      mark ! DefaultMessagingProtocol.SelectAllFromRelation.Request(Person.Filmography.name)
     }
   }
 }
