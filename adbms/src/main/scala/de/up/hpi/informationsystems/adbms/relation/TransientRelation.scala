@@ -144,12 +144,8 @@ private[relation] final class TransientRelation(data: Try[Seq[Record]]) extends 
           fs.keys
             // map over all supplied filters (key = column)
             .map { col: UntypedColumnDef =>
-              /* `val rVal = record(col)` returns the value in the record for the column `col`
-               * `val filterF = fs(col)` returns the filter for column `col`
-               * `val res = filterF(rVal)` applies the filter to the value of the record and corresponding column,
-               * returning `true` or `false`
-               */
-              fs(col)(record(col))
+              val condition = fs(col)
+              record.get(col).exists(condition)
             }
             // test if all filters for this record are true
             .forall(_ == true)
