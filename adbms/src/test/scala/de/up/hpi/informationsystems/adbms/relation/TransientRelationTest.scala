@@ -470,31 +470,29 @@ class TransientRelationTest extends WordSpec with Matchers {
       }
 
       "return the appropriate result set for a whereAll query including the empty result set" in {
-        pending // NullPointerException
         incompleteRelation.whereAll(
           Map(
-            colAge -> {age => age.asInstanceOf[Int] > 40},
-            colLastname -> {field => field.asInstanceOf[String].contains("es")}
+            colAge -> { case age: Int => age > 40 },
+            colLastname -> { case field: String => field.contains("es") }
           )).records shouldEqual Success(Seq(record1, record3))
         }
 
       "return selected columns only from project including records with null-values" in {
-        pending // NullPointerException
         // deduce correctness of Relation.project from correctness of Record.project
         incompleteRelation.project(Set(colFirstname)).records shouldEqual
           Success(Seq(
             record1.project(Set(colFirstname)).get,
             record2.project(Set(colFirstname)).get,
-            record3.project(Set(colFirstname)).get
+            record3.project(Set(colFirstname)).get,
+            record4.project(Set(colFirstname)).get
           ))
       }
 
       "return the appropriate result set for a whereAll query including condition on null-value column" in {
-        pending // NullPointerException
         incompleteRelation.whereAll(
           Map(
-            colAge -> {id => id.asInstanceOf[Int] <= 2},
-            colFirstname -> {field => field.asInstanceOf[String].contains("esty")}
+            colAge -> { case id: Int => id <= 2 },
+            colFirstname -> { case field: String => field.contains("esty") }
           )).records shouldEqual Success(Seq.empty)
       }
 
