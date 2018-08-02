@@ -1,21 +1,21 @@
 package de.up.hpi.informationsystems.fouleggs.dactors
 
-import akka.actor.Actor.Receive
-import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol
 import de.up.hpi.informationsystems.adbms.record.Record
 import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.relation.Relation
+import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 
 object AdminSession {
 
-  final case class Up()
+  final case object Up
 
   object AddCastToFilm {
-    final case class Request(personId: Int, filmId: Int, roleName: String)
-    final case class Success(personId: Int, filmId: Int, roleName: String)
-    final case class Failure(e: Throwable)
+    final case class Request(personId: Int, filmId: Int, roleName: String) extends RequestResponseProtocol.Request
+    final case class Success(result: Relation) extends RequestResponseProtocol.Success
+    final case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
   }
 
   def props: Props = Props[AdminSession]
@@ -96,26 +96,30 @@ class AddFilmFunctor(personId: Int, filmId: Int, roleName: String, backTo: Actor
 
   def waitingForFilmInfo: Receive = {
     case DefaultMessagingProtocol.SelectAllFromRelation.Failure(e) => fail(e)
-    case DefaultMessagingProtocol.SelectAllFromRelation.Success(relation: Relation) => {
-      context.become(waitingForInsertAck orElse commonBehaviour)
+    case DefaultMessagingProtocol.SelectAllFromRelation.Success(relation: Relation) =>
+      val filmInfoOption: Option[Record] = relation.records.toOption match {
+        case Some(records: Seq[Record]) => records.headOption
+        case _ => None
+      }
+    filmInfoOption match {
+      case None => fail(new RuntimeException("Received empty film info"))
 
-      val filmInfo: Record = relation.records.get.head
-
-      val newFilmRecord: Record = Person.Filmography.newRecord(
-        Person.Filmography.filmId ~> filmId &
-        Person.Filmography.roleName ~> roleName &
-        Person.Filmography.filmName ~> filmInfo.get(Film.Info.title).get &
-        Person.Filmography.filmRelease ~> filmInfo.get(Film.Info.release).get
-      ).build()
-      Dactor.dactorSelection(context.system, classOf[Person], personId) ! DefaultMessagingProtocol.InsertIntoRelation("filmography", Seq(newFilmRecord))
+      case Some(filmInfo: Record) =>
+        val newFilmRecord: Record = Person.Filmography.newRecord(
+          Person.Filmography.filmId ~> filmId &
+            Person.Filmography.roleName ~> roleName &
+            Person.Filmography.filmName ~> filmInfo(Film.Info.title) &
+            Person.Filmography.filmRelease ~> filmInfo(Film.Info.release)
+        ).build()
+        Dactor.dactorSelection(context.system, classOf[Person], personId) ! DefaultMessagingProtocol.InsertIntoRelation("filmography", Seq(newFilmRecord))
+        context.become(waitingForInsertAck orElse commonBehaviour)
     }
   }
 
   def waitingForInsertAck: Receive = {
-    case akka.actor.Status.Success => {
+    case akka.actor.Status.Success =>
       backTo ! akka.actor.Status.Success
       context.stop(self) // because this is our last state
-    }
   }
 
   def commonBehaviour: Receive = {
@@ -143,26 +147,30 @@ class AddCastFunctor(personId: Int, filmId: Int, roleName: String, backTo: Actor
   def waitingForPersonInfo: Receive = {
     case DefaultMessagingProtocol.SelectAllFromRelation.Failure(e) => fail(e)
     case DefaultMessagingProtocol.SelectAllFromRelation.Success(relation: Relation) => {
-      val personInfo: Record = relation.records.get.head
+      val personInfoOption: Option[Record] = relation.records.toOption match {
+        case Some(records: Seq[Record]) => records.headOption
+        case _ => None
+      }
+      personInfoOption match {
+        case None => fail(new RuntimeException("Received empty personInfo"))
 
-      val newCastRecord: Record = Film.Cast.newRecord(
-        Film.Cast.firstName ~> personInfo.get(Person.Info.firstName).get &
-        Film.Cast.lastName ~> personInfo.get(Person.Info.lastName).get &
-        Film.Cast.roleName ~> roleName &
-        Film.Cast.personId ~> personId
-      ).build()
-
-      Dactor.dactorSelection(context.system, classOf[Film], filmId) ! DefaultMessagingProtocol.InsertIntoRelation("film_cast", Seq(newCastRecord))
-
-      context.become(waitingForInsertAck orElse commonBehaviour)
+        case Some(personInfo: Record) =>
+          val newCastRecord: Record = Film.Cast.newRecord(
+            Film.Cast.firstName ~> personInfo(Person.Info.firstName) &
+              Film.Cast.lastName ~> personInfo(Person.Info.lastName) &
+              Film.Cast.roleName ~> roleName &
+              Film.Cast.personId ~> personId
+          ).build()
+          Dactor.dactorSelection(context.system, classOf[Film], filmId) ! DefaultMessagingProtocol.InsertIntoRelation("film_cast", Seq(newCastRecord))
+          context.become(waitingForInsertAck orElse commonBehaviour)
+      }
     }
   }
 
   def waitingForInsertAck: Receive = {
-    case akka.actor.Status.Success => {
+    case akka.actor.Status.Success =>
       backTo ! akka.actor.Status.Success
       context.stop(self)
-    }
   }
 
   def commonBehaviour: Receive = {
