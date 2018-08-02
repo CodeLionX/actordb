@@ -39,6 +39,12 @@ class SingleRowRelationTest extends WordSpec with Matchers {
       .withCellContent(Customer.colAge)(3)
       .build()
 
+    val record4 = Customer.newRecord
+      .withCellContent(Customer.colFirstname)(null)
+      .withCellContent(Customer.colLastname)("Maier")
+      .withCellContent(Customer.colAge)(65)
+      .build()
+
     "insert records without missing values correctly" in {
       val customer = SingleRowRelation(Customer)
       val inserted = customer.insert(record1)
@@ -197,6 +203,26 @@ class SingleRowRelationTest extends WordSpec with Matchers {
       result2 shouldEqual Success(Seq.empty)
       result3 shouldEqual Success(Seq.empty)
       result4 shouldEqual Success(Seq.empty)
+    }
+
+    "return empty relation when where query including condition on null-value column" in {
+      val customer = SingleRowRelation(Customer)
+      customer.insert(record4)
+
+      val result = customer.where(Customer.colFirstname -> { s: String => s == "" }).records
+      result shouldEqual Success(Seq.empty)
+    }
+
+    "return empty relation when whereAll query including condition on null-value column" in {
+      val customer = SingleRowRelation(Customer)
+      customer.insert(record4)
+
+      val result = customer.whereAll(Map(
+        Customer.colFirstname -> { case s: String => s == "" },
+        Customer.colAge -> { case age: Int => age > 50 }
+      )).records
+
+      result shouldEqual Success(Seq.empty)
     }
   }
 }
