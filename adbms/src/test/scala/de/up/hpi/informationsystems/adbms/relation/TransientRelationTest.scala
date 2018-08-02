@@ -95,8 +95,8 @@ class TransientRelationTest extends WordSpec with Matchers {
 
       "return an empty result set for any whereAll query" in {
         emptyRelation.whereAll(Map(
-          colFirstname -> {_ => true},
-          colAge -> {_ => true}
+          colFirstname -> { case _ => true },
+          colAge -> { case _ => true }
         )).records shouldEqual Success(Seq.empty)
       }
 
@@ -109,7 +109,7 @@ class TransientRelationTest extends WordSpec with Matchers {
 
       "return an empty result set for any applyOn function" in {
         emptyRelation
-          .applyOn(colFirstname, (name: String) => "something bad!")
+          .applyOn(colFirstname, (_: String) => "something bad!")
           .records shouldEqual Success(Seq.empty)
       }
     }
@@ -141,8 +141,8 @@ class TransientRelationTest extends WordSpec with Matchers {
 
       "return the appropriate result set for a whereAll query including the empty result set" in {
         fullRelation.whereAll(Map(
-            colAge -> {id => id.asInstanceOf[Int] <= 23},
-            colFirstname -> {field => field.asInstanceOf[String].contains("Max")}
+            colAge -> { case id: Int => id <= 23 },
+            colFirstname -> { case field: String => field.contains("Max") }
         )).records shouldEqual Success(Seq(record2))
       }
 
@@ -242,7 +242,7 @@ class TransientRelationTest extends WordSpec with Matchers {
 
       "return an appropriate result for innerJoin with itself using different column values" in {
         val diffColumnsJoined = fullRelation
-          .innerJoin(fullRelation, (lside, rside) => lside.get(colFirstname).get == rside.get(colLastname).get)
+          .innerJoin(fullRelation, (lside, rside) => lside.get(colFirstname) == rside.get(colLastname))
 
         diffColumnsJoined.columns shouldEqual columns
         diffColumnsJoined.records shouldEqual Success(Seq(record1))
@@ -250,7 +250,7 @@ class TransientRelationTest extends WordSpec with Matchers {
 
       "return itself for innerJoin with itself using the same column values" in {
         val sameColumnJoined = fullRelation
-          .innerJoin(fullRelation, (left, right) => left.get(colFirstname).get == right.get(colFirstname).get)
+          .innerJoin(fullRelation, (left, right) => left.get(colFirstname) == right.get(colFirstname))
 
         sameColumnJoined.columns shouldEqual columns
         sameColumnJoined.records shouldEqual Success(Seq(record1, record2))
@@ -285,14 +285,22 @@ class TransientRelationTest extends WordSpec with Matchers {
 
       "fail to innerJoin on wrong column definition" in {
         val joined1 = fullRelation
-          .innerJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")).get == right.get(colFirstname).get)
+          .innerJoin(fullRelation, (left, right) => left(ColumnDef[String]("something")) == right(colFirstname))
           .records
         val joined2 = fullRelation
-          .innerJoin(fullRelation, (left, right) => left.get(colFirstname).get == right.get(ColumnDef[String]("something")).get)
+          .innerJoin(fullRelation, (left, right) => left(colFirstname) == right(ColumnDef[String]("something")))
+          .records
+        val joined3 = fullRelation
+          .innerJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")) == right.get(colFirstname))
+          .records
+        val joined4 = fullRelation
+          .innerJoin(fullRelation, (left, right) => left.get(colFirstname) == right.get(ColumnDef[String]("something")))
           .records
 
         joined1.isFailure shouldBe true
         joined2.isFailure shouldBe true
+        joined3 shouldEqual Success(Seq.empty)
+        joined4 shouldEqual Success(Seq.empty)
       }
 
       /* outerJoin */
@@ -336,14 +344,22 @@ class TransientRelationTest extends WordSpec with Matchers {
 
       "fail to outerJoin on wrong column definition" in {
         val joined1 = fullRelation
-          .outerJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")).get == right.get(colFirstname).get)
+          .outerJoin(fullRelation, (left, right) => left(ColumnDef[String]("something")) == right(colFirstname))
           .records
         val joined2 = fullRelation
-          .outerJoin(fullRelation, (left, right) => left.get(colFirstname).get == right.get(ColumnDef[String]("something")).get)
+          .outerJoin(fullRelation, (left, right) => left(colFirstname) == right(ColumnDef[String]("something")))
+          .records
+        val joined3 = fullRelation
+          .outerJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")) == right.get(colFirstname))
+          .records
+        val joined4 = fullRelation
+          .outerJoin(fullRelation, (left, right) => left.get(colFirstname) == right.get(ColumnDef[String]("something")))
           .records
 
         joined1.isFailure shouldBe true
         joined2.isFailure shouldBe true
+        joined3 shouldEqual Success(Seq(record1, record2))
+        joined4 shouldEqual Success(Seq(record1, record2))
       }
 
       /* leftJoin */
@@ -382,14 +398,22 @@ class TransientRelationTest extends WordSpec with Matchers {
 
       "fail to leftJoin on wrong column definition" in {
         val joined1 = fullRelation
-          .leftJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")).get == right.get(colFirstname).get)
+          .leftJoin(fullRelation, (left, right) => left(ColumnDef[String]("something")) == right(colFirstname))
           .records
         val joined2 = fullRelation
-          .leftJoin(fullRelation, (left, right) => left.get(colFirstname).get == right.get(ColumnDef[String]("something")).get)
+          .leftJoin(fullRelation, (left, right) => left(colFirstname) == right(ColumnDef[String]("something")))
+          .records
+        val joined3 = fullRelation
+          .leftJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")) == right.get(colFirstname))
+          .records
+        val joined4 = fullRelation
+          .leftJoin(fullRelation, (left, right) => left.get(colFirstname) == right.get(ColumnDef[String]("something")))
           .records
 
         joined1.isFailure shouldBe true
         joined2.isFailure shouldBe true
+        joined3 shouldEqual Success(Seq(record1, record2))
+        joined4 shouldEqual Success(Seq(record1, record2))
       }
 
       /* rightJoin */
@@ -428,14 +452,22 @@ class TransientRelationTest extends WordSpec with Matchers {
 
       "fail to rightJoin on wrong column definition" in {
         val joined1 = fullRelation
-          .rightJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")).get == right.get(colFirstname).get)
+          .rightJoin(fullRelation, (left, right) => left(ColumnDef[String]("something")) == right(colFirstname))
           .records
         val joined2 = fullRelation
-          .rightJoin(fullRelation, (left, right) => left.get(colFirstname).get == right.get(ColumnDef[String]("something")).get)
+          .rightJoin(fullRelation, (left, right) => left(colFirstname) == right(ColumnDef[String]("something")))
+          .records
+        val joined3 = fullRelation
+          .rightJoin(fullRelation, (left, right) => left.get(ColumnDef[String]("something")) == right.get(colFirstname))
+          .records
+        val joined4 = fullRelation
+          .rightJoin(fullRelation, (left, right) => left.get(colFirstname) == right.get(ColumnDef[String]("something")))
           .records
 
         joined1.isFailure shouldBe true
         joined2.isFailure shouldBe true
+        joined3 shouldEqual Success(Seq(record1, record2))
+        joined4 shouldEqual Success(Seq(record1, record2))
       }
     }
 
@@ -470,31 +502,29 @@ class TransientRelationTest extends WordSpec with Matchers {
       }
 
       "return the appropriate result set for a whereAll query including the empty result set" in {
-        pending // NullPointerException
         incompleteRelation.whereAll(
           Map(
-            colAge -> {age => age.asInstanceOf[Int] > 40},
-            colLastname -> {field => field.asInstanceOf[String].contains("es")}
+            colAge -> { case age: Int => age > 40 },
+            colLastname -> { case field: String => field.contains("es") }
           )).records shouldEqual Success(Seq(record1, record3))
         }
 
       "return selected columns only from project including records with null-values" in {
-        pending // NullPointerException
         // deduce correctness of Relation.project from correctness of Record.project
         incompleteRelation.project(Set(colFirstname)).records shouldEqual
           Success(Seq(
             record1.project(Set(colFirstname)).get,
             record2.project(Set(colFirstname)).get,
-            record3.project(Set(colFirstname)).get
+            record3.project(Set(colFirstname)).get,
+            record4.project(Set(colFirstname)).get
           ))
       }
 
       "return the appropriate result set for a whereAll query including condition on null-value column" in {
-        pending // NullPointerException
         incompleteRelation.whereAll(
           Map(
-            colAge -> {id => id.asInstanceOf[Int] <= 2},
-            colFirstname -> {field => field.asInstanceOf[String].contains("esty")}
+            colAge -> { case id: Int => id <= 2 },
+            colFirstname -> { case field: String => field.contains("esty") }
           )).records shouldEqual Success(Seq.empty)
       }
 
