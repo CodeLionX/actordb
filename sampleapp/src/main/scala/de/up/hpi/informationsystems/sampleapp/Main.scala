@@ -17,11 +17,9 @@ object Main extends App {
   println("Starting system")
   SystemInitializer.initializer ! SystemInitializer.Startup(5 seconds)
 
-  Runtime.getRuntime.addShutdownHook(new Thread() {
-    override def run(): Unit = {
-      println(s"Received shutdown signal from JVM")
-      SystemInitializer.initializer ! SystemInitializer.Shutdown
-    }
+  sys.addShutdownHook({
+    println(s"Received shutdown signal from JVM")
+    SystemInitializer.initializer ! SystemInitializer.Shutdown
   })
 
 }
