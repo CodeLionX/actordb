@@ -13,9 +13,10 @@ object AdminSession {
   final case object Up
 
   object AddCastToFilm {
-    final case class Request(personId: Int, filmId: Int, roleName: String) extends RequestResponseProtocol.Request
-    final case class Success(result: Relation) extends RequestResponseProtocol.Success
-    final case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
+    sealed trait AddCastToFilm extends RequestResponseProtocol.Message
+    final case class Request(personId: Int, filmId: Int, roleName: String) extends RequestResponseProtocol.Request[AddCastToFilm]
+    final case class Success(result: Relation) extends RequestResponseProtocol.Success[AddCastToFilm]
+    final case class Failure(e: Throwable) extends RequestResponseProtocol.Failure[AddCastToFilm]
   }
 
   def props: Props = Props[AdminSession]
