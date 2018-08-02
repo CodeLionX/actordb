@@ -29,10 +29,10 @@ object Customer {
   }
 
   object GetCustomerGroupId {
-    sealed trait GetCustomerInfo extends RequestResponseProtocol.Message
-    case class Request() extends RequestResponseProtocol.Request[GetCustomerInfo]
-    case class Success(result: Relation) extends RequestResponseProtocol.Success[GetCustomerInfo]
-    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure[GetCustomerInfo]
+    sealed trait GetCustomerGroupId extends RequestResponseProtocol.Message
+    case class Request() extends RequestResponseProtocol.Request[GetCustomerGroupId]
+    case class Success(result: Relation) extends RequestResponseProtocol.Success[GetCustomerGroupId]
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure[GetCustomerGroupId]
 
   }
 
