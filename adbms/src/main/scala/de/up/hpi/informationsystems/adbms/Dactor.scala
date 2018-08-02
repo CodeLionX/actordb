@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, ActorSelectio
 import akka.util.Timeout
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
-import de.up.hpi.informationsystems.adbms.relation.{FutureRelation, MutableRelation, Relation, RowRelation}
+import de.up.hpi.informationsystems.adbms.relation.{FutureRelation, MutableRelation, RowRelation}
 
 import scala.concurrent.Future
 
