@@ -4,7 +4,7 @@ import de.up.hpi.informationsystems.adbms.relation.Relation
 
 object RequestResponseProtocol {
 
-  /** Message type to be subclassed and used as [[Request]] and [[Response]] type information
+  /** Marker trait to be subclassed and used with [[Request]], [[Success]], and [[Failure]] as message type information.
     *
     * Subclasses of this marker trait are used as type parameters for [[Request]], [[Success]], and [[Failure]]
     * subclasses. The marker trait then allows for specific pattern matching on [[Request]] and [[Response]] subtypes.
