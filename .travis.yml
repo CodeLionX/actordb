@@ -31,8 +31,7 @@ cache:
 before_install:
   - if [[ "$TRAVIS_PULL_REQUEST" != "false" && "$TRAVIS_PULL_REQUEST_BRANCH" == doc/* ]]; then exit 0; fi
 
-# build script (sbt test and sbt run TestApplication)
+# build script (sbt test and sbt run sampleapp.Main)
 script:
   - sbt ++$TRAVIS_SCALA_VERSION test
-  - sbt ++$TRAVIS_SCALA_VERSION "sampleapp/runMain de.up.hpi.informationsystems.sampleapp.TestApplication"
   - sbt ++$TRAVIS_SCALA_VERSION "sampleapp/runMain de.up.hpi.informationsystems.sampleapp.Main"
