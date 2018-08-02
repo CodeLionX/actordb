@@ -32,7 +32,6 @@ class AdminSession extends Actor with ActorLogging {
     case AdminSession.AddCastToFilm.Request(personId, filmId, roleName) =>
       addCastToFilm(personId, filmId, roleName)
     case DefaultMessagingProtocol.SelectAllFromRelation.Success(rel) => log.info(rel.toString)
-    case s: String => log.info(s"received string $s")
   }
 
   def addCastToFilm(personId: Int, filmId: Int, roleName: String): Unit = {
