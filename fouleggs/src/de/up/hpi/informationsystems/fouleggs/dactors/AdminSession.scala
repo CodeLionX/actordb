@@ -1,7 +1,7 @@
 package de.up.hpi.informationsystems.fouleggs.dactors
 
 import akka.actor.Actor.Receive
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props}
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol
 import de.up.hpi.informationsystems.adbms.record.Record
@@ -18,15 +18,6 @@ object AdminSession {
     final case class Failure(e: Throwable)
   }
 
-  // :addFilm(filmName, filmDescription, filmRelease)
-  // :addPerson(firstName, lastName birthDay)
-
-  // Core functionality for MultiDactorFunction impl:
-  // :addCastToFilm(personId, filmId, roleName) <--- MultiDactorFunction! // Range query on non-optimally layed out data: // :findPerson(freeText: firstName andor lastName andor birthday)
-
-  // Only for consideration:
-  // :find(freeText: Person.firstName or Film.Info.title or Film.Cast.roleName etc)
-
   def props: Props = Props[AdminSession]
 }
 
@@ -41,18 +32,13 @@ class AdminSession extends Actor with ActorLogging {
     case AdminSession.AddCastToFilm.Request(personId, filmId, roleName) =>
       addCastToFilm(personId, filmId, roleName)
     case DefaultMessagingProtocol.SelectAllFromRelation.Success(rel) => log.info(rel.toString)
+    case s: String => log.info(s"received string $s")
   }
 
   def addCastToFilm(personId: Int, filmId: Int, roleName: String): Unit = {
+    log.info(s"Adding person $personId as $roleName to film $filmId")
     val functor: ActorRef = context.system.actorOf(Props(new CastAndFilmographyFunctor(personId, filmId, roleName, self)))
     context.become(waitingForSuccess(functor) orElse commonBehaviour)
-
-    /*
-    Nested MultiDactorFunction:
-    ConcurrentFunction wrapping two SequentialFunctions:
-    1) Person.GetInfo -> Film.AddCast
-    2) Film.GetInfo -> Person.AddFilm
-     */
   }
 
   def waitingForSuccess(from: ActorRef): Receive = {
@@ -143,8 +129,6 @@ class AddCastFunctor(personId: Int, filmId: Int, roleName: String, backTo: Actor
   def waitingForPersonInfo: Receive = {
     case DefaultMessagingProtocol.SelectAllFromRelation.Failure(e) => fail(e)
     case DefaultMessagingProtocol.SelectAllFromRelation.Success(relation: Relation) => {
-      context.become(waitingForInsertAck orElse commonBehaviour)
-
       val personInfo: Record = relation.records.get.head
 
       val newCastRecord: Record = Film.Cast.newRecord(
@@ -153,14 +137,17 @@ class AddCastFunctor(personId: Int, filmId: Int, roleName: String, backTo: Actor
         Film.Cast.roleName ~> roleName &
         Film.Cast.personId ~> personId
       ).build()
+
       Dactor.dactorSelection(context.system, classOf[Film], filmId) ! DefaultMessagingProtocol.InsertIntoRelation("film_cast", Seq(newCastRecord))
+
+      context.become(waitingForInsertAck orElse commonBehaviour)
     }
   }
 
   def waitingForInsertAck: Receive = {
     case akka.actor.Status.Success => {
       backTo ! akka.actor.Status.Success
-      context.stop(self) // because this is our last state
+      context.stop(self)
     }
   }
 
@@ -172,23 +159,4 @@ class AddCastFunctor(personId: Int, filmId: Int, roleName: String, backTo: Actor
     backTo ! akka.actor.Status.Failure(e)
     context.stop(self)
   }
-}
-
-// -----------------------------------------------------
-// Notes only
-// -----------------------------------------------------
-
-// TODO
-// THIS IS IT!
-// I can handle state transitions, checking if I have further states,
-// killing myself and giving final feedback to my creator through adding
-// to the user defined `Receive` PartialFunctions using `andThen`
-// But that is not aware of what actually triggered the `Receive`, what
-// if another message interrupts the expected messages?
-// TODO also make this use a builder pattern
-class SequentialFunction(states: Seq[Receive]) extends Actor {
-  override def receive: Receive = seqReceive(states.head, states.drop(1))
-
-  def seqReceive(current: Receive, remaining: Seq[Receive]): Receive =
-    current.andThen((_) => {context.become(seqReceive(remaining.head, remaining.drop(1)))})
 }
