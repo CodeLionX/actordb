@@ -37,7 +37,7 @@ class AdminSession extends Actor with ActorLogging {
 
   def addCastToFilm(personId: Int, filmId: Int, roleName: String): Unit = {
     log.info(s"Adding person $personId as $roleName to film $filmId")
-    val functor: ActorRef = context.system.actorOf(Props(new CastAndFilmographyFunctor(personId, filmId, roleName, self)))
+    val functor: ActorRef = context.system.actorOf(CastAndFilmographyFunctor.props(personId, filmId, roleName, self))
     context.become(waitingForSuccess(functor) orElse commonBehaviour)
   }
 
@@ -55,10 +55,15 @@ class AdminSession extends Actor with ActorLogging {
   }
 }
 
+object CastAndFilmographyFunctor {
+  def props(personId: Int, filmId: Int, roleName: String, backTo: ActorRef): Props =
+    Props(new CastAndFilmographyFunctor(personId, filmId, roleName, backTo))
+}
+
 class CastAndFilmographyFunctor(personId: Int, filmId: Int, roleName: String, backTo: ActorRef) extends Actor {
 
-  val sub1: ActorRef = context.system.actorOf(Props(new AddFilmFunctor(personId, filmId, roleName, self)))
-  val sub2: ActorRef = context.system.actorOf(Props(new AddCastFunctor(personId, filmId, roleName, self)))
+  val sub1: ActorRef = context.system.actorOf(AddFilmFunctor.props(personId, filmId, roleName, self))
+  val sub2: ActorRef = context.system.actorOf(AddCastFunctor.props(personId, filmId, roleName, self))
 
   override def receive: Receive = waitingForAck(Seq(sub1, sub2))
 
@@ -77,6 +82,11 @@ class CastAndFilmographyFunctor(personId: Int, filmId: Int, roleName: String, ba
       backTo ! akka.actor.Status.Failure(e)
       context.stop(self)
   }
+}
+
+object AddFilmFunctor {
+  def props(personId: Int, filmId: Int, roleName: String, backTo: ActorRef): Props =
+    Props(new AddFilmFunctor(personId: Int, filmId: Int, roleName: String, backTo: ActorRef))
 }
 
 class AddFilmFunctor(personId: Int, filmId: Int, roleName: String, backTo: ActorRef) extends Actor {
@@ -117,6 +127,11 @@ class AddFilmFunctor(personId: Int, filmId: Int, roleName: String, backTo: Actor
     backTo ! akka.actor.Status.Failure(e)
     context.stop(self)
   }
+}
+
+object AddCastFunctor {
+  def props(personId: Int, filmId: Int, roleName: String, backTo: ActorRef): Props =
+    Props(new AddCastFunctor(personId: Int, filmId: Int, roleName: String, backTo: ActorRef))
 }
 
 class AddCastFunctor(personId: Int, filmId: Int, roleName: String, backTo: ActorRef) extends Actor {
