@@ -4,18 +4,27 @@ import de.up.hpi.informationsystems.adbms.relation.Relation
 
 object RequestResponseProtocol {
 
-  /**
+  /** Message type to be subclassed and used as [[Request]] and [[Response]] type information
     *
     */
   trait Message
 
   /** A Request to a Dactor for which you expect a Response.
     *
-    * Each Dactor that can reply to queries subclasses these traits with their own message types so one can match on
-    * expected message types
+    * Each Dactor that can reply to queries or Functions subclasses these traits with their own message types so one can
+    * match on expected message types
+    *
+    * @tparam T [[RequestResponseProtocol.Message]] subtype defining the message type of this request
     */
   trait Request[+T <: Message]
 
+  /** A Response from a Dactor, sent in response to a [[Request]].
+    *
+    * Each Dactor that can reply to queries or Functions subclasses these traits with their own message types so one can
+    * match on expected message types.
+    *
+    * @tparam T [[RequestResponseProtocol.Message]] subtype defining the message type of this response
+    */
   sealed trait Response[+T <: Message]
 
   /** A successful Response from a Dactor in answer to a Request.
