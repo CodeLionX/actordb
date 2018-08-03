@@ -21,34 +21,34 @@ object Customer {
   def props(id: Int): Props = Props(new Customer(id))
 
   object GetCustomerInfo {
-
-    case class Request() extends RequestResponseProtocol.Request
-    case class Success(result: Relation) extends RequestResponseProtocol.Success
-    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
+    sealed trait GetCustomerInfo extends RequestResponseProtocol.Message
+    case class Request() extends RequestResponseProtocol.Request[GetCustomerInfo]
+    case class Success(result: Relation) extends RequestResponseProtocol.Success[GetCustomerInfo]
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure[GetCustomerInfo]
 
   }
 
   object GetCustomerGroupId {
-
-    case class Request() extends RequestResponseProtocol.Request
-    case class Success(result: Relation) extends RequestResponseProtocol.Success
-    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
+    sealed trait GetCustomerGroupId extends RequestResponseProtocol.Message
+    case class Request() extends RequestResponseProtocol.Request[GetCustomerGroupId]
+    case class Success(result: Relation) extends RequestResponseProtocol.Success[GetCustomerGroupId]
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure[GetCustomerGroupId]
 
   }
 
   object AddStoreVisit {
-
-    case class Request(storeId: Int, time: ZonedDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double) extends RequestResponseProtocol.Request
-    case class Success(result: Relation) extends RequestResponseProtocol.Success
-    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
+    sealed trait AddStoreVisit extends RequestResponseProtocol.Message
+    case class Request(storeId: Int, time: ZonedDateTime, amount: Double, fixedDiscount: Double, varDiscount: Double) extends RequestResponseProtocol.Request[AddStoreVisit]
+    case class Success(result: Relation) extends RequestResponseProtocol.Success[AddStoreVisit]
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure[AddStoreVisit]
 
   }
 
   object Authenticate {
-
-    case class Request(passwordHash: String) extends RequestResponseProtocol.Request
-    case class Success(result: Relation) extends RequestResponseProtocol.Success
-    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
+    sealed trait Authenticate extends RequestResponseProtocol.Message
+    case class Request(passwordHash: String) extends RequestResponseProtocol.Request[Authenticate]
+    case class Success(result: Relation) extends RequestResponseProtocol.Success[Authenticate]
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure[Authenticate]
 
   }
 

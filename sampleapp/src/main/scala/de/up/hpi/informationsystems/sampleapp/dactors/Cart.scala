@@ -25,16 +25,18 @@ object Cart {
   object AddItems {
     case class Order(inventoryId: Int, sectionId: Int, quantity: Int)
 
+    sealed trait AddItems extends RequestResponseProtocol.Message
     // orders: item_id, i_quantity
-    case class Request(orders: Seq[Order], customerId: Int) extends RequestResponseProtocol.Request
-    case class Success(result: Relation) extends RequestResponseProtocol.Success
-    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
+    case class Request(orders: Seq[Order], customerId: Int) extends RequestResponseProtocol.Request[AddItems]
+    case class Success(result: Relation) extends RequestResponseProtocol.Success[AddItems]
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure[AddItems]
   }
 
   object Checkout {
-    case class Request(sessionId: Int) extends RequestResponseProtocol.Request
-    case class Success(result: Relation) extends RequestResponseProtocol.Success
-    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
+    sealed trait Checkout extends RequestResponseProtocol.Message
+    case class Request(sessionId: Int) extends RequestResponseProtocol.Request[Checkout]
+    case class Success(result: Relation) extends RequestResponseProtocol.Success[Checkout]
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure[Checkout]
   }
 
   object CartInfo extends RelationDef {

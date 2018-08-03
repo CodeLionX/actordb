@@ -17,11 +17,11 @@ object GroupManager {
   def props(id: Int): Props = Props(new GroupManager(id))
 
   object GetFixedDiscounts {
-
-    case class Request(ids: Seq[Int]) extends RequestResponseProtocol.Request
+    sealed trait GetFixedDiscounts extends RequestResponseProtocol.Message
+    case class Request(ids: Seq[Int]) extends RequestResponseProtocol.Request[GetFixedDiscounts]
     // results: i_id, fixed_disc
-    case class Success(result: Relation) extends RequestResponseProtocol.Success
-    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
+    case class Success(result: Relation) extends RequestResponseProtocol.Success[GetFixedDiscounts]
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure[GetFixedDiscounts]
 
   }
 

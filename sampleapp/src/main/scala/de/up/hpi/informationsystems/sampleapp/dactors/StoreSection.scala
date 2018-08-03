@@ -21,11 +21,11 @@ object StoreSection {
   def props(id: Int): Props = Props(new StoreSection(id))
 
   object GetPrice {
-
-    case class Request(inventoryIds: Seq[Int]) extends RequestResponseProtocol.Request
+    sealed trait GetPrice extends RequestResponseProtocol.Message
+    case class Request(inventoryIds: Seq[Int]) extends RequestResponseProtocol.Request[GetPrice]
     // result: i_id, i_price, i_min_price
-    case class Success(result: Relation) extends RequestResponseProtocol.Success
-    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
+    case class Success(result: Relation) extends RequestResponseProtocol.Success[GetPrice]
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure[GetPrice]
 
   }
 
@@ -34,11 +34,12 @@ object StoreSection {
     val fixedDiscCol: ColumnDef[Double] = ColumnDef[Double]("fixed_disc")
     val varDiscCol: ColumnDef[Double] = ColumnDef[Double]("var_disc")
 
+    sealed trait GetVariableDiscountUpdateInventory extends RequestResponseProtocol.Message
     // order items: i_id, i_quantity, i_min_price, i_price, i_fixed_disc
-    case class Request(customerId: Int, cartTime: ZonedDateTime, orderItems: Relation) extends RequestResponseProtocol.Request
+    case class Request(customerId: Int, cartTime: ZonedDateTime, orderItems: Relation) extends RequestResponseProtocol.Request[GetVariableDiscountUpdateInventory]
     // result: amount, fixed_disc, var_disc
-    case class Success(result: Relation) extends RequestResponseProtocol.Success
-    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
+    case class Success(result: Relation) extends RequestResponseProtocol.Success[GetVariableDiscountUpdateInventory]
+    case class Failure(e: Throwable) extends RequestResponseProtocol.Failure[GetVariableDiscountUpdateInventory]
 
   }
 

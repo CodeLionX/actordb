@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, ActorSelectio
 import akka.util.Timeout
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
-import de.up.hpi.informationsystems.adbms.relation.{FutureRelation, MutableRelation, Relation, RowRelation}
+import de.up.hpi.informationsystems.adbms.relation.{FutureRelation, MutableRelation, RowRelation}
 
 import scala.concurrent.Future
 
@@ -83,7 +83,9 @@ object Dactor {
     * @return             a FutureRelation of the unioned results from the Requests on successful completion
     */
   def askDactor(
-                system: ActorSystem, dactorClass: Class[_ <: Dactor], messages: Map[Int, RequestResponseProtocol.Request]
+                system: ActorSystem,
+                dactorClass: Class[_ <: Dactor],
+                messages: Map[Int, RequestResponseProtocol.Request[_ <: RequestResponseProtocol.Message]]
                )(
                 implicit timeout: Timeout
                ): FutureRelation = {
@@ -95,10 +97,10 @@ object Dactor {
         val answer: Future[Any] = akka.pattern.ask(dactorSelection(system, dactorClass, dactorId), msg)(timeout)
         // FIXME: match on result and handle success / failure differences!!!!
         answer
-          .mapTo[RequestResponseProtocol.Response]
+          .mapTo[RequestResponseProtocol.Response[_]]
           .map{
-            case s: RequestResponseProtocol.Success => scala.util.Success(s.result)
-            case f: RequestResponseProtocol.Failure => scala.util.Failure(f.e)
+            case s: RequestResponseProtocol.Success[_] => scala.util.Success(s.result)
+            case f: RequestResponseProtocol.Failure[_] => scala.util.Failure(f.e)
           }
           .map(_.get)
       })

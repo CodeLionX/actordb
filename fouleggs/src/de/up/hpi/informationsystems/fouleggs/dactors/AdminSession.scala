@@ -2,7 +2,7 @@ package de.up.hpi.informationsystems.fouleggs.dactors
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import de.up.hpi.informationsystems.adbms.Dactor
-import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol
+import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol.{SelectAllFromRelation, InsertIntoRelation}
 import de.up.hpi.informationsystems.adbms.record.Record
 import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.relation.Relation
@@ -13,9 +13,10 @@ object AdminSession {
   final case object Up
 
   object AddCastToFilm {
-    final case class Request(personId: Int, filmId: Int, roleName: String) extends RequestResponseProtocol.Request
-    final case class Success(result: Relation) extends RequestResponseProtocol.Success
-    final case class Failure(e: Throwable) extends RequestResponseProtocol.Failure
+    sealed trait AddCastToFilm extends RequestResponseProtocol.Message
+    final case class Request(personId: Int, filmId: Int, roleName: String) extends RequestResponseProtocol.Request[AddCastToFilm]
+    final case class Success(result: Relation) extends RequestResponseProtocol.Success[AddCastToFilm]
+    final case class Failure(e: Throwable) extends RequestResponseProtocol.Failure[AddCastToFilm]
   }
 
   def props: Props = Props[AdminSession]
@@ -31,7 +32,7 @@ class AdminSession extends Actor with ActorLogging {
     case AdminSession.Up => sender() ! akka.actor.Status.Success
     case AdminSession.AddCastToFilm.Request(personId, filmId, roleName) =>
       addCastToFilm(personId, filmId, roleName)
-    case DefaultMessagingProtocol.SelectAllFromRelation.Success(rel) => log.info(rel.toString)
+    case SelectAllFromRelation.Success(rel) => log.info(rel.toString)
   }
 
   def addCastToFilm(personId: Int, filmId: Int, roleName: String): Unit = {
@@ -48,8 +49,8 @@ class AdminSession extends Actor with ActorLogging {
       val empire = Dactor.dactorSelection(context.system, classOf[Film], 1)
       val mark = Dactor.dactorSelection(context.system, classOf[Person], 1)
 
-      empire ! DefaultMessagingProtocol.SelectAllFromRelation.Request(Film.Cast.name)
-      mark ! DefaultMessagingProtocol.SelectAllFromRelation.Request(Person.Filmography.name)
+      empire ! SelectAllFromRelation.Request(Film.Cast.name)
+      mark ! SelectAllFromRelation.Request(Person.Filmography.name)
     }
   }
 }
@@ -92,11 +93,11 @@ class AddFilmFunctor(personId: Int, filmId: Int, roleName: String, backTo: Actor
 
   override def receive: Receive = waitingForFilmInfo orElse commonBehaviour
 
-  Dactor.dactorSelection(context.system, classOf[Film], filmId) ! DefaultMessagingProtocol.SelectAllFromRelation.Request("film_info")
+  Dactor.dactorSelection(context.system, classOf[Film], filmId) ! SelectAllFromRelation.Request("film_info")
 
   def waitingForFilmInfo: Receive = {
-    case DefaultMessagingProtocol.SelectAllFromRelation.Failure(e) => fail(e)
-    case DefaultMessagingProtocol.SelectAllFromRelation.Success(relation: Relation) =>
+    case SelectAllFromRelation.Failure(e) => fail(e)
+    case SelectAllFromRelation.Success(relation: Relation) =>
       val filmInfoOption: Option[Record] = relation.records.toOption match {
         case Some(records: Seq[Record]) => records.headOption
         case _ => None
@@ -111,7 +112,7 @@ class AddFilmFunctor(personId: Int, filmId: Int, roleName: String, backTo: Actor
             Person.Filmography.filmName ~> filmInfo(Film.Info.title) &
             Person.Filmography.filmRelease ~> filmInfo(Film.Info.release)
         ).build()
-        Dactor.dactorSelection(context.system, classOf[Person], personId) ! DefaultMessagingProtocol.InsertIntoRelation("filmography", Seq(newFilmRecord))
+        Dactor.dactorSelection(context.system, classOf[Person], personId) ! InsertIntoRelation("filmography", Seq(newFilmRecord))
         context.become(waitingForInsertAck orElse commonBehaviour)
     }
   }
@@ -142,11 +143,11 @@ class AddCastFunctor(personId: Int, filmId: Int, roleName: String, backTo: Actor
   override def receive: Receive = waitingForPersonInfo orElse commonBehaviour
 
   // very first message has to be sent outside of Receives
-  Dactor.dactorSelection(context.system, classOf[Person], personId) ! DefaultMessagingProtocol.SelectAllFromRelation.Request("person_info")
+  Dactor.dactorSelection(context.system, classOf[Person], personId) ! SelectAllFromRelation.Request("person_info")
 
   def waitingForPersonInfo: Receive = {
-    case DefaultMessagingProtocol.SelectAllFromRelation.Failure(e) => fail(e)
-    case DefaultMessagingProtocol.SelectAllFromRelation.Success(relation: Relation) => {
+    case SelectAllFromRelation.Failure(e) => fail(e)
+    case SelectAllFromRelation.Success(relation: Relation) => {
       val personInfoOption: Option[Record] = relation.records.toOption match {
         case Some(records: Seq[Record]) => records.headOption
         case _ => None
@@ -161,7 +162,7 @@ class AddCastFunctor(personId: Int, filmId: Int, roleName: String, backTo: Actor
               Film.Cast.roleName ~> roleName &
               Film.Cast.personId ~> personId
           ).build()
-          Dactor.dactorSelection(context.system, classOf[Film], filmId) ! DefaultMessagingProtocol.InsertIntoRelation("film_cast", Seq(newCastRecord))
+          Dactor.dactorSelection(context.system, classOf[Film], filmId) ! InsertIntoRelation("film_cast", Seq(newCastRecord))
           context.become(waitingForInsertAck orElse commonBehaviour)
       }
     }
