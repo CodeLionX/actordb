@@ -124,8 +124,7 @@ object Dactor {
 
   def startSequentialFunction[S <: Request[_]](function: SequentialFunctionDef[S, _], context: ActorContext, sender: ActorRef)
                                               (message: S): ActorRef = {
-    val ref = context.system.actorOf(function.props)
-    // TODO who is sender
+    val ref: ActorRef = context.system.actorOf(function.props)
     ref.tell(message, sender)
     ref
   }
