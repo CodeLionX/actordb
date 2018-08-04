@@ -153,12 +153,13 @@ class SequentialFunction[S <: Request[_]: ClassTag, E <: Success[_]: ClassTag]
         val constructor = message.getClass.getConstructors()(0)
         val unionResponse = constructor.newInstance((receivedResponses :+ message).map(_.result).reduce(_ union _))
 
-        if (pendingSteps.nonEmpty) {
-          self ! unionResponse
-          context.become(nextReceive(pendingSteps.head._1, pendingSteps.head._2, steps.drop(1), backTo))
-        } else {
-          self ! unionResponse
-          context.become(endReceive(backTo))
+        pendingSteps.headOption match {
+          case None =>
+            self ! unionResponse
+            context.become(endReceive(backTo))
+          case Some(nextStep) =>
+            self ! unionResponse
+            context.become(nextReceive(nextStep._1, nextStep._2, steps.drop(1), backTo))
         }
       }
   }
