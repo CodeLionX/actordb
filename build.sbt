@@ -27,7 +27,8 @@ lazy val fouleggs = (project in file("fouleggs"))
     Common.commonSettings,
     organization := Common.organization,
     scalaVersion := Common.scalaVersion,
-    libraryDependencies ++= Dependencies.akkaActorDependencies
+    libraryDependencies ++= Dependencies.akkaActorDependencies,
+    libraryDependencies ++= Dependencies.akkaHttpDependencies,
   )
   .dependsOn(adbms)
 

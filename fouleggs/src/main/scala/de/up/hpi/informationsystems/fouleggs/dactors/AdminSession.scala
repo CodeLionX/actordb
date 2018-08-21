@@ -1,12 +1,13 @@
 package de.up.hpi.informationsystems.fouleggs.dactors
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor => AkkaActor, ActorLogging, ActorRef, Props}
 import de.up.hpi.informationsystems.adbms.Dactor
-import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol.{SelectAllFromRelation, InsertIntoRelation}
+import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol.{InsertIntoRelation, SelectAllFromRelation}
 import de.up.hpi.informationsystems.adbms.record.Record
 import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
 import de.up.hpi.informationsystems.adbms.relation.Relation
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
+import de.up.hpi.informationsystems.fouleggs.movieScoringService.movies.MovieActor
 
 object AdminSession {
 
@@ -25,7 +26,7 @@ object AdminSession {
 /**
   * Provides top level functionalities
   */
-class AdminSession extends Actor with ActorLogging {
+class AdminSession extends AkkaActor with ActorLogging {
   override def receive: Receive = commonBehaviour
 
   def commonBehaviour: Receive = {
@@ -46,11 +47,11 @@ class AdminSession extends Actor with ActorLogging {
       context.become(commonBehaviour)
       log.info("Connected cast to film")
 
-      val empire = Dactor.dactorSelection(context.system, classOf[Film], 1)
-      val mark = Dactor.dactorSelection(context.system, classOf[Person], 1)
+      val empire = Dactor.dactorSelection(context.system, classOf[MovieActor], 1)
+      val mark = Dactor.dactorSelection(context.system, classOf[Actor], 1)
 
-      empire ! SelectAllFromRelation.Request(Film.Cast.name)
-      mark ! SelectAllFromRelation.Request(Person.Filmography.name)
+      empire ! SelectAllFromRelation.Request(MovieActor.Cast.name)
+      mark ! SelectAllFromRelation.Request(Actor.Filmography.name)
     }
   }
 }
@@ -60,7 +61,7 @@ object CastAndFilmographyFunctor {
     Props(new CastAndFilmographyFunctor(personId, filmId, roleName, backTo))
 }
 
-class CastAndFilmographyFunctor(personId: Int, filmId: Int, roleName: String, backTo: ActorRef) extends Actor {
+class CastAndFilmographyFunctor(personId: Int, filmId: Int, roleName: String, backTo: ActorRef) extends AkkaActor {
 
   val sub1: ActorRef = context.system.actorOf(AddFilmFunctor.props(personId, filmId, roleName, self))
   val sub2: ActorRef = context.system.actorOf(AddCastFunctor.props(personId, filmId, roleName, self))
@@ -89,11 +90,11 @@ object AddFilmFunctor {
     Props(new AddFilmFunctor(personId: Int, filmId: Int, roleName: String, backTo: ActorRef))
 }
 
-class AddFilmFunctor(personId: Int, filmId: Int, roleName: String, backTo: ActorRef) extends Actor {
+class AddFilmFunctor(personId: Int, filmId: Int, roleName: String, backTo: ActorRef) extends AkkaActor {
 
   override def receive: Receive = waitingForFilmInfo orElse commonBehaviour
 
-  Dactor.dactorSelection(context.system, classOf[Film], filmId) ! SelectAllFromRelation.Request("film_info")
+  Dactor.dactorSelection(context.system, classOf[MovieActor], filmId) ! SelectAllFromRelation.Request("film_info")
 
   def waitingForFilmInfo: Receive = {
     case SelectAllFromRelation.Failure(e) => fail(e)
@@ -106,13 +107,13 @@ class AddFilmFunctor(personId: Int, filmId: Int, roleName: String, backTo: Actor
       case None => fail(new RuntimeException("Received empty film info"))
 
       case Some(filmInfo: Record) =>
-        val newFilmRecord: Record = Person.Filmography.newRecord(
-          Person.Filmography.filmId ~> filmId &
-            Person.Filmography.roleName ~> roleName &
-            Person.Filmography.filmName ~> filmInfo(Film.Info.title) &
-            Person.Filmography.filmRelease ~> filmInfo(Film.Info.release)
+        val newFilmRecord: Record = Actor.Filmography.newRecord(
+          Actor.Filmography.filmId ~> filmId &
+            Actor.Filmography.roleName ~> roleName &
+            Actor.Filmography.filmName ~> filmInfo(MovieActor.Info.title) &
+            Actor.Filmography.filmRelease ~> filmInfo(MovieActor.Info.release)
         ).build()
-        Dactor.dactorSelection(context.system, classOf[Person], personId) ! InsertIntoRelation("filmography", Seq(newFilmRecord))
+        Dactor.dactorSelection(context.system, classOf[Actor], personId) ! InsertIntoRelation("filmography", Seq(newFilmRecord))
         context.become(waitingForInsertAck orElse commonBehaviour)
     }
   }
@@ -138,12 +139,12 @@ object AddCastFunctor {
     Props(new AddCastFunctor(personId: Int, filmId: Int, roleName: String, backTo: ActorRef))
 }
 
-class AddCastFunctor(personId: Int, filmId: Int, roleName: String, backTo: ActorRef) extends Actor {
+class AddCastFunctor(personId: Int, filmId: Int, roleName: String, backTo: ActorRef) extends AkkaActor {
 
   override def receive: Receive = waitingForPersonInfo orElse commonBehaviour
 
   // very first message has to be sent outside of Receives
-  Dactor.dactorSelection(context.system, classOf[Person], personId) ! SelectAllFromRelation.Request("person_info")
+  Dactor.dactorSelection(context.system, classOf[Actor], personId) ! SelectAllFromRelation.Request("person_info")
 
   def waitingForPersonInfo: Receive = {
     case SelectAllFromRelation.Failure(e) => fail(e)
@@ -156,13 +157,13 @@ class AddCastFunctor(personId: Int, filmId: Int, roleName: String, backTo: Actor
         case None => fail(new RuntimeException("Received empty personInfo"))
 
         case Some(personInfo: Record) =>
-          val newCastRecord: Record = Film.Cast.newRecord(
-            Film.Cast.firstName ~> personInfo(Person.Info.firstName) &
-              Film.Cast.lastName ~> personInfo(Person.Info.lastName) &
-              Film.Cast.roleName ~> roleName &
-              Film.Cast.personId ~> personId
+          val newCastRecord: Record = MovieActor.Cast.newRecord(
+            MovieActor.Cast.firstName ~> personInfo(Actor.Info.firstName) &
+              MovieActor.Cast.lastName ~> personInfo(Actor.Info.lastName) &
+              MovieActor.Cast.roleName ~> roleName &
+              MovieActor.Cast.personId ~> personId
           ).build()
-          Dactor.dactorSelection(context.system, classOf[Film], filmId) ! InsertIntoRelation("film_cast", Seq(newCastRecord))
+          Dactor.dactorSelection(context.system, classOf[MovieActor], filmId) ! InsertIntoRelation("film_cast", Seq(newCastRecord))
           context.become(waitingForInsertAck orElse commonBehaviour)
       }
     }

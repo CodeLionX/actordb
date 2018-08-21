@@ -2,10 +2,11 @@ package de.up.hpi.informationsystems.fouleggs.dactors
 
 import java.time.{ZoneId, ZonedDateTime}
 
-import akka.actor._
+import akka.actor.{Actor => AkkaActor, _}
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol.InsertIntoRelation
 import de.up.hpi.informationsystems.adbms.record.Record
+import de.up.hpi.informationsystems.fouleggs.movieScoringService.movies.MovieActor
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -32,7 +33,7 @@ object SystemInitializer {
   lazy val initializer: ActorRef = actorSystem.actorOf(props, "initializer")
 }
 
-class SystemInitializer extends Actor with ActorLogging {
+class SystemInitializer extends AkkaActor with ActorLogging {
   import SystemInitializer._
   import de.up.hpi.informationsystems.adbms.record.ColumnCellMapping._
 
@@ -43,22 +44,22 @@ class SystemInitializer extends Actor with ActorLogging {
       val adminSession = context.system.actorOf(AdminSession.props, "AdminSession")
       context.watch(adminSession)
 
-      val empireStrikesBack = Dactor.dactorOf(context.system, classOf[Film], 1)
+      val empireStrikesBack = Dactor.dactorOf(context.system, classOf[MovieActor], 1)
       context.watch(empireStrikesBack)
 
-      val markHamill = Dactor.dactorOf(context.system, classOf[Person], 1)
+      val markHamill = Dactor.dactorOf(context.system, classOf[Actor], 1)
       context.watch(markHamill)
 
-      val empireInfoRec: Record = Film.Info.newRecord(
-        Film.Info.title ~> "The Empire Strikes Back" &
-        Film.Info.release ~> ZonedDateTime.of(1980, 5, 17, 0, 0, 0, 0, ZoneId.of("UTC-08:00")) &
-        Film.Info.description ~> "After the rebels are brutally overpowered by the Empire on the ice planet Hoth, Luke Skywalker begins Jedi training with Yoda, while his friends are pursued by Darth Vader."
+      val empireInfoRec: Record = MovieActor.Info.newRecord(
+        MovieActor.Info.title ~> "The Empire Strikes Back" &
+        MovieActor.Info.release ~> ZonedDateTime.of(1980, 5, 17, 0, 0, 0, 0, ZoneId.of("UTC-08:00")) &
+        MovieActor.Info.description ~> "After the rebels are brutally overpowered by the Empire on the ice planet Hoth, Luke Skywalker begins Jedi training with Yoda, while his friends are pursued by Darth Vader."
       ).build()
 
-      val markInfo: Record = Person.Info.newRecord(
-        Person.Info.firstName ~> "Mark" &
-        Person.Info.lastName ~> "Hamill"  &
-        Person.Info.birthday ~> ZonedDateTime.of(1951, 9, 25, 0, 0, 0, 0, ZoneId.of("UTC-08:00"))
+      val markInfo: Record = Actor.Info.newRecord(
+        Actor.Info.firstName ~> "Mark" &
+        Actor.Info.lastName ~> "Hamill"  &
+        Actor.Info.birthday ~> ZonedDateTime.of(1951, 9, 25, 0, 0, 0, 0, ZoneId.of("UTC-08:00"))
       ).build()
 
       // send message to all Dactors

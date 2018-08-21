@@ -2,14 +2,14 @@ package de.up.hpi.informationsystems.fouleggs.dactors
 
 import java.time.ZonedDateTime
 
-import akka.actor.Actor
+import akka.actor.{Actor => AkkaActor}
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition.ColumnDef.UntypedColumnDef
 import de.up.hpi.informationsystems.adbms.definition.{ColumnDef, RelationDef}
 import de.up.hpi.informationsystems.adbms.protocols.DefaultMessageHandling
 import de.up.hpi.informationsystems.adbms.relation.{MutableRelation, RowRelation, SingleRowRelation}
 
-object Person {
+object Actor {
   // Relation Definitions
   import de.up.hpi.informationsystems.adbms.definition.ColumnTypeDefaults._
 
@@ -34,19 +34,15 @@ object Person {
   }
 
   // Dactor Definition
-  class PersonBase(id: Int) extends Dactor(id) {
-    /**
-      * Returns a map of relation definition and corresponding relational store.
-      *
-      * @return map of relation definition and corresponding relational store
-      */
-    override protected val relations: Map[RelationDef, MutableRelation] =
-      Map(Person.Info -> SingleRowRelation(Person.Info)) ++
-      Map(Person.Filmography -> RowRelation(Person.Filmography))
+  class ActorBase(id: Int) extends Dactor(id) {
 
-    override def receive: Receive = Actor.emptyBehavior
+    override protected val relations: Map[RelationDef, MutableRelation] =
+      Map(Actor.Info -> SingleRowRelation(Actor.Info)) ++
+      Map(Actor.Filmography -> RowRelation(Actor.Filmography))
+
+    override def receive: Receive = AkkaActor.emptyBehavior
   }
 }
 
-class Person(id: Int) extends Person.PersonBase(id) with DefaultMessageHandling
+class Actor(id: Int) extends Actor.ActorBase(id) with DefaultMessageHandling
 
