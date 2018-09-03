@@ -3,13 +3,11 @@ package de.up.hpi.informationsystems.adbms.benchmarks
 import java.io.File
 
 import de.up.hpi.informationsystems.adbms.csv.CSVParser.Implicits._
-import de.up.hpi.informationsystems.adbms.relation.Relation
+import de.up.hpi.informationsystems.adbms.relation.{MutableRelation, Relation, RowRelation}
 import de.up.hpi.informationsystems.sampleapp.dactors._
 
-import scala.annotation.tailrec
-
 object RelationBenchmark extends App {
-  val dataDir = "/data_big"
+  val dataDir = "/data_050_mb"
 
   val nameValMapping = Map(
     "cart_info" -> Cart.CartInfo,
@@ -23,9 +21,23 @@ object RelationBenchmark extends App {
   )
 
   def relationFromFile(f: File): Relation = {
-    val relationName = f.getCanonicalPath.split(File.separatorChar).last.split('.').head
-    nameValMapping(relationName).readFromFile(f)
+    var relationName = f.getCanonicalPath.split(File.separatorChar).last.split('.').head
+    try {
+      var tr: Relation = nameValMapping(relationName).readFromFile(f)
+      var rr: MutableRelation = RowRelation(nameValMapping(relationName))
+      rr.insertAll(tr.records.get)
+      relationName = null
+      tr = null
+      rr
+    } catch {
+      case e: Exception => {
+        println(f)
+        println(e)
+        throw e
+      }
+    }
   }
+
 
   def recursiveListFiles(d: File): List[File] = {
     val these = d.listFiles()

@@ -5,7 +5,7 @@ import java.io.File
 import scala.io.Source
 
 object SingleStringBenchmark extends App {
-  val dataDir = "/data_big"
+  val dataDir = "/data_100_mb"
 
   // == Dependency Setup ==
   def recursiveListFiles(d: File): List[File] = {
