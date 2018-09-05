@@ -30,9 +30,10 @@ object SingleStringBenchmark extends App {
   })
   // val strings = fileList.map(readStringFromFile)
 
-  println("loading done")
-
-  while (true) {}
+  println("loaded")
+  while (true) {
+    Thread.sleep(500)
+  }
 
   println(s"$string")
 }

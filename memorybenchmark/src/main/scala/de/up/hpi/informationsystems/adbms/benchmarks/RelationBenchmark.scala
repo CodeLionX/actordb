@@ -7,7 +7,7 @@ import de.up.hpi.informationsystems.adbms.relation.{MutableRelation, Relation, R
 import de.up.hpi.informationsystems.sampleapp.dactors._
 
 object RelationBenchmark extends App {
-  val dataDir = "/data_050_mb"
+  val dataDir = "/data/manifest"
 
   val nameValMapping = Map(
     "cart_info" -> Cart.CartInfo,
@@ -50,7 +50,10 @@ object RelationBenchmark extends App {
 
   val relations = fileList.map(relationFromFile)
 
-  while (true) { }
+  println("loaded")
+  while (true) {
+    Thread.sleep(500)
+  }
 
   println(relations.last)
 
