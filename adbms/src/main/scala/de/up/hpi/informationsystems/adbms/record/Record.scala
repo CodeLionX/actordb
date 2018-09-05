@@ -75,11 +75,11 @@ object Record {
 
   private[adbms] def fromMap(columnDefMap: Map[UntypedColumnDef, Any]): Record = new Record(columnDefMap)
 
-  private[adbms] def fromVector(columnDefs: Vector[UntypedColumnDef])(data: Vector[Any]): Record =
-      if(data.isEmpty)
-        Record.empty
-      else
-        new Record(columnDefs.indices.map{ index => columnDefs(index) -> data(index) }.toMap)
+  private[adbms] def fromArray(columnDefs: Array[UntypedColumnDef])(data: Array[Any]): Record =
+    if(data.isEmpty)
+      Record.empty
+    else
+      new Record(columnDefs.indices.map{ index => columnDefs(index) -> data(index) }.toMap)
 
   val empty: Record = new Record(Map.empty)
 
