@@ -29,23 +29,23 @@ object SingleRowRelation {
 
 class SingleRowRelation(pColumns: Set[UntypedColumnDef]) extends MutableRelation {
   
-  private val cols: Vector[UntypedColumnDef] = pColumns.toVector
-  private var data: Vector[Any] = Vector.empty
+  private val cols: Array[UntypedColumnDef] = pColumns.toArray
+  private var data: Array[Any] = Array.empty
 
-  private implicit class RichDataVector(tuple: Vector[Any]) {
+  private implicit class RichDataArray(tuple: Array[Any]) {
 
-    def toRecordSeq(columnDefs: Vector[UntypedColumnDef]): Seq[Record] =
+    def toRecordSeq(columnDefs: Array[UntypedColumnDef]): Seq[Record] =
       if(tuple.isEmpty)
         Seq.empty
       else
-        Seq(Record.fromVector(columnDefs)(tuple))
+        Seq(Record.fromArray(columnDefs)(tuple))
 
-    def toRelation(columnDefs: Vector[UntypedColumnDef]): Relation =
+    def toRelation(columnDefs: Array[UntypedColumnDef]): Relation =
       if(tuple.isEmpty)
         Relation.empty
       else
         Relation(Seq(
-          Record.fromVector(columnDefs)(tuple)
+          Record.fromArray(columnDefs)(tuple)
         ))
   }
 
@@ -77,9 +77,9 @@ class SingleRowRelation(pColumns: Set[UntypedColumnDef]) extends MutableRelation
   override def delete(record: Record): Try[Record] = Try{
     exceptionWhenNotEqual(record.columns)
     val tuple = cols.map( col => record(col) )
-    if(!data.equals(tuple))
+    if(!data.sameElements(tuple))
       throw RecordNotFoundException(s"this relation does not contain $record")
-    data = Vector.empty
+    data = Array.empty
     record
   }
 
@@ -145,7 +145,7 @@ class SingleRowRelation(pColumns: Set[UntypedColumnDef]) extends MutableRelation
     exceptionWhenNotSubset(columnDefs)
 
     if (data.nonEmpty) {
-      val newCols = columnDefs.toVector
+      val newCols = columnDefs.toArray
       val newTuple = newCols.map(colDef => data(cols.indexOf(colDef)))
       newTuple.toRecordSeq(newCols)
     } else

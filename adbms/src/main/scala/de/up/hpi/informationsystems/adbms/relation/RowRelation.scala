@@ -29,18 +29,18 @@ object RowRelation {
 
 private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends MutableRelation {
 
-  private val cols: Vector[UntypedColumnDef] = passedColumns.toVector
-  private var data: Vector[Vector[Any]] = Vector.empty
+  private val cols: Array[UntypedColumnDef] = passedColumns.toArray
+  private var data: Array[Array[Any]] = Array.empty
 
-  private implicit class RichDataVector(in: Vector[Vector[Any]]) {
+  private implicit class RichDataArrays(in: Array[Array[Any]]) {
     /**
-      * Convertes this `Vector[ Vector[Any] ]` into a sequence of records `Seq[Record]`.
+      * Convertes this `Array[ Array[Any] ]` into a sequence of records `Seq[Record]`.
       * This is the preferred data type meant for the user of this framework.
       * @param columns used to match the column definition with the cell contents
       * @return a sequence of records containing the data of this array
       */
-    def toRecordSeq(columns: Vector[UntypedColumnDef]): Seq[Record] =
-      in.map(Record.fromVector(columns))
+    def toRecordSeq(columns: Array[UntypedColumnDef]): Seq[Record] =
+      in.map(Record.fromArray(columns))
   }
 
   /** @inheritdoc */
@@ -57,9 +57,9 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
   override def delete(record: Record): Try[Record] = Try{
     exceptionWhenNotEqual(record.columns)
     val tuple = cols.map( col => record(col) )
-    if(!data.contains(tuple))
+    if(!data.exists(_ sameElements tuple))
       throw RecordNotFoundException(s"this relation does not contain the record: $record")
-    data = data.filterNot(_ == tuple)
+    data = data.filterNot(_ sameElements tuple)
     record
   }
 
@@ -97,20 +97,20 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
 
   /** @inheritdoc */
   override def whereAll(fs: Map[UntypedColumnDef, Any => Boolean]): Relation = Relation(Try{
-      exceptionWhenNotSubset(fs.keySet)
-      data.filter{ tuple =>
-        fs.keys.map( col => {
-          val index = cols.indexOf(col)
-          fs(col)(tuple(index))
-        }).forall(_ == true)
-      }.toRecordSeq(cols)
+    exceptionWhenNotSubset(fs.keySet)
+    data.filter{ tuple =>
+      fs.keys.map( col => {
+        val index = cols.indexOf(col)
+        fs(col)(tuple(index))
+      }).forall(_ == true)
+    }.toRecordSeq(cols)
   })
 
   /** @inheritdoc */
   override def project(columnDefs: Set[UntypedColumnDef]): Relation =
     Relation(Try {
       exceptionWhenNotSubset(columnDefs)
-      val newCols = columnDefs.toVector
+      val newCols = columnDefs.toArray
 
       data.map(tuple =>
         newCols.map(colDef => tuple(cols.indexOf(colDef)))
@@ -119,16 +119,16 @@ private final class RowRelation(passedColumns: Set[UntypedColumnDef]) extends Mu
 
   /** @inheritdoc */
   override def applyOn[T : ClassTag](col: ColumnDef[T], f: T => T): Relation =
-      if(!columns.contains(col))
-        this.immutable
-      else
-        Relation(Try{
-          val index = cols.indexOf(col)
-          data.map( tuple => {
-            val newValue = f(tuple(index).asInstanceOf[T])
-            tuple.updated(index, newValue)
-          }).toRecordSeq(cols)
-        })
+    if(!columns.contains(col))
+      this.immutable
+    else
+      Relation(Try{
+        val index = cols.indexOf(col)
+        data.map( tuple => {
+          val newValue = f(tuple(index).asInstanceOf[T])
+          tuple.updated(index, newValue)
+        }).toRecordSeq(cols)
+      })
 
   /** @inheritdoc */
   override def records: Try[Seq[Record]] = Try(data.toRecordSeq(cols))
