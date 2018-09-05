@@ -1,25 +1,23 @@
 package de.up.hpi.informationsystems.adbms.benchmarks
 
-import java.io.{BufferedReader, File, FileInputStream, InputStreamReader}
+import java.io.File
 
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Cancellable, PoisonPill, Props}
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.sampleapp.DataInitializer.LoadData
 import de.up.hpi.informationsystems.sampleapp.dactors.{Cart, Customer, GroupManager, StoreSection}
 
-import scala.concurrent.duration._
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{FiniteDuration, _}
+import scala.language.postfixOps
 
 
 object DactorBenchmark extends App {
   println("Starting system")
   SystemInitializer.initializer ! SystemInitializer.Startup(15 seconds)
 
-  Runtime.getRuntime.addShutdownHook(new Thread() {
-    override def run(): Unit = {
-      println(s"Received shutdown signal from JVM")
-      SystemInitializer.initializer ! SystemInitializer.Shutdown
-    }
+  sys.addShutdownHook({
+    println("Received shutdown signal from JVM")
+    SystemInitializer.initializer ! SystemInitializer.Shutdown
   })
 }
 
@@ -51,7 +49,30 @@ object SystemInitializer {
 class SystemInitializer extends Actor with ActorLogging {
   import SystemInitializer._
 
-  val dataDir = "/data_050_mb"
+  val dataDir = "/data/loadtest/medium"
+
+  val classNameDactorClassMap = Map(
+    "Cart" -> classOf[Cart],
+    "Customer" -> classOf[Customer],
+    "GroupManager" -> classOf[GroupManager],
+    "StoreSection" -> classOf[StoreSection]
+  )
+
+  def initDactor(sourceDir: File): ActorRef = {
+    val folderName = sourceDir.getCanonicalPath.split(File.separatorChar).last
+    val dactorClassName = folderName.split("-").head
+    val dactorClass = classNameDactorClassMap(dactorClassName)
+    val dactorId = folderName.split("-").last.toInt
+
+    val dactor = Dactor.dactorOf(context.system, dactorClass, dactorId)
+    context.watch(dactor)
+    dactor
+  }
+
+  def recursiveListDirs(d: File): List[File] = {
+    val these = d.listFiles()
+    these.filter(_.isDirectory).toList ++ these.filter(_.isDirectory).flatMap(recursiveListDirs)
+  }
 
   ///// state machine
   override def receive: Receive = down orElse commonBehavior
@@ -79,35 +100,6 @@ class SystemInitializer extends Actor with ActorLogging {
 
       println("Waiting for ACK")
       context.become(waitingForACK(pendingACKs, loadTimeout) orElse commonBehavior)
-  }
-
-  val classNameDactorClassMap = Map(
-    "Cart" -> classOf[Cart],
-    "Customer" -> classOf[Customer],
-    "GroupManager" -> classOf[GroupManager],
-    "StoreSection" -> classOf[StoreSection]
-  )
-
-  def initDactor(sourceDir: File): ActorRef = {
-    val folderName = sourceDir.getCanonicalPath.split(File.separatorChar).last
-    val dactorClassName = folderName.split("-").head
-    val dactorClass = classNameDactorClassMap(dactorClassName)
-    val dactorId = folderName.split("-").last.toInt
-
-    val dactor = Dactor.dactorOf(context.system, dactorClass, dactorId)
-    context.watch(dactor)
-    dactor
-  }
-
-  def recursiveListDirs(d: File): List[File] = {
-    val these = d.listFiles()
-    these.filter(_.isDirectory).toList ++ these.filter(_.isDirectory).flatMap(recursiveListDirs)
-  }
-
-  // FIXME delete this?
-  def recursiveListFiles(d: File): List[File] = {
-    val these = d.listFiles()
-    these.filter(_.isFile).toList ++ these.filter(_.isDirectory).flatMap(recursiveListFiles)
   }
 
   def waitingForACK(pendingACKs: Seq[ActorRef], timeout: Cancellable): Receive = {

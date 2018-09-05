@@ -5,9 +5,14 @@ import java.io.File
 import scala.io.Source
 
 object SingleStringBenchmark extends App {
-  val dataDir = "/data_100_mb"
+  val dataDir = "/data/loadtest/medium"
 
   // == Dependency Setup ==
+  class StringHolder(val s: String){
+    def concat(s2: String): StringHolder = new StringHolder(s.concat(s2))
+    def concat(sh2: StringHolder): StringHolder = new StringHolder(s.concat(sh2.s))
+  }
+
   def recursiveListFiles(d: File): List[File] = {
     val these = d.listFiles()
     these.filter(_.isFile).toList ++ these.filter(_.isDirectory).flatMap(recursiveListFiles)
@@ -24,7 +29,7 @@ object SingleStringBenchmark extends App {
   val dataURL = getClass.getResource(dataDir)
   val fileList = recursiveListFiles(new File(dataURL.getPath))
 
-  var string = ""
+  var string: StringHolder = new StringHolder("")
   fileList.foreach(f => {
     string = string.concat(readStringFromFile(f))
   })
