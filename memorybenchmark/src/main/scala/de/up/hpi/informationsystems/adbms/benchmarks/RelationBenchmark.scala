@@ -7,7 +7,7 @@ import de.up.hpi.informationsystems.adbms.relation.{MutableRelation, Relation, R
 import de.up.hpi.informationsystems.sampleapp.dactors._
 
 object RelationBenchmark extends App {
-  val dataDir = "/data/loadtest/medium"
+  val dataDir = "/data/loadtest/data_100_mb"
 
   val nameValMapping = Map(
     "cart_info" -> Cart.CartInfo,

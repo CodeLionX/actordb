@@ -49,7 +49,8 @@ object SystemInitializer {
 class SystemInitializer extends Actor with ActorLogging {
   import SystemInitializer._
 
-  val dataDir = "/data/loadtest/medium"
+  val dataDir = "/data/loadtest/data_100_mb"
+
 
   val classNameDactorClassMap = Map(
     "Cart" -> classOf[Cart],
@@ -58,13 +59,17 @@ class SystemInitializer extends Actor with ActorLogging {
     "StoreSection" -> classOf[StoreSection]
   )
 
-  def initDactor(sourceDir: File): ActorRef = {
+  def listDactor(sourceDir: File): (Class[_<: Dactor], Int) = {
     val folderName = sourceDir.getCanonicalPath.split(File.separatorChar).last
     val dactorClassName = folderName.split("-").head
     val dactorClass = classNameDactorClassMap(dactorClassName)
     val dactorId = folderName.split("-").last.toInt
 
-    val dactor = Dactor.dactorOf(context.system, dactorClass, dactorId)
+    (dactorClass, dactorId)
+  }
+
+  def initDactor(dactorInfo: (Class[_<: Dactor], Int)): ActorRef = {
+    val dactor = Dactor.dactorOf(context.system, dactorInfo._1, dactorInfo._2)
     context.watch(dactor)
     dactor
   }
@@ -87,7 +92,10 @@ class SystemInitializer extends Actor with ActorLogging {
 
       val pendingACKs = dirList
         //.slice(0, 10)
+        .map(listDactor)
+        .toSet[(Class[_<: Dactor], Int)]  // put everything in a set to get rid of duplicates!
         .map(initDactor)
+        .toSeq
 
       // send message to all Dactors
       val loadDataMsg = LoadData(dataDir)

@@ -5,7 +5,7 @@ import java.io.File
 import scala.io.Source
 
 object SingleStringBenchmark extends App {
-  val dataDir = "/data/loadtest/medium"
+  val dataDir = "/data/loadtest/data_100_mb"
 
   // == Dependency Setup ==
   class StringHolder(val s: String){
