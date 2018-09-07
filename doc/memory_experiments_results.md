@@ -6,6 +6,7 @@ All datasets were generated using the [`generateData.sh`-script](../scripts/gene
 We use four different data setups to compare memory overhead of our framework.
 We compare the memory usage of the example application, the same data loaded into memory as one string or within Relations.
 
+See pull request [#113](https://github.com/CodeLionX/actordb/pull/113) for details, how the memory was measured.
 
 - Dataset `data_010_mb`
 
