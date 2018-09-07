@@ -76,7 +76,7 @@ echo ""
 # search for dactor names
 dactorNames=$(ls "${folder}" | grep -oP "\w*(?=-\d*)" | uniq)
 # get disk size
-size=$(du -sh "${folder}" | grep -oP "\d*,\d*\w+(?=\s+.*)")
+size=$(du -sh "${folder}" | grep -oP "\d*,?\d*\w+(?=\s+.*)")
 
 i=0
 names=( )
