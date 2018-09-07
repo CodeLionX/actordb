@@ -1,7 +1,39 @@
 #!/usr/bin/env bash
 
+# prints the help information using `cat` and a HEREDOC
+function printHelp() {
+cat <<HELP
+This script generates data files in CSV format for load testing.
+Usage: $0 <folder>
+       [-h]
+       [-m]
+
+    -h prints this help page
+    -m prints a markdown table to stdout
+
+Example:
+> $0 dataset -m
+HELP
+}
+
+# reset getopts counter
+OPTIND=1 # POSIX!
+
+markdown=false
+while getopts "h?m" option; do
+  case "${option}" in
+    m) markdown=true ;;
+    h|\?) printHelp
+        exit 1 ;;
+  esac
+done
+
+# reset getopts counter again
+shift $(($OPTIND - 1))
+
 # Script arguments:
 folder=$1
+
 
 # require folder argument and check if it is a directory
 if [ -z "${folder}" ]; then
@@ -29,7 +61,8 @@ function dactorDetails() {
   declare -n r_relations=$3
 
   r_dactors=$(ls "${folder}" | grep "${dactorName}" | wc -l)
-  r_relations=$(ls "${folder}/${dactorName}-0" | grep ".csv" | wc -l)
+  first_folder=$(ls "${folder}" | grep "${dactorName}" | head -1)
+  r_relations=$(ls "${folder}/${first_folder}" | grep ".csv" | wc -l)
 }
 
 # create report
@@ -43,17 +76,21 @@ echo ""
 # search for dactor names
 dactorNames=$(ls "${folder}" | grep -oP "\w*(?=-\d*)" | uniq)
 # get disk size
-size=$(du -sh "${folder}")
+size=$(du -sh "${folder}" | grep -oP "\d*,\d*\w+(?=\s+.*)")
 
 i=0
+names=( )
 dactors=( )
+per_dactor_relations=( )
 relations=( )
 for name in ${dactorNames}; do
     declare n_dactors
     declare n_relations_per_dactor
     dactorDetails "${name}" n_dactors n_relations_per_dactor
 
+    names[${i}]=${name}
     dactors[${i}]=${n_dactors}
+    per_dactor_relations[${i}]=${n_relations_per_dactor}
     relations[${i}]=$(( n_dactors * n_relations_per_dactor ))
 
     # write results
@@ -82,3 +119,23 @@ echo "Relations: ${relations_sum}"
 echo ""
 echo "Size on disk: ${size}"
 echo ""
+
+
+if [ "${markdown}" = true ]; then
+    echo "================================================================================"
+    echo "Github Markdown Table"
+    echo "================================================================================"
+    echo ""
+
+    echo "|  | #dactors | #relations / dactor | #relations | disk size |"
+    echo "|:-|---------:|--------------------:|-----------:|----------:|"
+
+    j=0
+    while [ ${j} -lt ${i} ]; do
+        echo "| ${names[${j}]} | ${dactors[${j}]} | ${per_dactor_relations[${j}]} | ${relations[${j}]} |  |"
+
+        (( ++j ))
+    done
+
+    echo "| **Summary** | ${dactor_sum} |  | ${relations_sum} | ${size} |"
+fi
