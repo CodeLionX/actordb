@@ -68,7 +68,7 @@ We measured the retained size of the one `StringHolder`-instance in a heap dump 
 | `data_010_mb` |    11315812 B |      10.8 MB |
 | `data_025_mb` |    18637898 B |      17.8 MB |
 | `data_050_mb` |    49246330 B |      47.0 MB |
-| `data_100_mb` |    98492560 B |      93.9 MB |
+| `data_100_mb` |    98492584 B |      93.9 MB |
 
 ### Relations in memory
 
@@ -92,4 +92,4 @@ In the table below we report the summarized sizes of all dactor instances.
 | `data_010_mb` |       829 |       1714 |    29914591 B |      28.5 MB |
 | `data_025_mb` |      2578 |       5250 |    46481385 B |      44.3 MB |
 | `data_050_mb` |      4373 |       8935 |   124267240 B |     118.5 MB |
-| `data_100_mb` |      8746 |      17870 |    B |      MB |
+| `data_100_mb` |      8746 |      17870 |   248553124 B |     237.0 MB |
