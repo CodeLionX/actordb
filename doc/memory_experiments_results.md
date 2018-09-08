@@ -80,7 +80,7 @@ The number of `RowRelation`-instances corresponds with the number of relations (
 | `data_010_mb` |       1714 |    29478612 B |      28.1 MB |
 | `data_025_mb` |       5250 |    45091303 B |      43.0 MB |
 | `data_050_mb` |       8935 |   121942297 B |     116.3 MB |
-| `data_100_mb` |      17870 |    B |      MB |
+| `data_100_mb` |      17870 |   243884594 B |     232.6 MB |
 
 ### Full framework with dactors
 
