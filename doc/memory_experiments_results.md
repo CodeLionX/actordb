@@ -51,11 +51,11 @@ See pull request [#113](https://github.com/CodeLionX/actordb/pull/113) for detai
   
   |              | #dactors | #relations / dactor | #relations | disk size |
   |:-------------|---------:|--------------------:|-----------:|----------:|
-  | Cart         |     7264 |                   2 |      14528 |           |
-  | Customer     |      381 |                   3 |       1143 |           |
-  | GroupManager |       21 |                   1 |         21 |           |
-  | StoreSection |      952 |                   2 |       1904 |           |
-  | **Summary**  |     8618 |                     |      17596 |     100 M |
+  | Cart         |     7322 |                   2 |      14644 |           |
+  | Customer     |      400 |                   3 |       1200 |           |
+  | GroupManager |       22 |                   1 |         22 |           |
+  | StoreSection |     1002 |                   2 |       2004 |           |
+  | **Summary**  |     8746 |                     |      17870 |     100 M |
 
 ## Results
 
@@ -80,7 +80,7 @@ The number of `RowRelation`-instances corresponds with the number of relations (
 | `data_010_mb` |       1714 |    29478612 B |      28.1 MB |
 | `data_025_mb` |       5250 |    45091303 B |      43.0 MB |
 | `data_050_mb` |       8935 |   121942297 B |     116.3 MB |
-| `data_100_mb` |      17596 |   243884594 B |     232.6 MB |
+| `data_100_mb` |      17870 |    B |      MB |
 
 ### Full framework with dactors
 
@@ -92,4 +92,4 @@ In the table below we report the summarized sizes of all dactor instances.
 | `data_010_mb` |       829 |       1714 |    29914591 B |      28.5 MB |
 | `data_025_mb` |      2578 |       5250 |    46481385 B |      44.3 MB |
 | `data_050_mb` |      4373 |       8935 |   124267240 B |     118.5 MB |
-| `data_100_mb` |      8618 |      17596 |   238456342 B |     227.4 MB |
+| `data_100_mb` |      8746 |      17870 |    B |      MB |
