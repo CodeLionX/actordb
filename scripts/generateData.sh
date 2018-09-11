@@ -191,7 +191,7 @@ function writeCarts() {
 
     j=0
     while [ ${j} -lt ${c_purchases} ]; do
-      iventoryId=$(rand 0 ${m})
+      inventoryId=$(rand 0 ${m})
       echo "$(( ((i + 1) * j) % storeSections )),${sessionId},${inventoryId},${inventoryId},${inventoryId}.${inventoryId},${inventoryId}.${inventoryId},${inventoryId}.${inventoryId}" >> "${f_c_cartPurchases}"
 
       (( ++j ))

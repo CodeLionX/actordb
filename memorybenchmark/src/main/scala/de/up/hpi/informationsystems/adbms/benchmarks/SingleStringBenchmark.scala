@@ -5,7 +5,7 @@ import java.io.File
 import scala.io.Source
 
 object SingleStringBenchmark extends App {
-  val dataDir = "/data/loadtest/data_100_mb"
+  val dataDir = "/data/relationtest/data-10000000"
 
   // == Dependency Setup ==
   class StringHolder(val s: String){
@@ -25,13 +25,20 @@ object SingleStringBenchmark extends App {
     result
   }
 
+  def readStringFromFileUsingBuilder(f: File): String = {
+    val source = Source.fromFile(f)
+    val sb = new StringBuilder
+    source.foreach(sb.append)
+    sb.toString()
+  }
+
   // ======= Main ========
   val dataURL = getClass.getResource(dataDir)
   val fileList = recursiveListFiles(new File(dataURL.getPath))
 
   var string: StringHolder = new StringHolder("")
   fileList.foreach(f => {
-    string = string.concat(readStringFromFile(f))
+    string = string.concat(readStringFromFileUsingBuilder(f))
   })
   // val strings = fileList.map(readStringFromFile)
 
