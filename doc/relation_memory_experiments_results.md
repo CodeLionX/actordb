@@ -20,9 +20,11 @@ We loaded the data in one big `String` object and we used our `Relation` machine
 
 In the following we report the retained sizes of the object in the heap:
 
-| Dataset         |                `String` in B | `String` rounded |        `Relation` in B | `Relation` rounded |
-|:----------------|-----------------------------:|-----------------:|-----------------------:|-------------------:|
-| `data-10000`    |                 724&nbsp;626 |      0.7&nbsp;MB |    1&nbsp;877&nbsp;256 |  1.8&nbsp;MB (259%)|
-| `data-100000`   |          8&nbsp;644&nbsp;626 |      8.2&nbsp;MB |   18&nbsp;797&nbsp;256 | 17.9&nbsp;MB (217%)|
-| `data-1000000`  |        102&nbsp;444&nbsp;628 |     97.7&nbsp;MB | 187&nbsp;997&nbsp;256 | 179.3&nbsp;MB (184%)|
-| `data-10000000` | 1&nbsp;164&nbsp;326&nbsp;746 |   1110.4&nbsp;MB | &nbsp;&nbsp;&nbsp; | .&nbsp;MB (%) |
+| Dataset         |                `String` in B |     `String` rounded |              `Relation` in B |    `Relation` rounded |
+|:----------------|-----------------------------:|---------------------:|-----------------------------:|----------------------:|
+| `data-10000`    |                 724&nbsp;626 |          0.7&nbsp;MB |          1&nbsp;877&nbsp;256 |    1.8&nbsp;MB (259%) |
+| `data-100000`   |          8&nbsp;644&nbsp;626 |          8.2&nbsp;MB |         18&nbsp;797&nbsp;256 |   17.9&nbsp;MB (217%) |
+| `data-1000000`  |        102&nbsp;444&nbsp;628 |         97.7&nbsp;MB |        187&nbsp;997&nbsp;256 |  179.3&nbsp;MB (184%) |
+| `data-10000000` | 1&nbsp;164&nbsp;326&nbsp;746 | 1&nbsp;110.4&nbsp;MB | 1&nbsp;879&nbsp;809&nbsp;444 | 1792.7&nbsp;MB (161%) |
+
+If we have around 1&nbsp;GB of data loaded into one `Relation`, the overhead is reduced to around 60&nbsp;%. 
