@@ -5,29 +5,17 @@ import java.io.File
 import scala.io.Source
 
 object SingleStringBenchmark extends App {
-  val dataDir = "/data/relationtest/data-10000000"
+  val dataDir = "/data/relationtest/data-10000"
 
   // == Dependency Setup ==
-  class StringHolder(val s: String){
-    def concat(s2: String): StringHolder = new StringHolder(s.concat(s2))
-    def concat(sh2: StringHolder): StringHolder = new StringHolder(s.concat(sh2.s))
-  }
+  case class StringHolder(s: String)
 
   def recursiveListFiles(d: File): List[File] = {
     val these = d.listFiles()
     these.filter(_.isFile).toList ++ these.filter(_.isDirectory).flatMap(recursiveListFiles)
   }
-
-  def readStringFromFile(f: File): String = {
-    val bufferedSource = Source.fromFile(f)
-    val result = bufferedSource.getLines().reduceLeft(_+_)
-    bufferedSource.close()
-    result
-  }
-
-  def readStringFromFileUsingBuilder(f: File): String = {
+  def readStringFromFileUsingBuilder(f: File, sb: StringBuilder): String = {
     val source = Source.fromFile(f)
-    val sb = new StringBuilder
     source.foreach(sb.append)
     sb.toString()
   }
@@ -36,16 +24,15 @@ object SingleStringBenchmark extends App {
   val dataURL = getClass.getResource(dataDir)
   val fileList = recursiveListFiles(new File(dataURL.getPath))
 
-  var string: StringHolder = new StringHolder("")
-  fileList.foreach(f => {
-    string = string.concat(readStringFromFileUsingBuilder(f))
-  })
-  // val strings = fileList.map(readStringFromFile)
+  val sb = new StringBuilder
+  fileList.foreach(f => readStringFromFileUsingBuilder(f, sb))
+  val string: StringHolder = StringHolder(sb.toString)
 
   println("loaded")
   while (true) {
     Thread.sleep(500)
   }
 
+  // pretend usage to prevent GC
   println(s"$string")
 }
