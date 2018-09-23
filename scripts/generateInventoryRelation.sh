@@ -40,7 +40,7 @@ while getopts "hn:o:" option; do
 done
 
 # reset getopts counter again
-shift $(($OPTIND - 1))
+shift $((OPTIND - 1))
 
 # require output folder argument and check if it is a directory
 if [ -z "${outputFolder}" ]; then

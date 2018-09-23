@@ -29,7 +29,7 @@ while getopts "h?m" option; do
 done
 
 # reset getopts counter again
-shift $(($OPTIND - 1))
+shift $((OPTIND - 1))
 
 # Script arguments:
 folder=$1
@@ -60,8 +60,10 @@ function dactorDetails() {
   declare -n r_dactors=$2
   declare -n r_relations=$3
 
+  # shellcheck disable=SC2034
   r_dactors=$(ls "${folder}" | grep "${dactorName}" | wc -l)
   first_folder=$(ls "${folder}" | grep "${dactorName}" | head -1)
+  # shellcheck disable=SC2034
   r_relations=$(ls "${folder}/${first_folder}" | grep ".csv" | wc -l)
 }
 
