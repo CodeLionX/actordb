@@ -38,21 +38,20 @@ class AdminSession extends Actor with ActorLogging {
 
   def addCastToFilm(personId: Int, filmId: Int, roleName: String): Unit = {
     log.info(s"Adding person $personId as $roleName to film $filmId")
-    val functor: ActorRef = context.system.actorOf(CastAndFilmographyFunctor.props(personId, filmId, roleName, self))
+    val functor: ActorRef = context.actorOf(CastAndFilmographyFunctor.props(personId, filmId, roleName, self))
     context.become(waitingForSuccess(functor) orElse commonBehaviour)
   }
 
   def waitingForSuccess(from: ActorRef): Receive = {
-    case akka.actor.Status.Success if sender == from => {
+    case akka.actor.Status.Success if sender == from =>
       context.become(commonBehaviour)
       log.info("Connected cast to film")
 
-      val empire = Dactor.dactorSelection(context.system, classOf[Film], 1)
-      val mark = Dactor.dactorSelection(context.system, classOf[Person], 1)
+      val empire = Dactor.dactorSelection(context, classOf[Film], 1)
+      val mark = Dactor.dactorSelection(context, classOf[Person], 1)
 
       empire ! SelectAllFromRelation.Request(Film.Cast.name)
       mark ! SelectAllFromRelation.Request(Person.Filmography.name)
-    }
   }
 }
 
@@ -63,17 +62,13 @@ object CastAndFilmographyFunctor {
 
 class CastAndFilmographyFunctor(personId: Int, filmId: Int, roleName: String, backTo: ActorRef) extends Actor {
 
-  val personSelection: ActorSelection = Dactor.dactorSelection(context.system, classOf[Person], personId)
-  val filmSelection: ActorSelection = Dactor.dactorSelection(context.system, classOf[Film], filmId)
+  val personSelection: ActorSelection = Dactor.dactorSelection(context, classOf[Person], personId)
+  val filmSelection: ActorSelection = Dactor.dactorSelection(context, classOf[Film], filmId)
 
   private val addFilmToPersons = SequentialFunction()
     .start((_: AdminSession.AddCastToFilm.Request) => Film.GetFilmInfo.Request(), Seq(filmSelection))
     .next(message => {
-      val filmInfoOption: Option[Record] = message.result.records.toOption match {
-        case Some(records: Seq[Record]) => records.headOption
-        case _ => None
-      }
-      filmInfoOption match {
+      message.result.records.toOption.flatMap(_.headOption) match {
         case Some(filmInfo: Record) =>
           Person.AddFilmToFilmography.Request(filmId, filmInfo(Film.Info.title), filmInfo(Film.Info.release), roleName)
       }
@@ -83,11 +78,7 @@ class CastAndFilmographyFunctor(personId: Int, filmId: Int, roleName: String, ba
   private val addCastToFilm = SequentialFunction()
     .start((_: AdminSession.AddCastToFilm.Request) => Person.GetPersonInfo.Request(), Seq(personSelection))
     .next(message => {
-      val personInfoOption: Option[Record] = message.result.records.toOption match {
-        case Some(records: Seq[Record]) => records.headOption
-        case _ => None
-      }
-      personInfoOption match {
+      message.result.records.toOption.flatMap(_.headOption) match {
         case Some(personInfo: Record) =>
           Film.AddCast.Request(personId, personInfo(Person.Info.firstName), personInfo(Person.Info.lastName), roleName)
       }
@@ -99,8 +90,8 @@ class CastAndFilmographyFunctor(personId: Int, filmId: Int, roleName: String, ba
     context.stop(self)
   }
 
-  private val sub1 = Dactor.startSequentialFunction(addFilmToPersons, context, self)(AddCastToFilm.Request(personId, filmId, roleName))
-  private val sub2 = Dactor.startSequentialFunction(addCastToFilm, context, self)(AddCastToFilm.Request(personId, filmId, roleName))
+  private val sub1 = Dactor.startSequentialFunction(addFilmToPersons, context)(AddCastToFilm.Request(personId, filmId, roleName))
+  private val sub2 = Dactor.startSequentialFunction(addCastToFilm, context)(AddCastToFilm.Request(personId, filmId, roleName))
 
   override def receive: Receive = waitingForAck(Seq(sub1, sub2))
 
