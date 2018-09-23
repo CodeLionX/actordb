@@ -2,55 +2,33 @@ package de.up.hpi.informationsystems.adbms.benchmarks
 
 import java.io.File
 
-import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Cancellable, PoisonPill, Props}
+import akka.actor._
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.sampleapp.DataInitializer.LoadData
-import de.up.hpi.informationsystems.sampleapp.dactors.{Cart, Customer, GroupManager, StoreSection}
+import de.up.hpi.informationsystems.sampleapp.dactors.SystemInitializer.{Shutdown, Startup}
+import de.up.hpi.informationsystems.sampleapp.dactors.{Cart, Customer, GroupManager, StoreSection, SystemInitializer => SASystemInitializer}
 
-import scala.concurrent.duration.{FiniteDuration, _}
+import scala.concurrent.duration._
 import scala.language.postfixOps
 
 
 object DactorBenchmark extends App {
   println("Starting system")
-  SystemInitializer.initializer ! SystemInitializer.Startup(15 seconds)
+  val actorSystem: ActorSystem = ActorSystem("benchmark-system")
+  val initializer: ActorRef = actorSystem.actorOf(Props[SystemInitializer], "initializer")
+  initializer ! Startup(15 seconds)
 
   sys.addShutdownHook({
     println("Received shutdown signal from JVM")
-    SystemInitializer.initializer ! SystemInitializer.Shutdown
+    initializer ! Shutdown
   })
 }
 
 
-object SystemInitializer {
+class SystemInitializer extends SASystemInitializer {
+  import SASystemInitializer._
 
-  final case class Startup(timeout: FiniteDuration)
-
-  final case object Shutdown
-
-  final case object Timeout
-
-  def props: Props = Props(new SystemInitializer())
-
-  /**
-    * Returns the benchmark's actor system
-    */
-  // only instantiated once (first call) as we are in a `object` and have a `lazy val`
-  lazy val actorSystem: ActorSystem = ActorSystem("benchmark-system")
-
-  /**
-    * Returns the ActorRef of the initializer actor
-    */
-  // only instantiated once (first call) as we are in a `object` and have a `lazy val`
-  lazy val initializer: ActorRef = actorSystem.actorOf(props, "initializer")
-
-}
-
-class SystemInitializer extends Actor with ActorLogging {
-  import SystemInitializer._
-
-  val dataDir = "/data/loadtest/data_100_mb"
-
+  val dataDir = "/data/loadtest/data_010_mb"
 
   val classNameDactorClassMap = Map(
     "Cart" -> classOf[Cart],
@@ -60,12 +38,14 @@ class SystemInitializer extends Actor with ActorLogging {
   )
 
   def listDactor(sourceDir: File): (Class[_<: Dactor], Int) = {
-    val folderName = sourceDir.getCanonicalPath.split(File.separatorChar).last
-    val dactorClassName = folderName.split("-").head
-    val dactorClass = classNameDactorClassMap(dactorClassName)
-    val dactorId = folderName.split("-").last.toInt
+    val folderName = sourceDir.getCanonicalPath.split(File.separatorChar).lastOption
+    val dactorClassName = folderName.flatMap(_.split("-").headOption)
+    val dactorId = folderName.flatMap(_.split("-").lastOption).map(_.toInt)
 
-    (dactorClass, dactorId)
+    (dactorClassName, dactorId) match {
+      case (Some(className), Some(id)) => (classNameDactorClassMap(className), id)
+      case _ => throw new RuntimeException(s"Could not parse folder name to dactor class name and id for: ($dactorClassName, $dactorId)")
+    }
   }
 
   def initDactor(dactorInfo: (Class[_<: Dactor], Int)): ActorRef = {
@@ -79,15 +59,13 @@ class SystemInitializer extends Actor with ActorLogging {
     these.filter(_.isDirectory).toList ++ these.filter(_.isDirectory).flatMap(recursiveListDirs)
   }
 
-  ///// state machine
-  override def receive: Receive = down orElse commonBehavior
-
-  def down: Receive = {
+  override def down: Receive = {
     case Startup(timeout) =>
       log.info(s"Starting up system and loading data from resource root: $dataDir")
 
       val dataURL = getClass.getResource(dataDir)
-      println(dataURL)
+      if(dataURL == null)
+        throw new RuntimeException(s"Could not find resource root: $dataDir")
       val dirList = recursiveListDirs(new File(dataURL.getPath))
 
       val pendingACKs = dirList
@@ -108,41 +86,5 @@ class SystemInitializer extends Actor with ActorLogging {
 
       println("Waiting for ACK")
       context.become(waitingForACK(pendingACKs, loadTimeout) orElse commonBehavior)
-  }
-
-  def waitingForACK(pendingACKs: Seq[ActorRef], timeout: Cancellable): Receive = {
-    case akka.actor.Status.Success =>
-      log.info(s"Received ACK for data loading of $sender")
-      val remainingACKs = pendingACKs.filterNot(_ == sender())
-
-      if(remainingACKs.isEmpty) {
-        log.info("finished startup")
-        timeout.cancel()
-        context.become(up orElse commonBehavior)
-      } else {
-        context.become(waitingForACK(remainingACKs, timeout) orElse commonBehavior)
-      }
-
-    case akka.actor.Status.Failure(e) =>
-      log.error(e, s"Could not initialize $sender")
-      self ! Shutdown
-  }
-
-  def up: Receive = commonBehavior
-
-  def commonBehavior: Receive = {
-    case Timeout =>
-      log.error("System startup timed-out")
-      handleShutdown()
-
-    case Shutdown => handleShutdown()
-  }
-  /////
-
-  def handleShutdown(): Unit = {
-    log.info("Shutting down system!")
-    context.children.foreach( _ ! PoisonPill )
-    self ! PoisonPill
-    context.system.terminate()
   }
 }
