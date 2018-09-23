@@ -122,9 +122,19 @@ object Dactor {
       relDef -> RowRelation(relDef)
     ).toMap
 
-  def startSequentialFunction[S <: Request[_]](function: SequentialFunctionDef[S, _], context: ActorContext, sender: ActorRef)
-                                              (message: S): ActorRef = {
-    val ref: ActorRef = context.system.actorOf(function.props)
+  /** Starts a new actor instance for the [[SequentialFunctionDef]] (functor) and returns its [[ActorRef]].
+    *
+    * @param function   function definition
+    * @param refFactory factory for actor references, like `context`
+    * @param message    start message
+    * @param sender     implicit sender reference for the message
+    * @tparam S         start message type
+    * @return           actor reference to the new functor
+    */
+  def startSequentialFunction[S <: Request[_]](function: SequentialFunctionDef[S, _], refFactory: ActorRefFactory)
+                                              (message: S)
+                                              (implicit sender: ActorRef): ActorRef = {
+    val ref = refFactory.actorOf(function.props)
     ref.tell(message, sender)
     ref
   }
@@ -181,7 +191,7 @@ abstract class Dactor(id: Int) extends Actor with ActorLogging {
 
   // TODO timeout and error handler
   def startSequentialFunction[S <: Request[_]](function: SequentialFunctionDef[S, _])(message: S): ActorRef = {
-    Dactor.startSequentialFunction(function, context, self)(message)
+    Dactor.startSequentialFunction(function, context)(message)(self)
     // TODO watch and execute error handler
   }
 }
