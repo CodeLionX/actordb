@@ -72,17 +72,15 @@ object DactorTest {
 
 }
 
-class DactorTest extends TestKit(ActorSystem("test-system"))
+class DactorTest extends TestKit(ActorSystem("dactor-test-system"))
   with WordSpecLike
   with Matchers
   with ScalaFutures
   with BeforeAndAfterAll {
 
-  override def afterAll: Unit = {
-    shutdown(system)
-  }
+  override def afterAll: Unit = shutdown(system)
 
-  "Dactor" when {
+  "A Dactor" when {
 
     implicit val timeout: Timeout = 1 second
 
@@ -102,14 +100,14 @@ class DactorTest extends TestKit(ActorSystem("test-system"))
 
       "find existing dactors using .dactorSelection(...).resolve" in {
         val future = Dactor.dactorSelection(system, classOf[DactorTest.TestDactor], 1).resolveOne()
-        ScalaFutures.whenReady(future) { ref =>
+        whenReady(future) { ref =>
           ref shouldBe a [ActorRef]
         }
       }
 
       "fail to find dactors using .dactorSelection(...).resolve for non existing dactors" in {
         val future = Dactor.dactorSelection(system, classOf[DactorTest.TestDactor], 2).resolveOne()
-        ScalaFutures.whenReady(future.failed) { e =>
+        whenReady(future.failed) { e =>
           e shouldBe a [ActorNotFound]
         }
       }

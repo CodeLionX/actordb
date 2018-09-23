@@ -1,6 +1,6 @@
 package de.up.hpi.informationsystems.adbms.function
 
-import akka.actor.{Actor, ActorRef, ActorSelection, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, ActorSelection, Props}
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol.{Message, Request, Success}
 
 import scala.reflect.ClassTag
@@ -220,12 +220,13 @@ object SequentialFunctor {
 private[adbms] class SequentialFunctor[S <: Request[_]: ClassTag, E <: Success[_]: ClassTag]
                         (start: SequentialFunctor.StartStep[S],
                          steps: Seq[SequentialFunctor.IntermediateStepT],
-                         end: SequentialFunctor.EndStep[E]) extends Actor {
+                         end: SequentialFunctor.EndStep[E]) extends Actor with ActorLogging {
 
   override def receive: Receive = startReceive()
 
   def startReceive(): Receive = {
     case startMessage: S =>
+      log.debug("Processing start step and waiting for responses")
       val request = start.mapping(startMessage)
       start.recipients foreach { _ ! request }
       val backTo = sender()
@@ -240,6 +241,7 @@ private[adbms] class SequentialFunctor[S <: Request[_]: ClassTag, E <: Success[_
       if ((totalResponses - (receivedResponses :+ message).length) > 0) {
         context.become(awaitResponsesReceive(totalResponses, receivedResponses :+ message, pendingSteps, backTo))
       } else {
+        log.debug("Received all pending responses")
 
         val constructor = message.getClass.getConstructors()(0)
         val unionResponse = constructor.newInstance((receivedResponses :+ message).map(_.result).reduce(_ union _))
@@ -260,6 +262,7 @@ private[adbms] class SequentialFunctor[S <: Request[_]: ClassTag, E <: Success[_
                   pendingSteps: Seq[SequentialFunctor.IntermediateStepT],
                   backTo: ActorRef): Receive = {
     case message: Success[Message] =>
+      log.debug("Processing next step and waiting for responses")
       val request = currentFunction(message)
       currentRecipients foreach { _ ! request }
       context.become(awaitResponsesReceive(currentRecipients.length, Seq.empty, pendingSteps, backTo))
@@ -267,6 +270,7 @@ private[adbms] class SequentialFunctor[S <: Request[_]: ClassTag, E <: Success[_
 
   def endReceive(backTo: ActorRef): Receive = {
     case message: Success[Message] =>
+      log.debug(s"Processing end step and stopping this ${this.getClass.getSimpleName}")
       backTo ! end.mapping(message)
       context.stop(self)
   }

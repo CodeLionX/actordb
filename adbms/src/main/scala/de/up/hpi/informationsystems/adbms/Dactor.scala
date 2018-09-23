@@ -1,6 +1,6 @@
 package de.up.hpi.informationsystems.adbms
 
-import akka.actor.{Actor, ActorContext, ActorLogging, ActorRef, ActorRefFactory, ActorSelection, ActorSystem, Props}
+import akka.actor._
 import akka.util.Timeout
 import de.up.hpi.informationsystems.adbms.definition._
 import de.up.hpi.informationsystems.adbms.function.SequentialFunctor.SequentialFunctorDef
@@ -185,9 +185,9 @@ abstract class Dactor(id: Int) extends Actor with ActorLogging {
   protected def dactorSelection(clazz: Class[_ <: Dactor], id: Int): ActorSelection =
     Dactor.dactorSelection(context.system, clazz, id)
 
-  override def preStart(): Unit = log.info(s"${this.getClass.getSimpleName}($id) started")
+  override def preStart(): Unit = log.info(s"$name started")
 
-  override def postStop(): Unit = log.info(s"${this.getClass.getSimpleName}($id) stopped")
+  override def postStop(): Unit = log.info(s"$name stopped")
 
   // TODO timeout and error handler
   def startSequentialFunctor[S <: Request[_]](function: SequentialFunctorDef[S, _])(message: S): ActorRef = {
