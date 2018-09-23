@@ -48,7 +48,7 @@ object RelationBenchmark extends App {
         Relation.empty
     }
 
-    f.getCanonicalPath.split(File.separatorChar).last.split('.').headOption match {
+    f.getCanonicalPath.split(File.separatorChar).lastOption.flatMap(_.split('.').headOption) match {
       case Some(name) => readRelation(name, f)
       case None => Relation.empty
     }
