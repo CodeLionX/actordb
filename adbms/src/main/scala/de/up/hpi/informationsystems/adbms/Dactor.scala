@@ -3,7 +3,7 @@ package de.up.hpi.informationsystems.adbms
 import akka.actor.{Actor, ActorContext, ActorLogging, ActorRef, ActorRefFactory, ActorSelection, ActorSystem, Props}
 import akka.util.Timeout
 import de.up.hpi.informationsystems.adbms.definition._
-import de.up.hpi.informationsystems.adbms.function.SequentialFunction.SequentialFunctionDef
+import de.up.hpi.informationsystems.adbms.function.SequentialFunctor.SequentialFunctorDef
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol.Request
 import de.up.hpi.informationsystems.adbms.relation.{FutureRelation, MutableRelation, RowRelation}
@@ -122,7 +122,7 @@ object Dactor {
       relDef -> RowRelation(relDef)
     ).toMap
 
-  /** Starts a new actor instance for the [[SequentialFunctionDef]] (functor) and returns its [[ActorRef]].
+  /** Starts a new actor instance for the [[SequentialFunctorDef]] (functor) and returns its [[ActorRef]].
     *
     * @param function   function definition
     * @param refFactory factory for actor references, like `context`
@@ -131,9 +131,9 @@ object Dactor {
     * @tparam S         start message type
     * @return           actor reference to the new functor
     */
-  def startSequentialFunction[S <: Request[_]](function: SequentialFunctionDef[S, _], refFactory: ActorRefFactory)
-                                              (message: S)
-                                              (implicit sender: ActorRef): ActorRef = {
+  def startSequentialFunctor[S <: Request[_]](function: SequentialFunctorDef[S, _], refFactory: ActorRefFactory)
+                                             (message: S)
+                                             (implicit sender: ActorRef): ActorRef = {
     val ref = refFactory.actorOf(function.props)
     ref.tell(message, sender)
     ref
@@ -190,8 +190,8 @@ abstract class Dactor(id: Int) extends Actor with ActorLogging {
   override def postStop(): Unit = log.info(s"${this.getClass.getSimpleName}($id) stopped")
 
   // TODO timeout and error handler
-  def startSequentialFunction[S <: Request[_]](function: SequentialFunctionDef[S, _])(message: S): ActorRef = {
-    Dactor.startSequentialFunction(function, context)(message)(self)
+  def startSequentialFunctor[S <: Request[_]](function: SequentialFunctorDef[S, _])(message: S): ActorRef = {
+    Dactor.startSequentialFunctor(function, context)(message)(self)
     // TODO watch and execute error handler
   }
 }

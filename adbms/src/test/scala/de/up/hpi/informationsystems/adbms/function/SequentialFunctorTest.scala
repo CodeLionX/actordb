@@ -1,13 +1,13 @@
 package de.up.hpi.informationsystems.adbms.function
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Terminated}
-import de.up.hpi.informationsystems.adbms.function.SequentialFunction.SequentialFunctionDef
+import de.up.hpi.informationsystems.adbms.function.SequentialFunctor.SequentialFunctorDef
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol.{Request, Response, Success}
 import de.up.hpi.informationsystems.adbms.relation.Relation
 import org.scalatest.{Matchers, WordSpec}
 
-class SequentialFunctionTest extends WordSpec with Matchers{
+class SequentialFunctorTest extends WordSpec with Matchers{
 
   "A SequentialFunction" when {
 
@@ -49,8 +49,8 @@ class SequentialFunctionTest extends WordSpec with Matchers{
       )
 
       // otherSeqFunction: Op1.Res
-      private val mySequentialFunction: SequentialFunctionDef[Request[MessageA.MessageA], Success[MessageB.MessageB]] =
-        SequentialFunction()
+      private val mySequentialFunction: SequentialFunctorDef[Request[MessageA.MessageA], Success[MessageB.MessageB]] =
+        SequentialFunctor()
           .start((a: Request[MessageA.MessageA]) => {
             println("start step")
             a
@@ -64,9 +64,9 @@ class SequentialFunctionTest extends WordSpec with Matchers{
             a
           })
 
-      private val sf = SequentialFunction()
+      private val sf = SequentialFunctor()
 
-      def startSequentialFunction[S <: Request[_]](function: SequentialFunctionDef[S, _])(message: S): ActorRef = {
+      def startSequentialFunction[S <: Request[_]](function: SequentialFunctorDef[S, _])(message: S): ActorRef = {
         val ref = context.system.actorOf(function.props)
         ref ! message
         ref

@@ -2,7 +2,7 @@ package de.up.hpi.informationsystems.fouleggs.dactors
 
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSelection, Props}
 import de.up.hpi.informationsystems.adbms.Dactor
-import de.up.hpi.informationsystems.adbms.function.SequentialFunction
+import de.up.hpi.informationsystems.adbms.function.SequentialFunctor
 import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol.SelectAllFromRelation
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 import de.up.hpi.informationsystems.adbms.record.Record
@@ -65,7 +65,7 @@ class CastAndFilmographyFunctor(personId: Int, filmId: Int, roleName: String, ba
   val personSelection: ActorSelection = Dactor.dactorSelection(context, classOf[Person], personId)
   val filmSelection: ActorSelection = Dactor.dactorSelection(context, classOf[Film], filmId)
 
-  private val addFilmToPersons = SequentialFunction()
+  private val addFilmToPersons = SequentialFunctor()
     .start((_: AdminSession.AddCastToFilm.Request) => Film.GetFilmInfo.Request(), Seq(filmSelection))
     .next(message => {
       message.result.records.toOption.flatMap(_.headOption) match {
@@ -75,7 +75,7 @@ class CastAndFilmographyFunctor(personId: Int, filmId: Int, roleName: String, ba
     }, Seq(personSelection))
     .end(identity)
 
-  private val addCastToFilm = SequentialFunction()
+  private val addCastToFilm = SequentialFunctor()
     .start((_: AdminSession.AddCastToFilm.Request) => Person.GetPersonInfo.Request(), Seq(personSelection))
     .next(message => {
       message.result.records.toOption.flatMap(_.headOption) match {
@@ -90,8 +90,8 @@ class CastAndFilmographyFunctor(personId: Int, filmId: Int, roleName: String, ba
     context.stop(self)
   }
 
-  private val sub1 = Dactor.startSequentialFunction(addFilmToPersons, context)(AddCastToFilm.Request(personId, filmId, roleName))
-  private val sub2 = Dactor.startSequentialFunction(addCastToFilm, context)(AddCastToFilm.Request(personId, filmId, roleName))
+  private val sub1 = Dactor.startSequentialFunctor(addFilmToPersons, context)(AddCastToFilm.Request(personId, filmId, roleName))
+  private val sub2 = Dactor.startSequentialFunctor(addCastToFilm, context)(AddCastToFilm.Request(personId, filmId, roleName))
 
   override def receive: Receive = waitingForAck(Seq(sub1, sub2))
 
