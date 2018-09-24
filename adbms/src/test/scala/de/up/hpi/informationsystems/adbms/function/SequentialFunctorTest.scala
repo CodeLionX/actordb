@@ -7,9 +7,9 @@ import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition.RelationDef
 import de.up.hpi.informationsystems.adbms.function.SequentialFunctor.SequentialFunctorDef
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
-import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol.{Request, Response, Success}
+import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol.{Request, Success}
 import de.up.hpi.informationsystems.adbms.relation.{MutableRelation, Relation}
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpec, WordSpecLike}
+import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -53,7 +53,6 @@ object SequentialFunctorTest {
 }
 
 class SequentialFunctorTest extends TestKit(ActorSystem("sequential-functor-test-system"))
-  with ImplicitSender
   with WordSpecLike
   with Matchers
   with BeforeAndAfterAll {
@@ -64,21 +63,25 @@ class SequentialFunctorTest extends TestKit(ActorSystem("sequential-functor-test
 
   "A SequentialFunction" when {
 
-    implicit val timeout: Timeout = 2 second
+    implicit val timeout: Timeout = 1 second
 
-    val partner1 = Dactor.dactorOf(system, classOf[PartnerDactor], 1)
+    Dactor.dactorOf(system, classOf[PartnerDactor], 1)
+    Dactor.dactorOf(system, classOf[PartnerDactor], 2)
+    Dactor.dactorOf(system, classOf[PartnerDactor], 3)
 
     "only consisting of start and end" should {
 
       "handle one partner correctly" in {
+        val probe = TestProbe()
+        implicit val sender: ActorRef = probe.ref
         val recipients = Seq(Dactor.dactorSelection(system, classOf[PartnerDactor], 1))
 
         val fut = SequentialFunctor()
           .start( (_: StartMessage.type) => MessageA.Request("first message"), recipients)
           .end(identity)
         val functorRef = Dactor.startSequentialFunctor(fut, system)(StartMessage)
-        watch(functorRef)
-        expectMsg(MessageA.Success(Relation.empty))
+        probe.watch(functorRef)
+        probe.expectMsg(MessageA.Success(Relation.empty))
       }
     }
 
@@ -88,22 +91,22 @@ class SequentialFunctorTest extends TestKit(ActorSystem("sequential-functor-test
         var receiver: ActorRef = Actor.noSender
 
         override def receive: Receive = {
-          case m: MessageA.Success =>
-            log.error(s"wrong order! received ${m.getClass}")
-
-          case m: MessageB.Success =>
-            log.info("Seq fun done")
-            receiver ! m
-
-          case m: RequestResponseProtocol.Failure[_] =>
-            log.error(m.e.toString)
-
           case m: MessageA.Request =>
-            if(receiver == Actor.noSender) receiver = sender()
+            if(receiver == Actor.noSender) {
+              log.info(s"setting receiver to $sender")
+              receiver = sender()
+            }
             context.watch(Dactor.startSequentialFunctor(mySequentialFunction, system)(m))
 
+          case m: MessageB.Success =>
+            log.info(s"seq fun done, received ${m.getClass}")
+            receiver ! m
+
           case Terminated(ref: ActorRef) =>
-            log.info(s"Function actor $ref was terminated.")
+            log.info(s"functor $ref was terminated.")
+
+          case m =>
+            log.error(s"received unexpected message: $m")
         }
 
         val recipients = Seq(
@@ -121,13 +124,11 @@ class SequentialFunctorTest extends TestKit(ActorSystem("sequential-functor-test
             .end(identity)
       }
 
-      Dactor.dactorOf(system, classOf[PartnerDactor], 2)
-      Dactor.dactorOf(system, classOf[PartnerDactor], 3)
-
+      val probe = TestProbe()
+      implicit val sender: ActorRef = probe.ref
       val ref = system.actorOf(Props(new AUT), "AUT")
-      watch(ref)
       ref ! MessageA.Request("AUT test message")
-      expectMsgType[MessageB.Success]
+      probe.expectMsgType[MessageB.Success]
     }
   }
 
