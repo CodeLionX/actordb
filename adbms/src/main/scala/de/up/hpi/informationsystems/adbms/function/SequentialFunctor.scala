@@ -252,7 +252,7 @@ private[adbms] class SequentialFunctor[S <: Request[_]: ClassTag, E <: Success[_
             context.become(endReceive(backTo))
           case Some(nextStep) =>
             self ! unionResponse
-            context.become(nextReceive(nextStep.mapping, nextStep.recipients, steps.drop(1), backTo))
+            context.become(nextReceive(nextStep.mapping, nextStep.recipients, pendingSteps.drop(1), backTo))
         }
       }
   }
