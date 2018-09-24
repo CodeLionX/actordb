@@ -3,38 +3,39 @@ language: scala
 sudo: false
 
 scala:
-  - "2.12.2"
-  - "2.11.12"
+- "2.12.2"
+- "2.11.12"
 
 jdk:
-  - oraclejdk8
+- oraclejdk8
 
 # build all PRs and only master branch and branches starting with either
 # 'deploy-*', 'deploy/*', 'ci-*' or 'ci/*'
 branches:
   only:
-    - master
-    - /^(?i:deploy)(-|\/).*$/
-    - /^(?i:ci)(-|\/).*$/
+  - master
+  - /^(?i:deploy)(-|\/).*$/
+  - /^(?i:ci)(-|\/).*$/
 
 # cache local ivy cache, but delete properties and lock files beforehand
 before_cache:
-  - find $HOME/.ivy2 -name "ivydata-*.properties" -print -delete
-  - find $HOME/.sbt  -name "*.lock"               -print -delete
+- find $HOME/.ivy2 -name "ivydata-*.properties" -print -delete
+- find $HOME/.sbt  -name "*.lock"               -print -delete
 
 cache:
   directories:
-    - $HOME/.ivy2/cache
-    - $HOME/.sbt/boot
+  - $HOME/.ivy2/cache
+  - $HOME/.sbt/boot
 
 # if build is a pull request and origin branch starts with doc/ skip the build (successfully)
 before_install:
-  - if [[ "$TRAVIS_PULL_REQUEST" != "false" && "$TRAVIS_PULL_REQUEST_BRANCH" == doc/* ]]; then exit 0; fi
+- if [[ "$TRAVIS_PULL_REQUEST" != "false" && "$TRAVIS_PULL_REQUEST_BRANCH" == doc/* ]]; then exit 0; fi
 
 # build script (sbt test and sbt run sampleapp.Main)
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION coverage test coverageReport codacyCoverage
-  - sbt ++$TRAVIS_SCALA_VERSION "sampleapp/runMain de.up.hpi.informationsystems.sampleapp.Main"
+- sbt ++$TRAVIS_SCALA_VERSION coverage test coverageReport coverageAggregate codacyCoverage
+- sbt ++$TRAVIS_SCALA_VERSION "sampleapp/runMain de.up.hpi.informationsystems.sampleapp.Main"
 
 env:
-  secure: "SsnU/5SAA5X+cLW4d+S/5+0lEp7nm1ff4mDxNyHCRi40MoCesLiC8l9ixjxzLXUyWJ/KbTXpOmZA9MRc3ydA4u91BgxHvTwrPa2Dyl61sAAA1MrgC14mOmje7YcohAoSiBxGb7XKQAm8z9g2p0nH6fWZT63ZhkM1t4LKQf7batnePn2flwR6SB+rd3QnJqEqbHGSKTqXkcZJeH81m1EV6H8Esj20YrQjBq4NyuBst05szoAZTyqCOI9tah58UuvREdykncaGkTtETd2YrfPHooExltaVWs9KClu50nk7XEDENSoGcZGEmZXl1EQw8pStyJ3l60XAtq7KJUQIlc+MyZv7bESENTwvHW3aNtcDh63SEV1lq1cwGB0Sd9wwcx/Hrjr0H2prgFgbWQ1zv6gCT7h+L7RFmfweictpph99uPg6AW7JAvyU9+/qlLU1ytWAV6aoZ+eoH+XE9qNKrRdE8jWatnc+4HIE1gI+3iv+4BxQTAJLohM+VoYw86XMHX/c6iMfLrtgdNz25dyeYE0Pz+F4ArEi9yfhiGBBjpdOPHk95/qI8I+gXOMLlkn7xBFNqAGGZrYRQYC+SDa9FsYwUA3thsKvc75vLdyryCPpH/c2eJcDbnfZgJGa9elv6pZ9kPHum995RhqktApevf3oQ1LS1RAX6gPMPtVgQFMgDKU="
+  global:
+    secure: gG4+PYPYV/d0aAAjOo/CdpuxCYZyRVyfgg6MBxoQSF4Zyrb0F0FEDfiOqZBYsEUQGUDQz9BPXwICn0Ok753XZowTRcObin9Rp6Pp5s/gI71ZzpZ4uLsKNKYb3SfqrYONibl7th0fy55MfaNItzqYWUlMldce2O66vJjvNfDfHhD2UD3gtasNhUD0wWLYCq6lUS4jxGaVpqt+cCxP9mA+B+Sy2m8BQbWRo1nP7FoVau4YXPwHF8w5HRpEZF22sinpo0SCnFqLzFQTJgzG1hWfRyRNF5T6rtXju7+UPIOC7kc7Xwztd/1qT0X5dyXhmyDWmMQNCyTDPcf02u2syW6bVECRhr4MxqIyrLdP+7mWukKUx7gcw1AjojXLbilkeBG0OKuAm35yE1JCQNQD0cM9Vqd78aLdQuoDVjRl7YifqnkqClYNPfmWYYz3m2Qs8lVZBmR2FlQiAh+KPIeUkFXceQ+8ZYrcUD19j8tRoYAxa4YhiLfJiLuD9K9WQfOr+lIGbngp3PGV/YG//qzt/dKmK1AGCPWwxtsJ2KlPvy6/gwHOOjpz38Uzeh6TP6wopMMA2JXNPFk3aK1sLqpIIAqGKv/bLl0BsBoXAEm8bwbUR4jMJEQQXJS4RhAiLl0fo0oVwHr8n9KgNmDR3wn1piRJ8HzMVo9SgEkRdXP2ALZL7Xc=
