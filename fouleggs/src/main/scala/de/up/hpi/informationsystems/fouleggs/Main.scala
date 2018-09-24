@@ -1,9 +1,7 @@
 package de.up.hpi.informationsystems.fouleggs
 
-import akka.actor.Terminated
 import de.up.hpi.informationsystems.fouleggs.dactors.SystemInitializer
 
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
