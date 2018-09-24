@@ -33,5 +33,8 @@ before_install:
 
 # build script (sbt test and sbt run sampleapp.Main)
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION coverage test coverageReport
+  - sbt ++$TRAVIS_SCALA_VERSION coverage test coverageReport codacyCoverage
   - sbt ++$TRAVIS_SCALA_VERSION "sampleapp/runMain de.up.hpi.informationsystems.sampleapp.Main"
+
+env:
+  secure: "SsnU/5SAA5X+cLW4d+S/5+0lEp7nm1ff4mDxNyHCRi40MoCesLiC8l9ixjxzLXUyWJ/KbTXpOmZA9MRc3ydA4u91BgxHvTwrPa2Dyl61sAAA1MrgC14mOmje7YcohAoSiBxGb7XKQAm8z9g2p0nH6fWZT63ZhkM1t4LKQf7batnePn2flwR6SB+rd3QnJqEqbHGSKTqXkcZJeH81m1EV6H8Esj20YrQjBq4NyuBst05szoAZTyqCOI9tah58UuvREdykncaGkTtETd2YrfPHooExltaVWs9KClu50nk7XEDENSoGcZGEmZXl1EQw8pStyJ3l60XAtq7KJUQIlc+MyZv7bESENTwvHW3aNtcDh63SEV1lq1cwGB0Sd9wwcx/Hrjr0H2prgFgbWQ1zv6gCT7h+L7RFmfweictpph99uPg6AW7JAvyU9+/qlLU1ytWAV6aoZ+eoH+XE9qNKrRdE8jWatnc+4HIE1gI+3iv+4BxQTAJLohM+VoYw86XMHX/c6iMfLrtgdNz25dyeYE0Pz+F4ArEi9yfhiGBBjpdOPHk95/qI8I+gXOMLlkn7xBFNqAGGZrYRQYC+SDa9FsYwUA3thsKvc75vLdyryCPpH/c2eJcDbnfZgJGa9elv6pZ9kPHum995RhqktApevf3oQ1LS1RAX6gPMPtVgQFMgDKU="
