@@ -33,5 +33,5 @@ before_install:
 
 # build script (sbt test and sbt run sampleapp.Main)
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION test
+  - sbt ++$TRAVIS_SCALA_VERSION coverage test coverageReport
   - sbt ++$TRAVIS_SCALA_VERSION "sampleapp/runMain de.up.hpi.informationsystems.sampleapp.Main"

@@ -1,5 +1,15 @@
 name := "actordb"
 
+scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
+
+coverageMinimum := 60
+
+coverageFailOnMinimum := false
+
+coverageHighlighting := true
+
+publishArtifact in Test := false
+
 logBuffered in Test := false
 
 lazy val adbms = (project in file("adbms"))
