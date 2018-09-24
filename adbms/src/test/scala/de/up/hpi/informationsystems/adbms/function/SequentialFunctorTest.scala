@@ -1,7 +1,7 @@
 package de.up.hpi.informationsystems.adbms.function
 
-import akka.actor.{Actor, ActorLogging, ActorRef, ActorSelection, ActorSystem, Props, Terminated}
-import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import akka.actor._
+import akka.testkit.{TestKit, TestProbe}
 import akka.util.Timeout
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition.RelationDef
@@ -111,7 +111,7 @@ class SequentialFunctorTest extends TestKit(ActorSystem("sequential-functor-test
         .next( _ => MessageA.Request("multistep functor: message 2"), Seq(partnerDactor2))
         .next( _ => MessageA.Request("multistep functor: message 3"), Seq(partnerDactor3))
         .end( response => MessageB.Success(response.result))
-      
+
       "successfully return the final result" in {
         val probe = TestProbe()
         implicit val sender: ActorRef = probe.ref
