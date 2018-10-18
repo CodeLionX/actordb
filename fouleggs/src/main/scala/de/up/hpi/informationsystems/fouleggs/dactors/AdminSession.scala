@@ -37,21 +37,34 @@ class AdminSession extends Actor with ActorLogging {
   }
 
   def addCastToFilm(personId: Int, filmId: Int, roleName: String): Unit = {
-    log.info(s"Adding person $personId as $roleName to film $filmId")
+    val time: Long = System.nanoTime()
+    log.info(s"Adding person $personId as $roleName to film $filmId @ ${System.nanoTime()}")
     val functor: ActorRef = context.actorOf(CastAndFilmographyFunctor.props(personId, filmId, roleName, self))
-    context.become(waitingForSuccess(functor) orElse commonBehaviour)
+    context.become(waitingForSuccess(functor, time) orElse commonBehaviour)
   }
 
-  def waitingForSuccess(from: ActorRef): Receive = {
+  def waitingForSuccess(from: ActorRef, startTime: Long): Receive = {
     case akka.actor.Status.Success if sender == from =>
       context.become(commonBehaviour)
-      log.info("Connected cast to film")
+      log.info(s"Connected cast to film after ${System.nanoTime() - startTime} nanoseconds")
 
       val empire = Dactor.dactorSelection(context, classOf[Film], 1)
       val mark = Dactor.dactorSelection(context, classOf[Person], 1)
 
+      val time = System.nanoTime()
+
+      context.become(waitingForSelectResponse(empire, time))
+      context.become(waitingForSelectResponse(mark, time))
+
       empire ! SelectAllFromRelation.Request(Film.Cast.name)
       mark ! SelectAllFromRelation.Request(Person.Filmography.name)
+  }
+
+  def waitingForSelectResponse(from: ActorSelection, startTime: Long): Receive = {
+    case SelectAllFromRelation.Success(rel) => {
+      log.info(s"Received selection response after ${System.nanoTime() - startTime} nanoseconds.")
+      context.unbecome()
+    }
   }
 }
 
