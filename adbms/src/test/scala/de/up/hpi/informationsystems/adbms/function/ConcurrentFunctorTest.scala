@@ -5,7 +5,6 @@ import akka.testkit.{TestKit, TestProbe}
 import akka.util.Timeout
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.definition.RelationDef
-import de.up.hpi.informationsystems.adbms.function.SequentialFunctor.SequentialFunctorDef
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol.{Message, Request, Success}
 import de.up.hpi.informationsystems.adbms.relation.{MutableRelation, Relation}
@@ -53,7 +52,7 @@ object ConcurrentFunctorTest {
   }
 }
 
-class ConcurrentFunctorTest extends TestKit(ActorSystem("sequential-functor-test-system"))
+class ConcurrentFunctorTest extends TestKit(ActorSystem("concurrent-functor-test-system"))
   with WordSpecLike
   with Matchers
   with BeforeAndAfterAll {
@@ -62,7 +61,7 @@ class ConcurrentFunctorTest extends TestKit(ActorSystem("sequential-functor-test
 
   override def afterAll(): Unit = shutdown(system)
 
-  "A SequentialFunction" when {
+  "A ConcurrentFunction" when {
 
     implicit val timeout: Timeout = 1 second
 
@@ -113,7 +112,7 @@ class ConcurrentFunctorTest extends TestKit(ActorSystem("sequential-functor-test
         ref
       }
 
-      val testSimpleSeqFunctor = (recipients: Seq[ActorSelection], marker: String) => {
+      val testSimpleConFunctor = (recipients: Seq[ActorSelection], marker: String) => {
         val probe = TestProbe()
         implicit val sender: ActorRef = probe.ref
 
@@ -128,87 +127,18 @@ class ConcurrentFunctorTest extends TestKit(ActorSystem("sequential-functor-test
 
       "handle one receiver correctly" in {
         val recipients = Seq(partnerDactor1)
-        testSimpleSeqFunctor(recipients, "one receiver")
+        testSimpleConFunctor(recipients, "one receiver")
       }
 
       "handle different receivers correctly" in {
         val recipients = Seq(partnerDactor1, partnerDactor2, partnerDactor3)
-        testSimpleSeqFunctor(recipients, "different receivers")
+        testSimpleConFunctor(recipients, "different receivers")
       }
 
       "handle the same receiver multiple times correctly" in {
         val recipients = Seq(partnerDactor1, partnerDactor1, partnerDactor1)
-        testSimpleSeqFunctor(recipients, "same receiver multiple times")
+        testSimpleConFunctor(recipients, "same receiver multiple times")
       }
-    }
-
-    "having multiple steps" should {
-
-      val fut = SequentialFunctor()
-        .start( (_: StartMessage.type) => MessageA.Request("multistep functor: message 1"), Seq(partnerDactor1))
-        .next( _ => MessageA.Request("multistep functor: message 2"), Seq(partnerDactor2))
-        .next( _ => MessageA.Request("multistep functor: message 3"), Seq(partnerDactor3))
-        .end(identity)
-
-      "successfully return the final result" in {
-        val probe = TestProbe()
-        implicit val sender: ActorRef = probe.ref
-
-        val functorRef = Dactor.startSequentialFunctor(fut, system)(StartMessage)
-        probe.watch(functorRef)
-        probe.expectMsg(MessageB.Success(Relation.empty))
-      }
-
-    }
-
-    "wrapped in another actor should return a successful result" in {
-      class AUT() extends Actor with ActorLogging {
-
-        private val recipients = Seq(
-          context.actorSelection("/user/PartnerDactor-2"),
-          context.actorSelection("/user/PartnerDactor-3"),
-          context.actorSelection("/user/PartnerDactor-3"),
-          context.actorSelection("/user/PartnerDactor-3"),
-          context.actorSelection("/user/PartnerDactor-3")
-        )
-
-        private val mySequentialFunction: SequentialFunctorDef[Request[MessageA.MessageA], Success[MessageB.MessageB]] =
-          SequentialFunctor()
-            .start[Request[MessageA.MessageA], MessageA.MessageA](identity, recipients)
-            .next(_ => MessageB.Request(), recipients)
-            .end(identity)
-
-        override def receive: Receive = begin
-
-        private def begin: Receive = {
-          case m: MessageA.Request =>
-            log.info(s"setting receiver to $sender and starting functor")
-            val receiver = sender()
-            context.watch(Dactor.startSequentialFunctor(mySequentialFunction, system)(m))
-            context.become(end(receiver))
-
-          case m =>
-            log.error(s"received unexpected message: $m")
-        }
-
-        private def end(receiver: ActorRef): Receive = {
-          case m: MessageB.Success =>
-            log.info(s"seq fun done")
-            receiver ! m
-
-          case Terminated(ref: ActorRef) =>
-            log.info(s"functor $ref was terminated")
-
-          case m =>
-            log.error(s"received unexpected message: $m")
-        }
-      }
-
-      val probe = TestProbe()
-      implicit val sender: ActorRef = probe.ref
-      val ref = system.actorOf(Props(new AUT), "AUT")
-      ref ! MessageA.Request("AUT test message")
-      probe.expectMsgType[MessageB.Success]
     }
   }
 
