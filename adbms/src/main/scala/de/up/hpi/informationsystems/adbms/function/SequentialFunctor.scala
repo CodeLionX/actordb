@@ -31,19 +31,18 @@ object SequentialFunctor {
     * @tparam A         message type for success message
     * @tparam B         message type for new request
     */
-  private case class IntermediateStep[A <: Message, B <: Message](mapping: Success[A] => Request[B], recipients: Seq[ActorSelection])
-    extends Step[Success[A], Request[B]] {
+  private case class IntermediateStep[S <: Request[_], A <: Message, B <: Message](mapping: (Success[A], S) => Request[B], recipients: Seq[ActorSelection]) {
 
     /** Casts this IntermediateStep into a more generic one using the upper type bound
       * [[de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol.Message]] for both messages.
       *
       * @return
       */
-    def toUpperBound: IntermediateStep[Message, Message] = this.asInstanceOf[IntermediateStep[Message, Message]]
+    def toUpperBound: IntermediateStep[S, Message, Message] = this.asInstanceOf[IntermediateStep[S, Message, Message]]
   }
 
   /** Convenience type alias for generic intermediate steps using upper type bound. */
-  private type IntermediateStepT = IntermediateStep[Message, Message]
+  private type IntermediateStepT[S <: Request[_]] = IntermediateStep[S, Message, Message]
 
   private object EndStep {
     def apply[T1 <: Message, T2 <: Message](mapping: Success[T1] => Success[T2]): EndStep[Success[T2]] =
@@ -68,19 +67,22 @@ object SequentialFunctor {
     * [[de.up.hpi.informationsystems.adbms.function.SequentialFunctor.SequentialFunctorDef]] that can be run using a
     * [[de.up.hpi.informationsystems.adbms.Dactor]]'s `startSequentialFunction` method or the `Dactor` companion
     * object's method of the same name. The `SequentialFunctionDef` is started with a `Request` message that can be
-    * transformed and send to a list of recipients given as a `Seq` of `ActorSelection`. The function sends the
-    * transformed request to all corresponding recipients, collects and aggregates their response contents and forwards
-    * a corresponsing `Success` message to the next function. The `end` function defines a final transformation of a received
-    * `Success` message before sending it back to the `Actor` which started the function.
+    * transformed and send to a list of recipients given as a `Seq` of `ActorSelection`. The first received message,
+    * _start_-message, is automatically saved in the actor context and can be accessed as a parameter of the
+    * `nextWithContext` and `endWithContext` methods.
+    * The mapping functions send the transformed requests to all corresponding recipients, collect and aggregate their
+    * response contents and forward the corresponding `Success` messages to the next functions.
+    * The `end` function defines a final transformation of a received `Success` message before sending it back to the
+    * `Actor` which started the function.
     *
     * @example {{{
     * // sequential functor definition in Dactor
     * private val complexQuestionFunctor: SequentialFunctorDef[ Request[SomeMessage], Success[OtherMessage] ] =
     *   SeqFunctor()
-    *     .start( (req: Success[SomeMessage]) => req, Seq(recipient1) )
-    *     .next( (res: Success[SomeMessage]) => {
+    *     .start( req: Success[SomeMessage] => req, Seq(recipient1) )
+    *     .next( (res: Success[SomeMessage], context: Request[SomeMessage]) => {
     *       // do something and create new request
-    *       val req: Request[OtherMessage] = YetAnotherMessage.Req(someParam)
+    *       val req: Request[OtherMessage] = YetAnotherMessage.Req(someParam, context.yourAttribute)
     *       req
     *     }, Seq(recipient2, recipient3))
     *     .end( (res: Success[OtherMessage]) => {
@@ -137,8 +139,8 @@ object SequentialFunctor {
   }
 
   /** @inheritdoc */
-  class SeqFunctorBuilderStarted[A <: Request[_]: ClassTag, M <: Message]
-                                        (start: StartStep[A], steps: Seq[IntermediateStepT])
+  class SeqFunctorBuilderStarted[S <: Request[_]: ClassTag, M <: Message]
+                                        (start: StartStep[S], steps: Seq[IntermediateStepT[S]])
     extends SeqFunctorBuilder {
 
     /** Defines a new step of the sequential functor.
@@ -152,12 +154,26 @@ object SequentialFunctor {
       * @return           a new [[de.up.hpi.informationsystems.adbms.function.SequentialFunctor.SeqFunctorBuilder]]
       */
     def next[N <: Message]
-            (transform: Success[M] => Request[N], recipients: Seq[ActorSelection]): SeqFunctorBuilderStarted[A, N] =
-      new SeqFunctorBuilderStarted[A, N](start, steps :+ IntermediateStep(transform, recipients).toUpperBound)
+            (transform: Success[M] => Request[N], recipients: Seq[ActorSelection]): SeqFunctorBuilderStarted[S, N] =
+      nextWithContext[N]( (m:Success[M], _:S) => transform(m), recipients)
+
+    /** Defines a new step of the sequential functor integrating the start message into the `transform` function.
+      *
+      * Calling this method multiple times will result in a list of sequential steps.
+      * <em>Call Order Matters!</em>
+      *
+      * @param transform  mapping function, transforming the received result and the start message into a new request message
+      * @param recipients recipient list
+      * @tparam N         message type of the next request
+      * @return           a new [[de.up.hpi.informationsystems.adbms.function.SequentialFunctor.SeqFunctorBuilder]]
+      */
+    def nextWithContext[N <: Message]
+                       (transform: (Success[M], S) => Request[N], recipients: Seq[ActorSelection]): SeqFunctorBuilderStarted[S, N] =
+      new SeqFunctorBuilderStarted[S, N](start, steps :+ IntermediateStep(transform, recipients).toUpperBound)
 
     /** Concludes the definition of the sequential functor with a last transformation of the result message.
       *
-      * Use `end(identity)` to send the same result message back to the creator of the sequential functor.
+      * Use `endIdentity` to send the same result message back to the creator of the sequential functor.
       *
       * @param end mapping function, transforming the result message to another format
       * @tparam E  message type of the last success message, received by the creator of the sequential functor
@@ -165,8 +181,15 @@ object SequentialFunctor {
       * @return    the sequential functor definition
       */
     def end[E <: Message]
-           (end: Success[M] => Success[E]): SequentialFunctorDef[A, Success[E]] =
-      new SequentialFunctorDef[A, Success[E]](start, steps, EndStep(end))
+           (end: Success[M] => Success[E]): SequentialFunctorDef[S, Success[E]] =
+      new SequentialFunctorDef[S, Success[E]](start, steps, EndStep(end))
+
+    /** Concludes the definition of the sequential functor with sending the last received message back to the creator
+      * of the sequential functor.
+      *
+      * @return the sequential functor definition
+      */
+    def endIdentity: SequentialFunctorDef[S, Success[M]] = end(identity[Success[M]])
   }
 
   /** Definition of a sequential functor.
@@ -194,9 +217,9 @@ object SequentialFunctor {
     * @tparam E    message type of the result message
     */
   class SequentialFunctorDef[S <: Request[_]: ClassTag, E <: Success[_]: ClassTag] private[SequentialFunctor]
-  (start: StartStep[S], steps: Seq[IntermediateStepT], end: EndStep[E]) {
+  (start: StartStep[S], steps: Seq[IntermediateStepT[S]], end: EndStep[E]) {
 
-    /** Returns the Akka actor properties needed to create a function instance (actor).
+    /** Returns the Akka actor properties needed to create a functor instance (actor).
       *
       * @return the Akka actor properties
       */
@@ -219,7 +242,7 @@ object SequentialFunctor {
   */
 private[adbms] class SequentialFunctor[S <: Request[_]: ClassTag, E <: Success[_]: ClassTag]
                         (start: SequentialFunctor.StartStep[S],
-                         steps: Seq[SequentialFunctor.IntermediateStepT],
+                         steps: Seq[SequentialFunctor.IntermediateStepT[S]],
                          end: SequentialFunctor.EndStep[E]) extends Actor with ActorLogging {
 
   override def receive: Receive = startReceive()
@@ -230,16 +253,17 @@ private[adbms] class SequentialFunctor[S <: Request[_]: ClassTag, E <: Success[_
       val request = start.mapping(startMessage)
       start.recipients foreach { _ ! request }
       val backTo = sender()
-      context.become(awaitResponsesReceive(start.recipients.length, Seq.empty, steps, backTo))
+      context.become(awaitResponsesReceive(start.recipients.length, Seq.empty, steps, backTo, startMessage))
   }
 
   def awaitResponsesReceive(totalResponses: Int,
                             receivedResponses: Seq[Success[Message]],
-                            pendingSteps: Seq[SequentialFunctor.IntermediateStepT],
-                            backTo: ActorRef): Receive = {
+                            pendingSteps: Seq[SequentialFunctor.IntermediateStepT[S]],
+                            backTo: ActorRef,
+                            startMessage: S): Receive = {
     case message: Success[_] =>
       if ((totalResponses - (receivedResponses :+ message).length) > 0) {
-        context.become(awaitResponsesReceive(totalResponses, receivedResponses :+ message, pendingSteps, backTo))
+        context.become(awaitResponsesReceive(totalResponses, receivedResponses :+ message, pendingSteps, backTo, startMessage))
       } else {
         log.debug("Received all pending responses")
 
@@ -249,29 +273,30 @@ private[adbms] class SequentialFunctor[S <: Request[_]: ClassTag, E <: Success[_
         pendingSteps.headOption match {
           case None =>
             self ! unionResponse
-            context.become(endReceive(backTo))
+            context.become(endReceive(backTo, startMessage))
           case Some(nextStep) =>
             self ! unionResponse
-            context.become(nextReceive(nextStep.mapping, nextStep.recipients, pendingSteps.drop(1), backTo))
+            context.become(nextReceive(nextStep.mapping, nextStep.recipients, pendingSteps.drop(1), backTo, startMessage))
         }
       }
   }
 
-  def nextReceive(currentFunction: Success[Message] => Request[Message],
+  def nextReceive(currentFunction: (Success[Message], S) => Request[Message],
                   currentRecipients: Seq[ActorSelection],
-                  pendingSteps: Seq[SequentialFunctor.IntermediateStepT],
-                  backTo: ActorRef): Receive = {
+                  pendingSteps: Seq[SequentialFunctor.IntermediateStepT[S]],
+                  backTo: ActorRef,
+                  startMessage: S): Receive = {
     case message: Success[Message] =>
       log.debug("Processing next step and waiting for responses")
-      val request = currentFunction(message)
+      val request = currentFunction(message, startMessage)
       currentRecipients foreach { _ ! request }
-      context.become(awaitResponsesReceive(currentRecipients.length, Seq.empty, pendingSteps, backTo))
+      context.become(awaitResponsesReceive(currentRecipients.length, Seq.empty, pendingSteps, backTo, startMessage))
   }
 
-  def endReceive(backTo: ActorRef): Receive = {
+  def endReceive(backTo: ActorRef, startMessage: S): Receive = {
     case message: Success[Message] =>
       log.debug(s"Processing end step and stopping this ${this.getClass.getSimpleName}")
-      backTo ! end.mapping(message)
+      backTo ! end.mapping(message) //, startMessage)
       context.stop(self)
   }
 }

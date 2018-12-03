@@ -67,23 +67,29 @@ class CastAndFilmographyFunctor(personId: Int, filmId: Int, roleName: String, ba
 
   private val addFilmToPersons = SequentialFunctor()
     .start((_: AdminSession.AddCastToFilm.Request) => Film.GetFilmInfo.Request(), Seq(filmSelection))
-    .next(message => {
+    .nextWithContext( (message, startMessage) => {
       message.result.records.toOption.flatMap(_.headOption) match {
         case Some(filmInfo: Record) =>
-          Person.AddFilmToFilmography.Request(filmId, filmInfo(Film.Info.title), filmInfo(Film.Info.release), roleName)
+          Person.AddFilmToFilmography.Request(
+            startMessage.filmId, filmInfo(Film.Info.title), filmInfo(Film.Info.release),
+            startMessage.roleName
+          )
       }
     }, Seq(personSelection))
-    .end(identity)
+    .endIdentity
 
   private val addCastToFilm = SequentialFunctor()
     .start((_: AdminSession.AddCastToFilm.Request) => Person.GetPersonInfo.Request(), Seq(personSelection))
-    .next(message => {
+    .nextWithContext( (message, startMessage) => {
       message.result.records.toOption.flatMap(_.headOption) match {
         case Some(personInfo: Record) =>
-          Film.AddCast.Request(personId, personInfo(Person.Info.firstName), personInfo(Person.Info.lastName), roleName)
+          Film.AddCast.Request(
+            startMessage.personId, personInfo(Person.Info.firstName), personInfo(Person.Info.lastName),
+            startMessage.roleName
+          )
       }
     }, Seq(filmSelection))
-    .end(identity)
+    .endIdentity
 
   private def fail(e: Throwable): Unit = {
     backTo ! akka.actor.Status.Failure(e)
