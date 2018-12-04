@@ -271,7 +271,7 @@ private[adbms] class SequentialFunctor[S <: Request[_]: ClassTag, E <: Success[_
       start.recipients foreach { _ ! request }
       val backTo = sender()
       val functorContext = FunctorContextFromActorContext(
-        context, log, Seq.empty, startMessage
+        context, log, Iterable.empty, startMessage
       )
       context.become(awaitResponsesReceive(start.recipients.length, Seq.empty, steps, backTo, functorContext))
   }
@@ -282,7 +282,7 @@ private[adbms] class SequentialFunctor[S <: Request[_]: ClassTag, E <: Success[_
                             backTo: ActorRef,
                             functorContext: FunctorContextFromActorContext[S]): Receive = {
     case message: Success[_] =>
-      val nextFunctorContext = functorContext.copy(senders = functorContext.senders :+ sender)
+      val nextFunctorContext = functorContext.copy(senders = functorContext.senders ++ Iterable(sender))
 
       if ((totalResponses - (receivedResponses :+ message).length) > 0) {
         context.become(awaitResponsesReceive(totalResponses, receivedResponses :+ message, pendingSteps, backTo, nextFunctorContext))
@@ -316,7 +316,7 @@ private[adbms] class SequentialFunctor[S <: Request[_]: ClassTag, E <: Success[_
     val request = currentFunction(message, functorContext)
     currentRecipients foreach { _ ! request }
 
-    val nextFunctorContext = functorContext.copy(senders = Seq.empty)
+    val nextFunctorContext = functorContext.copy(senders = Iterable.empty)
     context.become(awaitResponsesReceive(currentRecipients.length, Seq.empty, pendingSteps, backTo, nextFunctorContext))
   }
 

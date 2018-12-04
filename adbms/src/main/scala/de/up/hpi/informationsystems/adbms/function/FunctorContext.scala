@@ -10,7 +10,7 @@ import scala.concurrent.ExecutionContextExecutor
 
 object FunctorContext {
 
-  private[function] case class FunctorContextFromActorContext[T <: Request[_]](actorContext: ActorContext, log: LoggingAdapter, senders: Seq[ActorRef], startMessage: T)
+  private[function] case class FunctorContextFromActorContext[T <: Request[_]](actorContext: ActorContext, log: LoggingAdapter, senders: Iterable[ActorRef], startMessage: T)
     extends FunctorContext[T] {
 
     override def self: ActorRef = actorContext.self
@@ -59,12 +59,12 @@ trait FunctorContext[T <: Request[_]] {
     */
   def self: ActorRef
 
-  /** Returns an Sequence of the sender 'ActorRef's of the recently received messages.
+  /** Returns an Iterable of the sender 'ActorRef's of the recently received messages.
     *
     * @see [[akka.actor.ActorContext#sender]]
-    * @return sequence of all sender 'ActorRef's
+    * @return Iterable of all sender 'ActorRef's
     */
-  def senders: Seq[ActorRef]
+  def senders: Iterable[ActorRef]
 
   /** Returns all supervised children; this method returns a view (i.e. a lazy
     * collection) onto the internal collection of children. Targeted lookups
