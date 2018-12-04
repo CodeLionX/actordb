@@ -173,12 +173,17 @@ class SequentialFunctorTest extends TestKit(ActorSystem("sequential-functor-test
           .start((a: MessageA.Request) => a, Seq(partnerDactor1))
 
           .nextWithContext((_, functorContext) => {
-            functorContext.sender shouldEqual partnerDactor1 // this is unfortunate: sender is functorContext.self
+            functorContext.senders should contain only d1
             MessageB.Request()
           }, Seq(partnerDactor2))
 
+          .nextWithContext((_, functorContext) => {
+            functorContext.senders should contain only d2
+            MessageB.Request()
+          }, Seq(partnerDactor1, partnerDactor2, partnerDactor3))
+
           .endWithContext((response, functorContext) => {
-            functorContext.sender shouldEqual partnerDactor2
+            functorContext.senders should contain only (d1, d2, d3)
             response
           })
 
