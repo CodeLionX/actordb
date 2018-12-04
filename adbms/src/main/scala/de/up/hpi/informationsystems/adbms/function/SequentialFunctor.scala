@@ -1,6 +1,7 @@
 package de.up.hpi.informationsystems.adbms.function
 
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSelection, Props}
+import de.up.hpi.informationsystems.adbms.function.FunctorContext.FunctorContextFromActorContext
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol.{Message, Request, Success}
 
 import scala.reflect.ClassTag
@@ -269,53 +270,60 @@ private[adbms] class SequentialFunctor[S <: Request[_]: ClassTag, E <: Success[_
       val request = start.mapping(startMessage)
       start.recipients foreach { _ ! request }
       val backTo = sender()
-      context.become(awaitResponsesReceive(start.recipients.length, Seq.empty, steps, backTo, startMessage))
+      val functorContext = FunctorContextFromActorContext(
+        context, log, Seq.empty, startMessage
+      )
+      context.become(awaitResponsesReceive(start.recipients.length, Seq.empty, steps, backTo, functorContext))
   }
 
   def awaitResponsesReceive(totalResponses: Int,
                             receivedResponses: Seq[Success[Message]],
                             pendingSteps: Seq[SequentialFunctor.IntermediateStepT[S]],
                             backTo: ActorRef,
-                            startMessage: S): Receive = {
+                            functorContext: FunctorContextFromActorContext[S]): Receive = {
     case message: Success[_] =>
+      val nextFunctorContext = functorContext.copy(senders = functorContext.senders :+ sender)
+
       if ((totalResponses - (receivedResponses :+ message).length) > 0) {
-        context.become(awaitResponsesReceive(totalResponses, receivedResponses :+ message, pendingSteps, backTo, startMessage))
+        context.become(awaitResponsesReceive(totalResponses, receivedResponses :+ message, pendingSteps, backTo, nextFunctorContext))
+
       } else {
         log.debug("Received all pending responses")
 
         val constructor = message.getClass.getConstructors()(0)
         val unionResponse = constructor.newInstance((receivedResponses :+ message).map(_.result).reduce(_ union _))
 
-        pendingSteps.headOption match {
-          case None =>
-            self ! unionResponse
-            context.become(endReceive(backTo, startMessage))
-          case Some(nextStep) =>
-            self ! unionResponse
-            context.become(nextReceive(nextStep.mapping, nextStep.recipients, pendingSteps.drop(1), backTo, startMessage))
+        (unionResponse, pendingSteps.headOption) match {
+          case (message: Success[Message], None) =>
+            endReceive(backTo, message, nextFunctorContext)
+
+          case (message: Success[Message], Some(nextStep)) =>
+            nextReceive(nextStep.mapping, nextStep.recipients, message, pendingSteps.drop(1), backTo, nextFunctorContext)
+
+          case _ => // FIXME: fail
         }
       }
   }
 
   def nextReceive(currentFunction: (Success[Message], FunctorContext[S]) => Request[Message],
                   currentRecipients: Seq[ActorSelection],
+                  message: Success[Message],
                   pendingSteps: Seq[SequentialFunctor.IntermediateStepT[S]],
                   backTo: ActorRef,
-                  startMessage: S): Receive = {
-    case message: Success[Message] =>
-      log.debug("Processing next step and waiting for responses")
-      val functorContext = FunctorContext.fromActorContext(context, log, startMessage)
-      val request = currentFunction(message, functorContext)
-      currentRecipients foreach { _ ! request }
-      context.become(awaitResponsesReceive(currentRecipients.length, Seq.empty, pendingSteps, backTo, startMessage))
+                  functorContext: FunctorContextFromActorContext[S]): Unit = {
+    log.debug("Processing next step and waiting for responses")
+
+    val request = currentFunction(message, functorContext)
+    currentRecipients foreach { _ ! request }
+
+    val nextFunctorContext = functorContext.copy(senders = Seq.empty)
+    context.become(awaitResponsesReceive(currentRecipients.length, Seq.empty, pendingSteps, backTo, nextFunctorContext))
   }
 
-  def endReceive(backTo: ActorRef, startMessage: S): Receive = {
-    case message: Success[Message] =>
-      log.debug(s"Processing end step and stopping this ${this.getClass.getSimpleName}")
-      val functorContext = FunctorContext.fromActorContext(context, log, startMessage)
-      backTo ! end.mapping(message, functorContext)
-      context.stop(self)
+  def endReceive(backTo: ActorRef, message: Success[Message], functorContext: FunctorContextFromActorContext[S]): Unit = {
+    log.debug(s"Processing end step and stopping this ${this.getClass.getSimpleName}")
+    backTo ! end.mapping(message, functorContext)
+    context.stop(self)
   }
 }
 
