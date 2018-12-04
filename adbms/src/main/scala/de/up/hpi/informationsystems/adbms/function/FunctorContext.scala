@@ -3,16 +3,17 @@ package de.up.hpi.informationsystems.adbms.function
 import java.io.{NotSerializableException, ObjectOutputStream}
 
 import akka.actor.{ActorContext, ActorRef, ActorSystem}
+import akka.event.LoggingAdapter
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol.Request
 
 import scala.concurrent.ExecutionContextExecutor
 
 object FunctorContext {
 
-  def fromActorContext[T <: Request[_]](context: ActorContext, startMessage: T): FunctorContext[T] =
-    FunctorContextFromActorContext(startMessage, context)
+  def fromActorContext[T <: Request[_]](context: ActorContext, logger: LoggingAdapter, startMessage: T): FunctorContext[T] =
+    FunctorContextFromActorContext(startMessage, context, logger)
 
-  private case class FunctorContextFromActorContext[T <: Request[_]](startMessage: T, actorContext: ActorContext)
+  private case class FunctorContextFromActorContext[T <: Request[_]](startMessage: T, actorContext: ActorContext, log: LoggingAdapter)
     extends FunctorContext[T] {
 
     override def self: ActorRef = actorContext.self
@@ -49,6 +50,12 @@ trait FunctorContext[T <: Request[_]] {
     * @return the first message
     */
   def startMessage: T
+
+  /** Reference to the functor's logging adapter
+    *
+    * @return the functor's logging adapter
+    */
+  def log: LoggingAdapter
 
   /** The ActorRef representing this functor
     *

@@ -68,6 +68,7 @@ class CastAndFilmographyFunctor(backTo: ActorRef) extends Actor {
     .nextWithContext( (message, functorContext) => {
       message.result.records.toOption.flatMap(_.headOption) match {
         case Some(filmInfo: Record) =>
+          functorContext.log.info("mapping AddCastToFilm.Request to AddFilmToFilmography.Request")
           Person.AddFilmToFilmography.Request(
             functorContext.startMessage.filmId, filmInfo(Film.Info.title), filmInfo(Film.Info.release),
             functorContext.startMessage.roleName
@@ -81,6 +82,7 @@ class CastAndFilmographyFunctor(backTo: ActorRef) extends Actor {
     .nextWithContext( (message, functorContext) => {
       message.result.records.toOption.flatMap(_.headOption) match {
         case Some(personInfo: Record) =>
+          functorContext.log.info("mapping AddCastToFilm.Request to AddCast.Request")
           Film.AddCast.Request(
             functorContext.startMessage.personId, personInfo(Person.Info.firstName), personInfo(Person.Info.lastName),
             functorContext.startMessage.roleName

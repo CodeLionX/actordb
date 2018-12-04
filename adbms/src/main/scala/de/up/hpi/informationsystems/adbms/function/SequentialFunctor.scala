@@ -304,7 +304,7 @@ private[adbms] class SequentialFunctor[S <: Request[_]: ClassTag, E <: Success[_
                   startMessage: S): Receive = {
     case message: Success[Message] =>
       log.debug("Processing next step and waiting for responses")
-      val functorContext = FunctorContext.fromActorContext(context, startMessage)
+      val functorContext = FunctorContext.fromActorContext(context, log, startMessage)
       val request = currentFunction(message, functorContext)
       currentRecipients foreach { _ ! request }
       context.become(awaitResponsesReceive(currentRecipients.length, Seq.empty, pendingSteps, backTo, startMessage))
@@ -313,7 +313,7 @@ private[adbms] class SequentialFunctor[S <: Request[_]: ClassTag, E <: Success[_
   def endReceive(backTo: ActorRef, startMessage: S): Receive = {
     case message: Success[Message] =>
       log.debug(s"Processing end step and stopping this ${this.getClass.getSimpleName}")
-      val functorContext = FunctorContext.fromActorContext(context, startMessage)
+      val functorContext = FunctorContext.fromActorContext(context, log, startMessage)
       backTo ! end.mapping(message, functorContext)
       context.stop(self)
   }
