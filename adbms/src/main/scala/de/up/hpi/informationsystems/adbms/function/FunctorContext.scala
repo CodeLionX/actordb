@@ -2,11 +2,40 @@ package de.up.hpi.informationsystems.adbms.function
 
 import java.io.{NotSerializableException, ObjectOutputStream}
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ActorContext, ActorRef, ActorSystem}
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol.Request
 
 import scala.concurrent.ExecutionContextExecutor
 
+object FunctorContext {
+
+  def fromActorContext[T <: Request[_]](context: ActorContext, startMessage: T): FunctorContext[T] =
+    FunctorContextFromActorContext(startMessage, context)
+
+  private case class FunctorContextFromActorContext[T <: Request[_]](startMessage: T, actorContext: ActorContext)
+    extends FunctorContext[T] {
+
+    override def self: ActorRef = actorContext.self
+
+    override def sender: ActorRef = actorContext.sender
+
+    override def children: Iterable[ActorRef] = actorContext.children
+
+    override def child(name: String): Option[ActorRef] = actorContext.child(name)
+
+    override implicit def dispatcher: ExecutionContextExecutor = actorContext.dispatcher
+
+    override implicit def system: ActorSystem = actorContext.system
+
+    override def parent: ActorRef = actorContext.parent
+
+    override def watch(subject: ActorRef): ActorRef = actorContext.watch(subject)
+
+    override def watchWith(subject: ActorRef, msg: Any): ActorRef = actorContext.watchWith(subject, msg)
+
+    override def unwatch(subject: ActorRef): ActorRef = actorContext.unwatch(subject)
+  }
+}
 
 /** The functor context. Exposes contextual information for the functor
   * and the current message to be used in transformation functions.
