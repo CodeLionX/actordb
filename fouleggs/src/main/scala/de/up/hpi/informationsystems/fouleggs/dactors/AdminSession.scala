@@ -65,12 +65,12 @@ class CastAndFilmographyFunctor(backTo: ActorRef) extends Actor {
 
   private def addFilmToPersons(film: ActorSelection, person: ActorSelection) = SequentialFunctor()
     .start((_: AdminSession.AddCastToFilm.Request) => Film.GetFilmInfo.Request(), Seq(film))
-    .nextWithContext( (message, startMessage) => {
+    .nextWithContext( (message, functorContext) => {
       message.result.records.toOption.flatMap(_.headOption) match {
         case Some(filmInfo: Record) =>
           Person.AddFilmToFilmography.Request(
-            startMessage.filmId, filmInfo(Film.Info.title), filmInfo(Film.Info.release),
-            startMessage.roleName
+            functorContext.startMessage.filmId, filmInfo(Film.Info.title), filmInfo(Film.Info.release),
+            functorContext.startMessage.roleName
           )
       }
     }, Seq(person))
@@ -78,12 +78,12 @@ class CastAndFilmographyFunctor(backTo: ActorRef) extends Actor {
 
   private def addCastToFilm(person: ActorSelection, film: ActorSelection) = SequentialFunctor()
     .start((_: AdminSession.AddCastToFilm.Request) => Person.GetPersonInfo.Request(), Seq(person))
-    .nextWithContext( (message, startMessage) => {
+    .nextWithContext( (message, functorContext) => {
       message.result.records.toOption.flatMap(_.headOption) match {
         case Some(personInfo: Record) =>
           Film.AddCast.Request(
-            startMessage.personId, personInfo(Person.Info.firstName), personInfo(Person.Info.lastName),
-            startMessage.roleName
+            functorContext.startMessage.personId, personInfo(Person.Info.firstName), personInfo(Person.Info.lastName),
+            functorContext.startMessage.roleName
           )
       }
     }, Seq(film))

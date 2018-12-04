@@ -9,7 +9,7 @@ import scala.reflect.ClassTag
 object SequentialFunctor {
 
   /** Convenience type for a sequential functor step tuple consisting of mapping function and receiver actor refs. */
-  private sealed trait Step[S, M1, M2] {
+  private sealed trait Step[S <: Request[_], M1, M2] {
     def mapping: (M1, FunctorContext[S]) => M2
     def recipients: Seq[ActorSelection]
   }
@@ -297,7 +297,7 @@ private[adbms] class SequentialFunctor[S <: Request[_]: ClassTag, E <: Success[_
       }
   }
 
-  def nextReceive(currentFunction: (Success[Message], S) => Request[Message],
+  def nextReceive(currentFunction: (Success[Message], FunctorContext[S]) => Request[Message],
                   currentRecipients: Seq[ActorSelection],
                   pendingSteps: Seq[SequentialFunctor.IntermediateStepT[S]],
                   backTo: ActorRef,
