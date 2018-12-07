@@ -120,14 +120,12 @@ class SequentialFunctorTest extends TestKit(ActorSystem("sequential-functor-test
         implicit val sender: ActorRef = probe.ref
 
         val fut = SequentialFunctor()
-          .start((a: MessageA.Request) => a, Seq(partnerDactor1))
-
-          .nextWithContext((_, functorContext) => {
+          .start( (a: MessageA.Request) => a, Seq(partnerDactor1))
+          .nextWithContext( (_, functorContext) => {
             testFunction(functorContext)
             MessageB.Request()
           }, Seq(partnerDactor2))
-
-          .endWithContext((response, functorContext) => {
+          .endWithContext( (response, functorContext) => {
             testFunction(functorContext)
             response
           })
@@ -171,17 +169,14 @@ class SequentialFunctorTest extends TestKit(ActorSystem("sequential-functor-test
 
         val fut = SequentialFunctor()
           .start((a: MessageA.Request) => a, Seq(partnerDactor1))
-
           .nextWithContext((_, functorContext) => {
             functorContext.senders should contain only d1
             MessageB.Request()
           }, Seq(partnerDactor2))
-
           .nextWithContext((_, functorContext) => {
             functorContext.senders should contain only d2
             MessageB.Request()
           }, Seq(partnerDactor1, partnerDactor2, partnerDactor3))
-
           .endWithContext((response, functorContext) => {
             functorContext.senders should contain only (d1, d2, d3)
             response
