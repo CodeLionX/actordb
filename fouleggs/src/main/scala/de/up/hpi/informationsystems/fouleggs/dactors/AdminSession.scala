@@ -75,7 +75,7 @@ class CastAndFilmographyFunctor(backTo: ActorRef) extends Actor {
           )
       }
     }, Seq(person))
-    .endIdentity
+    .end(identity)
 
   private def addCastToFilm(person: ActorSelection, film: ActorSelection) = SequentialFunctor()
     .start((_: AdminSession.AddCastToFilm.Request) => Person.GetPersonInfo.Request(), Seq(person))
@@ -89,7 +89,7 @@ class CastAndFilmographyFunctor(backTo: ActorRef) extends Actor {
           )
       }
     }, Seq(film))
-    .endIdentity
+    .end(identity)
 
   private def fail(e: Throwable): Unit = {
     backTo ! akka.actor.Status.Failure(e)

@@ -88,7 +88,7 @@ class SequentialFunctorTest extends TestKit(ActorSystem("sequential-functor-test
 
         val fut = SequentialFunctor()
           .start( (_: StartMessage.type) => MessageA.Request(marker), recipients)
-          .endIdentity
+          .end(identity)
 
         val functorRef = Dactor.startSequentialFunctor(fut, system)(StartMessage)
         probe.watch(functorRef)

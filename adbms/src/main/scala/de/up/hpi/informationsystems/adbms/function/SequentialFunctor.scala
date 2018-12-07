@@ -199,13 +199,6 @@ object SequentialFunctor {
     def endWithContext[E <: Message]
                       (end: (Success[M], FunctorContext[S]) => Success[E]): SequentialFunctorDef[S, Success[E]] =
       new SequentialFunctorDef[S, Success[E]](start, steps, EndStep(end))
-
-    /** Concludes the definition of the sequential functor with sending the last received message back to the creator
-      * of the sequential functor.
-      *
-      * @return the sequential functor definition
-      */
-    def endIdentity: SequentialFunctorDef[S, Success[M]] = end(identity[Success[M]])
   }
 
   /** Definition of a sequential functor.
