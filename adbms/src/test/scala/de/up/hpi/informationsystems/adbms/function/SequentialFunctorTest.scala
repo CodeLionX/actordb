@@ -1,6 +1,7 @@
 package de.up.hpi.informationsystems.adbms.function
 
 import akka.actor._
+import akka.event.LoggingAdapter
 import akka.testkit.{TestKit, TestProbe}
 import akka.util.Timeout
 import de.up.hpi.informationsystems.adbms.Dactor
@@ -9,8 +10,10 @@ import de.up.hpi.informationsystems.adbms.function.SequentialFunctor.SequentialF
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol.{Request, Success}
 import de.up.hpi.informationsystems.adbms.relation.{MutableRelation, Relation}
+import org.scalatest.enablers.Definition
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
+import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
@@ -61,13 +64,16 @@ class SequentialFunctorTest extends TestKit(ActorSystem("sequential-functor-test
 
   override def afterAll(): Unit = shutdown(system)
 
+  implicit val loggingAdapterDefinition: Definition[LoggingAdapter] = _ != null
+  implicit val dispatcherDefinition: Definition[ExecutionContextExecutor] = _ != null
+
   "A SequentialFunction" when {
 
     implicit val timeout: Timeout = 1 second
 
-    Dactor.dactorOf(system, classOf[PartnerDactor], 1)
-    Dactor.dactorOf(system, classOf[PartnerDactor], 2)
-    Dactor.dactorOf(system, classOf[PartnerDactor], 3)
+    val d1 = Dactor.dactorOf(system, classOf[PartnerDactor], 1)
+    val d2 = Dactor.dactorOf(system, classOf[PartnerDactor], 2)
+    val d3 = Dactor.dactorOf(system, classOf[PartnerDactor], 3)
 
     // selections
     val partnerDactor1 = Dactor.dactorSelection(system, classOf[PartnerDactor], 1)
@@ -83,6 +89,7 @@ class SequentialFunctorTest extends TestKit(ActorSystem("sequential-functor-test
         val fut = SequentialFunctor()
           .start( (_: StartMessage.type) => MessageA.Request(marker), recipients)
           .end(identity)
+
         val functorRef = Dactor.startSequentialFunctor(fut, system)(StartMessage)
         probe.watch(functorRef)
         probe.expectMsg(MessageA.Success(Relation.empty))
@@ -101,6 +108,83 @@ class SequentialFunctorTest extends TestKit(ActorSystem("sequential-functor-test
       "handle the same receiver multiple times correctly" in {
         val recipients = Seq(partnerDactor1, partnerDactor1, partnerDactor1)
         testSimpleSeqFunctor(recipients, "same receiver multiple times")
+      }
+
+    }
+
+    "using a functor context" should {
+      val probe = TestProbe()
+      val startMessage = MessageA.Request("first message")
+
+      def testSeqFunctorWithContext(testFunction: FunctorContext[MessageA.Request] => Unit): Unit = {
+        implicit val sender: ActorRef = probe.ref
+
+        val fut = SequentialFunctor()
+          .start( (a: MessageA.Request) => a, Seq(partnerDactor1))
+          .nextWithContext( (_, functorContext) => {
+            testFunction(functorContext)
+            MessageB.Request()
+          }, Seq(partnerDactor2))
+          .endWithContext( (response, functorContext) => {
+            testFunction(functorContext)
+            response
+          })
+
+        Dactor.startSequentialFunctor(fut, system)(startMessage)
+        probe.expectMsg(MessageB.Success(Relation.empty))
+      }
+
+      "provide access to the first message received" in {
+        testSeqFunctorWithContext(functorContext => {
+          functorContext.startMessage shouldEqual startMessage
+        })
+      }
+
+      "allow access to the functor's logging adapter" in {
+        testSeqFunctorWithContext(functorContext => {
+          // just log message
+          functorContext.log.error("XXXX")
+        })
+      }
+
+      "support defined proportion of ActorContext behavior" in {
+        testSeqFunctorWithContext(functorContext => {
+          val subjectProbeRef = TestProbe().ref
+
+          functorContext.self.path shouldEqual system.asInstanceOf[ExtendedActorSystem].guardian.path / "$f"
+          functorContext.children shouldEqual Iterable.empty[ActorRef]
+          functorContext.dispatcher shouldBe defined
+          functorContext.system shouldEqual system
+          functorContext.parent shouldEqual system.asInstanceOf[ExtendedActorSystem].guardian
+
+          functorContext.child("") shouldEqual None
+          functorContext.watch(subjectProbeRef) shouldEqual subjectProbeRef
+          assertThrows[IllegalStateException](functorContext.watchWith(subjectProbeRef, "msg"))
+          functorContext.unwatch(subjectProbeRef) shouldEqual subjectProbeRef
+        })
+      }
+
+      "contain correct senders" in {
+        val probe = TestProbe()
+
+        val fut = SequentialFunctor()
+          .start((a: MessageA.Request) => a, Seq(partnerDactor1))
+          .nextWithContext((_, functorContext) => {
+            functorContext.senders should contain only d1
+            MessageB.Request()
+          }, Seq(partnerDactor2))
+          .nextWithContext((_, functorContext) => {
+            functorContext.senders should contain only d2
+            MessageB.Request()
+          }, Seq(partnerDactor1, partnerDactor2, partnerDactor3))
+          .endWithContext((response, functorContext) => {
+            functorContext.senders should contain only (d1, d2, d3)
+            response
+          })
+
+        implicit val sender: ActorRef = probe.ref
+        Dactor.startSequentialFunctor(fut, system)(startMessage)
+        probe.expectMsg(MessageB.Success(Relation.empty))
       }
     }
 
