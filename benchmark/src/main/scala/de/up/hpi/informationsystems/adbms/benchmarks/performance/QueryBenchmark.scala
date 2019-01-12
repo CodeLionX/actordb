@@ -3,7 +3,9 @@ package de.up.hpi.informationsystems.adbms.benchmarks.performance
 import java.io.FileWriter
 
 import akka.actor.{Actor, ActorIdentity, ActorLogging, ActorRef, ActorSystem, Cancellable, Identify, Props}
+import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.benchmarks.performance.BulkInsertBenchmark.{SystemInitializer => BISystemInitializer}
+import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol.SelectAllFromRelation
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol.Response
 import de.up.hpi.informationsystems.adbms.relation.{Relation, RelationBinOps}
@@ -17,13 +19,22 @@ import scala.language.postfixOps
 
 
 object QueryBenchmark extends App {
+
+  val N_QUERIES = 1000
+  val N_POINTQUERIES = N_QUERIES
+  val DATASET = "data_050_mb"
+  val IDENTITY_RESOLVE_TIMEOUT = 2 seconds
+  val STARTUP_TIMEOUT = 15 seconds
+
   println("Starting system")
   val actorSystem: ActorSystem = ActorSystem("benchmark-system")
   val initializer: ActorRef = actorSystem.actorOf(Props[SystemInitializer], "initializer")
-  initializer ! Startup(15 seconds)
+  initializer ! Startup(STARTUP_TIMEOUT)
 
   class SystemInitializer extends BISystemInitializer {
     import SASystemInitializer._
+
+    override val dataDir = s"/data/resources/$DATASET"
 
     override def down: Receive = {
       case Startup(timeout) =>
@@ -61,7 +72,7 @@ object QueryBenchmark extends App {
 
       case Timeout =>
         println("start measuring queries")
-        startQueries(storeSections, 30000)
+        startScanQueries(storeSections, N_QUERIES)
     }
 
     def waitForQueryResult(pendingACKs: Map[ActorRef, Long], finishedTimes: Seq[Long], startTime: Long): Receive = {
@@ -73,10 +84,10 @@ object QueryBenchmark extends App {
         if(newPendingACKs.isEmpty) {
           val endTime = System.nanoTime()
 
-          val filename: String = "results.txt"
+          val filename: String = "scan-query-results.txt"
           println("========== elapsed time (scan query) ==========")
           println(s"elapsed nanos: ${endTime - startTime}ns (${(endTime - startTime) / 1000000000}s)")
-          println(s"average time per query: ${finishedTimes.sum/finishedTimes.count(_ => true)}ns")
+          println(s"average time per query: ${newFinishedTimes.avg()}ns")
           println(s"Collected ${newFinishedTimes.size} measurements")
 
           val resultString = newFinishedTimes.mkString("", "\n", "")
@@ -85,9 +96,40 @@ object QueryBenchmark extends App {
           fw.close()
 
           println(s"Results written to $filename")
-          handleShutdown()
+          println()
+
+          // measure point queries
+          val newStartTime = startPointQuery()
+          context.become(waitForPointQueryResult(N_POINTQUERIES, newStartTime, Seq.empty))
         } else {
           context.become(waitForQueryResult(newPendingACKs, newFinishedTimes, startTime))
+        }
+    }
+
+    def waitForPointQueryResult(remainingQueries: Int, started: Long, finishedTimes: Seq[Long]): Receive = {
+      case SelectAllFromRelation.Success(_) =>
+        val endTime = System.nanoTime()
+        val newFinishedTimes = finishedTimes :+ (endTime - started)
+        val newRemainingQueries = remainingQueries-1
+
+        if(newRemainingQueries == 0) {
+          val filename: String = "point-query-results.txt"
+          println("========== elapsed time (point query) ==========")
+          println(s"median latency per query: ${newFinishedTimes.median()}ns")
+          println(s"Collected ${newFinishedTimes.size} measurements")
+
+          val resultString = newFinishedTimes.mkString("", "\n", "")
+          val fw = new FileWriter(filename, false)
+          fw.write(resultString)
+          fw.close()
+
+          println(s"Results written to $filename")
+          println()
+          handleShutdown()
+
+        } else {
+          val newStartTime = startPointQuery()
+          context.become(waitForPointQueryResult(newRemainingQueries, newStartTime, newFinishedTimes))
         }
     }
 
@@ -97,11 +139,11 @@ object QueryBenchmark extends App {
       storeSections ! Identify(1)
       // schedule timeout
       import context.dispatcher
-      context.system.scheduler.scheduleOnce(3 seconds, self, Timeout)
+      context.system.scheduler.scheduleOnce(IDENTITY_RESOLVE_TIMEOUT, self, Timeout)
       context.become(waitForIdentities(Seq.empty) orElse commonBehavior)
     }
 
-    def startQueries(storeSections: Seq[ActorRef], n: Int = 100000): Unit = {
+    def startScanQueries(storeSections: Seq[ActorRef], n: Int): Unit = {
       val startTime = System.nanoTime()
       val pending = (0 until n).map( _ => {
         val begin = System.nanoTime()
@@ -110,6 +152,15 @@ object QueryBenchmark extends App {
         functor -> begin
       }).toMap
       context.become(waitForQueryResult(pending, Seq.empty, startTime))
+    }
+
+    def startPointQuery(): Long = {
+      val query = SelectAllFromRelation.Request(StoreSection.Inventory.name)
+      val selection = Dactor.dactorSelection(context, classOf[StoreSection], 115)
+
+      val startTime = System.nanoTime()
+      selection ! query
+      startTime
     }
   }
 
@@ -144,6 +195,20 @@ object QueryBenchmark extends App {
 
         } else
           context.become(waitForResults(receiver, newPending, results :+ result))
+    }
+  }
+
+  implicit class StatsSupport(col: Seq[Long]) {
+
+    def avg(): Double = {
+      col.sum / col.size
+    }
+
+    def median(): Double = {
+      if(col.isEmpty) return 0.0
+      val sorted = col.sorted
+      val size = sorted.size
+      (sorted(size/2) + sorted(size - size/2))/2
     }
   }
 }
