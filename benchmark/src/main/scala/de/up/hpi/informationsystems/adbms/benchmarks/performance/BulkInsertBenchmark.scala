@@ -5,7 +5,7 @@ import java.io.File
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Cancellable, PoisonPill, Props}
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.sampleapp.DataInitializer.LoadData
-import de.up.hpi.informationsystems.sampleapp.dactors.SystemInitializer.{Shutdown, Startup}
+import de.up.hpi.informationsystems.sampleapp.dactors.SystemInitializer.Startup
 import de.up.hpi.informationsystems.sampleapp.dactors.{Cart, Customer, GroupManager, StoreSection, SystemInitializer => SASystemInitializer}
 
 import scala.concurrent.duration._
@@ -17,11 +17,6 @@ object BulkInsertBenchmark extends App {
   val actorSystem: ActorSystem = ActorSystem("benchmark-system")
   val initializer: ActorRef = actorSystem.actorOf(Props[SystemInitializer], "initializer")
   initializer ! Startup(15 seconds)
-
-  sys.addShutdownHook({
-    println("Received shutdown signal from JVM")
-    initializer ! Shutdown
-  })
 
   class SystemInitializer extends Actor with ActorLogging {
     import SASystemInitializer._
@@ -99,11 +94,14 @@ object BulkInsertBenchmark extends App {
 
         if(remainingACKs.isEmpty) {
           val endTime = System.nanoTime()
+          val elapsedTime = endTime-startTime
+
           log.info("finished startup")
           timeout.cancel()
 
-          println("========== elapsed time ==========")
-          println(endTime-startTime)
+          println( "========== elapsed time ==========")
+          println(s"nanos:   ${elapsedTime}")
+          println(s"seconds: ${elapsedTime / 1000000000.0}")
           handleShutdown()
         } else {
           context.become(waitingForACK(remainingACKs, timeout, startTime) orElse commonBehavior)
