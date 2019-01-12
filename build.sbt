@@ -48,7 +48,7 @@ lazy val root = (project in file("."))
     scalaVersion := Common.scalaVersion
   )
 
-lazy val memorybenchmark = (project in file("memorybenchmark"))
+lazy val benchmark = (project in file("benchmark"))
   .settings(
     Common.commonSettings,
     // I don't know why they are not accepted at the commonSettings key
