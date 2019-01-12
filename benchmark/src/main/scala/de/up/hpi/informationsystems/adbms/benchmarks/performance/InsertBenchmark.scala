@@ -119,7 +119,7 @@ object InsertBenchmark extends App {
 
     def up: Receive = commonBehavior
 
-    def waitingForItemInsertACKs(pendingACKs: Map[ActorRef, Long], timeout: Cancellable, finishedTimes: Seq[Long]): Receive = {
+    def waitingForItemInsertACKs(pendingACKs: Map[ActorRef, Long], timeout: Cancellable, finishedTimes: Seq[Long], startTime: Long): Receive = {
       case AddNewItemFunctor.Start.Success(_) =>
         log.info(s"Received ACK for adding customer $sender")
 
@@ -132,9 +132,11 @@ object InsertBenchmark extends App {
           val endTime = System.nanoTime()
           timeout.cancel()
 
+          val overallRuntime = endTime-startTime
+
           val filename: String = "results.txt"
           println("========== elapsed time (insert) ==========")
-          println(s"Collected ${newFinishedTimes.size} measurements")
+          println(s"Inserted ${newFinishedTimes.size} x 2 (2 Dactors) rows in ${overallRuntime} ns")
 
           val resultString = newFinishedTimes.mkString("", "\n", "")
           val fw = new FileWriter(filename, false)
@@ -145,7 +147,7 @@ object InsertBenchmark extends App {
 
           handleShutdown()
         } else {
-          context.become(waitingForItemInsertACKs(remainingACKs, timeout, newFinishedTimes) orElse commonBehavior)
+          context.become(waitingForItemInsertACKs(remainingACKs, timeout, newFinishedTimes, startTime) orElse commonBehavior)
         }
       case message => println(s"received $message")
     }
@@ -170,6 +172,8 @@ object InsertBenchmark extends App {
       // start concurrent functors for adding items to storesections and their discounts to groupmanagers
       val numInserts: Int = 1000
 
+      val startTime: Long = System.nanoTime()
+
       val items = List.range(0, numInserts)
       val functors = items.map(i => (i, InsertBenchmark.actorSystem.actorOf(Props[AddNewItemFunctor], s"addNewCustomer-functor-$i")))
       val pendingACKs = functors.map({ case (i: Int, ref: ActorRef) =>
@@ -179,7 +183,7 @@ object InsertBenchmark extends App {
       })
 
       println("Waiting for ACK")
-      context.become(waitingForItemInsertACKs(pendingACKs.toMap, timeout, Seq.empty) orElse commonBehavior)
+      context.become(waitingForItemInsertACKs(pendingACKs.toMap, timeout, Seq.empty, startTime) orElse commonBehavior)
     }
   }
 
@@ -218,7 +222,7 @@ object InsertBenchmark extends App {
       case akka.actor.Status.Success =>
         if (count == 1) {
           parent ! Start.Success(Relation.empty)
-          println(s"finished with ${context.self}")
+          log.info(s"finished with ${context.self}")
           context.stop(self)
         } else {
           context.become(waitingForACKs(count - 1, parent))
