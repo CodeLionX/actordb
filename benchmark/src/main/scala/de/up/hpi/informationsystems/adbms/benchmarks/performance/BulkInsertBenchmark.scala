@@ -52,32 +52,52 @@ object BulkInsertBenchmark extends App {
       these.filter(_.isDirectory).toList ++ these.filter(_.isDirectory).flatMap(recursiveListDirs)
     }
 
+    def startActors(): Seq[ActorRef] = {
+      log.info(s"Starting up system and loading data from resource root: $dataDir")
+
+      val dataURL = getClass.getResource(dataDir)
+      if(dataURL == null)
+        throw new RuntimeException(s"Could not find resource root: $dataDir")
+      val dirList = recursiveListDirs(new File(dataURL.getPath))
+
+      dirList
+        //.slice(0, 10)
+        .map(listDactor)
+        .toSet[(Class[_<: Dactor], Int)]  // put everything in a set to get rid of duplicates!
+        .map(initDactor)
+        .toSeq
+    }
+
+    def loadDataIntoActors(actors: Seq[ActorRef]): Unit ={
+      val loadDataMsg = LoadData(dataDir)
+      println(s"Sending $loadDataMsg")
+      actors.foreach( _ ! loadDataMsg )
+    }
+
+    def checkACKs(pendingACKs: Seq[ActorRef], sender: ActorRef)
+                 (receivedAll: => Unit)
+                 (stillWaiting: Seq[ActorRef] => Unit): Unit = {
+      log.info(s"Received ACK for data loading of $sender")
+      val remainingACKs = pendingACKs.filterNot(_ == sender)
+
+      if(remainingACKs.isEmpty) {
+        receivedAll
+      } else {
+        stillWaiting(remainingACKs)
+      }
+    }
     ///// state machine
     override def receive: Receive = down orElse commonBehavior
 
     def down: Receive = {
       case Startup(timeout) =>
-        log.info(s"Starting up system and loading data from resource root: $dataDir")
-
-        val dataURL = getClass.getResource(dataDir)
-        if(dataURL == null)
-          throw new RuntimeException(s"Could not find resource root: $dataDir")
-        val dirList = recursiveListDirs(new File(dataURL.getPath))
-
-        val pendingACKs = dirList
-          //.slice(0, 10)
-          .map(listDactor)
-          .toSet[(Class[_<: Dactor], Int)]  // put everything in a set to get rid of duplicates!
-          .map(initDactor)
-          .toSeq
+        val pendingACKs = startActors()
 
         // get start time
         val startTime = System.nanoTime()
 
         // send message to all Dactors
-        val loadDataMsg = LoadData(dataDir)
-        println(s"Sending $loadDataMsg")
-        pendingACKs.foreach( _ ! loadDataMsg )
+        loadDataIntoActors(pendingACKs)
 
         // schedule timeout
         import context.dispatcher
@@ -89,10 +109,7 @@ object BulkInsertBenchmark extends App {
 
     def waitingForACK(pendingACKs: Seq[ActorRef], timeout: Cancellable, startTime: Long): Receive = {
       case akka.actor.Status.Success =>
-        log.info(s"Received ACK for data loading of $sender")
-        val remainingACKs = pendingACKs.filterNot(_ == sender())
-
-        if(remainingACKs.isEmpty) {
+        checkACKs(pendingACKs, sender){
           val endTime = System.nanoTime()
           val elapsedTime = endTime-startTime
 
@@ -103,9 +120,9 @@ object BulkInsertBenchmark extends App {
           println(s"nanos:   ${elapsedTime}")
           println(s"seconds: ${elapsedTime / 1000000000.0}")
           handleShutdown()
-        } else {
+        }(remainingACKs =>
           context.become(waitingForACK(remainingACKs, timeout, startTime) orElse commonBehavior)
-        }
+        )
 
       case akka.actor.Status.Failure(e) =>
         log.error(e, s"Could not initialize $sender")
