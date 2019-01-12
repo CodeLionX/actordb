@@ -5,6 +5,7 @@ import java.io.FileWriter
 import akka.actor.{Actor, ActorIdentity, ActorLogging, ActorRef, ActorSystem, Cancellable, Identify, Props}
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.benchmarks.performance.BulkInsertBenchmark.{SystemInitializer => BISystemInitializer}
+import de.up.hpi.informationsystems.adbms.benchmarks.performance.Implicits._
 import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol.SelectAllFromRelation
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol.Response
@@ -195,20 +196,6 @@ object QueryBenchmark extends App {
 
         } else
           context.become(waitForResults(receiver, newPending, results :+ result))
-    }
-  }
-
-  implicit class StatsSupport(col: Seq[Long]) {
-
-    def avg(): Double = {
-      col.sum / col.size
-    }
-
-    def median(): Double = {
-      if(col.isEmpty) return 0.0
-      val sorted = col.sorted
-      val size = sorted.size
-      (sorted(size/2) + sorted(size - size/2))/2
     }
   }
 }
