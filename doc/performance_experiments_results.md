@@ -67,7 +67,7 @@ See [Memory Benchmarks: Used Datasets](./memory_experiments_results.md#used-data
 ### Point Query results (latency)
 
 We measured the time in milliseconds needed to execute 1000 select queries for the Inventory relation of `StoreSection`-Dactors concurrently.
-Results can be found in the files in the folder [`performance_experiements_results`](./performance_experiements_results) with a name starting with `point-query-results-*.txt`.
+Results can be found in the files in the folder [`performance_experiments_results`](./performance_experiments_results) with a name starting with `point-query-results-*.txt`.
 We pre-loaded the database with the `data_050_mb` dataset.
 
 | `StorageManager`s |     Avg |  Median |
@@ -87,7 +87,7 @@ We pre-loaded the database with the `data_050_mb` dataset.
 ### Insert results
 
 We measured the time needed to insert a record into the `Inventory` relation of the `StoreSection`-Dactors and the `Discounts` relation of the `GroupManager`-Dactors while inserting 1000 records concurrently.
-Results can be found in the files in the folder [`performance_experiements_results`](./performance_experiements_results) with a name starting with `insert-results-*.txt`.
+Results can be found in the files in the folder [`performance_experiments_results`](./performance_experiments_results) with a name starting with `insert-results-*.txt`.
 We pre-loaded the database with the `data_050_mb` dataset.
 
 | `StoreSection`s | `GroupManager`s | Throughput |   Avg. | Median |
