@@ -19,9 +19,10 @@ import scala.language.postfixOps
 object InsertBenchmark extends App {
 
   val N_INSERTS = 1000
-  val STORE_ID_RANGE_END = 50
-  val GROUP_MANAGER_ID_RANGE_END = 3
+  val STORE_ID_RANGE_END = 500
+  val GROUP_MANAGER_ID_RANGE_END = 10
   val STARTUP_TIMEOUT = 15 seconds
+  val DATASET = "data_050_mb"
 
   println("Starting system")
   val actorSystem: ActorSystem = ActorSystem("benchmark-system")
@@ -31,7 +32,7 @@ object InsertBenchmark extends App {
   class SystemInitializer extends BISystemInitializer {
     import SASystemInitializer._
 
-    override val dataDir = "/data/resources/data_050_mb"
+    override val dataDir = s"/data/resources/$DATASET"
 
     override def down: Receive = {
       case Startup(timeout) =>
@@ -76,15 +77,21 @@ object InsertBenchmark extends App {
 
           val overallRuntime = endTime-startTime
 
-          val filename: String = "insert-results.txt"
           println("========== elapsed time (insert) ==========")
           println(s"Inserted ${newFinishedTimes.size} x 2 (2 Dactors) rows in $overallRuntime ns")
           println(s"Throughput: ${N_INSERTS/(overallRuntime*1e-9)} Op/s")
-          println(s"Average latency: ${newFinishedTimes.avg()} ns")
-          println(s"Median latency: ${newFinishedTimes.median()} ns")
+          println(s"Average latency: ${newFinishedTimes.avg()/1e6} ms")
+          println(s"Median latency: ${newFinishedTimes.median()/1e6} ms")
 
+          val filename: String = s"insert-results-$DATASET-s$STORE_ID_RANGE_END-g$GROUP_MANAGER_ID_RANGE_END.txt"
           val resultString = newFinishedTimes.mkString("", "\n", "")
           val fw = new FileWriter(filename, false)
+          fw.write("========== elapsed time (insert) ==========\n")
+          fw.write(s"Inserted ${newFinishedTimes.size} x 2 (2 Dactors) rows in $overallRuntime ns \n")
+          fw.write(s"Throughput: ${N_INSERTS/(overallRuntime*1e-9)} Op/s\n")
+          fw.write(s"Average latency: ${newFinishedTimes.avg()/1e6} ms\n")
+          fw.write(s"Median latency: ${newFinishedTimes.median()/1e6} ms\n")
+          fw.write("========== single results (ns) ===========\n")
           fw.write(resultString)
           fw.close()
 

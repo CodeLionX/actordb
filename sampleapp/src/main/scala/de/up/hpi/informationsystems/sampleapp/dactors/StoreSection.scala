@@ -51,6 +51,13 @@ object StoreSection {
     case class Failure(e: Throwable) extends RequestResponseProtocol.Failure[GetAvailableQuantityFor]
   }
 
+  object CorrelatedMessage {
+    sealed trait CorrelatedMessage extends RequestResponseProtocol.Message
+    case class Request(id: Int) extends RequestResponseProtocol.Request[CorrelatedMessage]
+    case class Success(id: Int, result: Relation) extends RequestResponseProtocol.Success[CorrelatedMessage]
+    case class Failure(id: Int, e: Throwable) extends RequestResponseProtocol.Failure[CorrelatedMessage]
+  }
+
   object Inventory extends RelationDef {
     val inventoryId: ColumnDef[Int] = ColumnDef[Int]("i_id")
     val price: ColumnDef[Double] = ColumnDef[Double]("i_price")
@@ -95,6 +102,9 @@ object StoreSection {
           case Success(result) => sender() ! GetAvailableQuantityFor.Success(Relation(result))
           case Failure(e) => sender() ! GetAvailableQuantityFor.Failure(e)
         }
+
+      case CorrelatedMessage.Request(corrId) =>
+        sender ! CorrelatedMessage.Success(corrId, Relation.empty)
     }
 
     def getAvailableQuantityFor(inventoryId: Int): Relation = {

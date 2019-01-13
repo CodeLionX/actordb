@@ -6,12 +6,11 @@ import akka.actor.{Actor, ActorIdentity, ActorLogging, ActorRef, ActorSystem, Ca
 import de.up.hpi.informationsystems.adbms.Dactor
 import de.up.hpi.informationsystems.adbms.benchmarks.performance.BulkInsertBenchmark.{SystemInitializer => BISystemInitializer}
 import de.up.hpi.informationsystems.adbms.benchmarks.performance.Implicits._
-import de.up.hpi.informationsystems.adbms.protocols.DefaultMessagingProtocol.SelectAllFromRelation
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol
 import de.up.hpi.informationsystems.adbms.protocols.RequestResponseProtocol.Response
 import de.up.hpi.informationsystems.adbms.relation.{Relation, RelationBinOps}
-import de.up.hpi.informationsystems.sampleapp.dactors.StoreSection.GetAvailableQuantityFor
 import de.up.hpi.informationsystems.sampleapp.dactors.StoreSection.GetAvailableQuantityFor.GetAvailableQuantityFor
+import de.up.hpi.informationsystems.sampleapp.dactors.StoreSection.{CorrelatedMessage, GetAvailableQuantityFor}
 import de.up.hpi.informationsystems.sampleapp.dactors.SystemInitializer.Startup
 import de.up.hpi.informationsystems.sampleapp.dactors.{StoreSection, SystemInitializer => SASystemInitializer}
 
@@ -23,6 +22,7 @@ object QueryBenchmark extends App {
 
   val N_QUERIES = 1000
   val N_POINTQUERIES = N_QUERIES
+  val STORE_ID_RANGE_END = 400
   val DATASET = "data_050_mb"
   val IDENTITY_RESOLVE_TIMEOUT = 2 seconds
   val STARTUP_TIMEOUT = 15 seconds
@@ -36,6 +36,17 @@ object QueryBenchmark extends App {
     import SASystemInitializer._
 
     override val dataDir = s"/data/resources/$DATASET"
+
+    var storeSections: IndexedSeq[ActorRef] = IndexedSeq.empty
+
+    override def initDactor(dactorInfo: (Class[_<: Dactor], Int)): ActorRef = {
+      val dactor = Dactor.dactorOf(context.system, dactorInfo._1, dactorInfo._2)
+      context.watch(dactor)
+      if(dactorInfo._1 == classOf[StoreSection]) {
+        storeSections :+= dactor
+      }
+      dactor
+    }
 
     override def down: Receive = {
       case Startup(timeout) =>
@@ -54,7 +65,8 @@ object QueryBenchmark extends App {
     def waitingForACK2(pendingACKs: Seq[ActorRef], timeout: Cancellable): Receive = {
       case akka.actor.Status.Success =>
         checkACKs(pendingACKs, sender){
-          resolveStoreSectionIdentities()
+          startPointQueries()
+//          resolveStoreSectionIdentities()
         }(remainingACKs =>
           context.become(waitingForACK2(remainingACKs, timeout) orElse commonBehavior)
         )
@@ -100,27 +112,33 @@ object QueryBenchmark extends App {
           println()
 
           // measure point queries
-          val newStartTime = startPointQuery()
-          context.become(waitForPointQueryResult(N_POINTQUERIES, newStartTime, Seq.empty))
+          startPointQueries()
         } else {
           context.become(waitForQueryResult(newPendingACKs, newFinishedTimes, startTime))
         }
     }
 
-    def waitForPointQueryResult(remainingQueries: Int, started: Long, finishedTimes: Seq[Long]): Receive = {
-      case SelectAllFromRelation.Success(_) =>
+    def waitForPointQueryResult(pendingACKs: Map[Int, Long], finishedTimes: Seq[Long]): Receive = {
+      def handle(corrId: Int): Unit = {
         val endTime = System.nanoTime()
-        val newFinishedTimes = finishedTimes :+ (endTime - started)
-        val newRemainingQueries = remainingQueries-1
+        val newFinishedTimes = finishedTimes :+ (endTime - pendingACKs(corrId))
+        val newPendingACKs = pendingACKs.filterNot(p => p._1 == corrId)
 
-        if(newRemainingQueries == 0) {
-          val filename: String = "point-query-results.txt"
+        if(newPendingACKs.isEmpty) {
+          val filename: String = s"point-query-results-$DATASET-s$STORE_ID_RANGE_END.txt"
           println("========== elapsed time (point query) ==========")
-          println(s"median latency per query: ${newFinishedTimes.median()}ns")
+          println(s"${newFinishedTimes.head} ns")
+          println(s"Average latency per query: ${newFinishedTimes.avg()/1e6} ms")
+          println(s"median latency per query: ${newFinishedTimes.median()/1e6} ms")
           println(s"Collected ${newFinishedTimes.size} measurements")
 
           val resultString = newFinishedTimes.mkString("", "\n", "")
           val fw = new FileWriter(filename, false)
+          fw.write("========== elapsed time (point query) ==========\n")
+          fw.write(s"Average latency per query: ${newFinishedTimes.avg()/1e6} ms\n")
+          fw.write(s"median latency per query: ${newFinishedTimes.median()/1e6} ms\n")
+          fw.write(s"Collected ${newFinishedTimes.size} measurements\n")
+          fw.write("========== single results =================\n")
           fw.write(resultString)
           fw.close()
 
@@ -129,9 +147,14 @@ object QueryBenchmark extends App {
           handleShutdown()
 
         } else {
-          val newStartTime = startPointQuery()
-          context.become(waitForPointQueryResult(newRemainingQueries, newStartTime, newFinishedTimes))
+          context.become(waitForPointQueryResult(newPendingACKs, newFinishedTimes))
         }
+      }
+      {
+        case CorrelatedMessage.Success(corrId, _) => handle(corrId)
+        case CorrelatedMessage.Failure(corrId, _) => handle(corrId)
+      }
+
     }
 
     def resolveStoreSectionIdentities(): Unit = {
@@ -155,13 +178,15 @@ object QueryBenchmark extends App {
       context.become(waitForQueryResult(pending, Seq.empty, startTime))
     }
 
-    def startPointQuery(): Long = {
-      val query = SelectAllFromRelation.Request(StoreSection.Inventory.name)
-      val selection = Dactor.dactorSelection(context, classOf[StoreSection], 115)
+    def startPointQueries(): Unit = {
+      println("Measuring point query")
+      val pending = (0 until N_POINTQUERIES).map( i => {
+        val starTime = System.nanoTime()
+        storeSections(i % STORE_ID_RANGE_END) ! CorrelatedMessage.Request(i)
+        i -> starTime
+      }).toMap
 
-      val startTime = System.nanoTime()
-      selection ! query
-      startTime
+      context.become(waitForPointQueryResult(pending, Seq.empty))
     }
   }
 
