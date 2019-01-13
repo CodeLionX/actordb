@@ -48,12 +48,18 @@ lazy val root = (project in file("."))
     scalaVersion := Common.scalaVersion
   )
 
-lazy val memorybenchmark = (project in file("memorybenchmark"))
+lazy val benchmark = (project in file("benchmark"))
   .settings(
     Common.commonSettings,
     // I don't know why they are not accepted at the commonSettings key
     organization := Common.organization,
     scalaVersion := Common.scalaVersion,
-    libraryDependencies ++= Dependencies.akkaActorDependencies
+    libraryDependencies ++= Dependencies.akkaActorDependencies,
+    libraryDependencies ++= Seq(
+      // logging
+      "com.typesafe.akka" %% "akka-slf4j" % Dependencies.akkaVersion,
+      "ch.qos.logback" % "logback-classic" % "1.2.3",
+
+    )
   )
   .dependsOn(adbms, sampleapp)

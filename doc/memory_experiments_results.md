@@ -12,50 +12,51 @@ See pull request [#113](https://github.com/CodeLionX/actordb/pull/113) for detai
 
   Overview about the number of dactors and relations in this dataset:
   
-  |              | #dactors | #relations / dactor | #relations | disk size |
-  |:-------------|---------:|--------------------:|-----------:|----------:|
-  | Cart         |      573 |                   2 |       1146 |           |
-  | Customer     |       62 |                   3 |        186 |           |
-  | GroupManager |        6 |                   1 |          6 |           |
-  | StoreSection |      188 |                   2 |        376 |           |
-  | **Summary**  |      829 |                     |       1714 |      10 M |
+  |              | #dactors | #relations / dactor | #relations | disk size | records |
+  |:-------------|---------:|--------------------:|-----------:|----------:|--------:|
+  | Cart         |      573 |                   2 |       1146 |           |   9 168 |
+  | Customer     |       62 |                   3 |        186 |           |   5 084 |
+  | GroupManager |        6 |                   1 |          6 |           |  30 000 |
+  | StoreSection |      188 |                   2 |        376 |           | 120 132 |
+  | **Summary**  |      829 |                     |       1714 |      10 M | 164 384 |
+
+  Total number of items
 
 - Dataset `data_025_mb`
 
   Overview about the number of dactors and relations in this dataset:
   
-  |              | #dactors | #relations / dactor | #relations | disk size |
-  |:-------------|---------:|--------------------:|-----------:|----------:|
-  | Cart         |     2221 |                   2 |       4442 |           |
-  | Customer     |      100 |                   3 |        300 |           |
-  | GroupManager |        6 |                   1 |          6 |           |
-  | StoreSection |      251 |                   2 |        502 |           |
-  | **Summary**  |     2578 |                     |       5250 |      25 M |
+  |              | #dactors | #relations / dactor | #relations | disk size | records |
+  |:-------------|---------:|--------------------:|-----------:|----------:|--------:|
+  | Cart         |     2221 |                   2 |       4442 |           |  38 188 |
+  | Customer     |      100 |                   3 |        300 |           |   8 200 |
+  | GroupManager |        6 |                   1 |          6 |           |  30 000 |
+  | StoreSection |      251 |                   2 |        502 |           | 160 389 |
+  | **Summary**  |     2578 |                     |       5250 |      25 M | 236 777 |
   
 - Dataset `data_050_mb`
 
   Overview about the number of dactors and relations in this dataset:
   
-  |              | #dactors | #relations / dactor | #relations | disk size |
-  |:-------------|---------:|--------------------:|-----------:|----------:|
-  | Cart         |     3661 |                   2 |       7322 |           |
-  | Customer     |      200 |                   3 |        600 |           |
-  | GroupManager |       11 |                   1 |         11 |           |
-  | StoreSection |      501 |                   2 |       1002 |           |
-  | **Summary**  |     4373 |                     |       8935 |      50 M |
+  |              | #dactors | #relations / dactor | #relations | disk size | records |
+  |:-------------|---------:|--------------------:|-----------:|----------:|--------:|
+  | Cart         |     3661 |                   2 |       7322 |           | 102 508 |
+  | Customer     |      200 |                   3 |        600 |           |  16 400 |
+  | GroupManager |       11 |                   1 |         11 |           | 110 000 |
+  | StoreSection |      501 |                   2 |       1002 |           | 416 331 |
+  | **Summary**  |     4373 |                     |       8935 |      50 M | 645 239 |
 
-  
 - Dataset `data_100_mb`
 
   Overview about the number of dactors and relations in this dataset:
   
-  |              | #dactors | #relations / dactor | #relations | disk size |
-  |:-------------|---------:|--------------------:|-----------:|----------:|
-  | Cart         |     7322 |                   2 |      14644 |           |
-  | Customer     |      400 |                   3 |       1200 |           |
-  | GroupManager |       22 |                   1 |         22 |           |
-  | StoreSection |     1002 |                   2 |       2004 |           |
-  | **Summary**  |     8746 |                     |      17870 |     100 M |
+  |              | #dactors | #relations / dactor | #relations | disk size |   records |
+  |:-------------|---------:|--------------------:|-----------:|----------:|----------:|
+  | Cart         |     7322 |                   2 |      14644 |           |   203 010 |
+  | Customer     |      400 |                   3 |       1200 |           |    31 097 |
+  | GroupManager |       22 |                   1 |         22 |           |   209 994 |
+  | StoreSection |     1002 |                   2 |       2004 |           |   790 792 |
+  | **Summary**  |     8746 |                     |      17870 |     100 M | 1 234 893 |
 
 ## Results
 

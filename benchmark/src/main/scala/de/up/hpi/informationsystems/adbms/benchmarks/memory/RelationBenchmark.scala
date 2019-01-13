@@ -1,4 +1,4 @@
-package de.up.hpi.informationsystems.adbms.benchmarks
+package de.up.hpi.informationsystems.adbms.benchmarks.memory
 
 import java.io.{BufferedReader, File}
 import java.time.ZonedDateTime
