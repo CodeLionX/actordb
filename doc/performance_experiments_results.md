@@ -66,139 +66,44 @@ See [Memory Benchmarks: Used Datasets](./memory_experiments_results.md#used-data
 
 ### Point Query results (latency)
 
-We measured the time needed to select data from the Inventory relation of one `StoreSection`-Dactor.
+We measured the time in milliseconds needed to execute 1000 select queries for the Inventory relation of `StoreSection`-Dactors concurrently.
+Results can be found in the files in the folder [`performance_experiements_results`](./performance_experiements_results) with a name starting with `point-query-results-*.txt`.
+We pre-loaded the database with the `data_050_mb` dataset.
 
-- dataset: `data_010_mb`
-
-  ```
-  ========== elapsed time (point query) ==========
-  median latency per query: 381504.0ns
-  Collected 1000 measurements
-  Results written to point-query-results.txt
-  ```
-
-- dataset: `data_025_mb`
-
-  ```
-  ========== elapsed time (point query) ==========
-  median latency per query: 368784.0ns
-  Collected 1000 measurements
-  Results written to point-query-results.txt
-  ```
-
-- dataset: `data_050_mb`
-
-  ```
-  ========== elapsed time (point query) ==========
-  median latency per query: 369098.0ns
-  Collected 1000 measurements
-  Results written to point-query-results.txt
-  ```
-  
-- dataset: `data_100_mb`
-
-  ```
-  ========== elapsed time (point query) ==========
-  median latency per query: 357757.0ns
-  Collected 1000 measurements
-  Results written to point-query-results.txt
-  ```
+| `StorageManager`s |     Avg |  Median |
+| ----------------: | ------: | ------: | 
+|                50 |   22 ms |   25 ms | 
+|               100 |   22 ms |   24 ms |
+|               150 |   23 ms |   25 ms |
+|               200 |   24 ms |   26 ms |
+|               250 |   24 ms |   24 ms |
+|               300 |   18 ms |   20 ms |
+|               350 |   20 ms |   21 ms |
+|               400 |   19 ms |   22 ms |
+|               450 |   22 ms |   23 ms |
+|               500 |   20 ms |   21 ms |
+| **Summary:**      |   21 ms |   23 ms |
 
 ### Insert results
 
-We measured the time needed to insert a record into the `Inventory` relation of the `StoreSection`-Dactor and the `Discounts` relation of the `GroupManager`-Dactor.
+We measured the time needed to insert a record into the `Inventory` relation of the `StoreSection`-Dactors and the `Discounts` relation of the `GroupManager`-Dactors while inserting 1000 records concurrently.
+Results can be found in the files in the folder [`performance_experiements_results`](./performance_experiements_results) with a name starting with `insert-results-*.txt`.
+We pre-loaded the database with the `data_050_mb` dataset.
 
-For the following experiments the load was distributed across 100 `StoreSection`s and 5 `GroupManager`s.
+| `StoreSection`s | `GroupManager`s | Throughput |   Avg. | Median |
+| --------------: | --------------: | ---------: | -----: | -----: |
+|              50 |               1 |  8144 Op/s |  98 ms | 106 ms |
+|             100 |               2 |  6873 Op/s | 111 ms | 113 ms |
+|             150 |               3 |  7883 Op/s | 105 ms | 109 ms |
+|             200 |               4 |  8120 Op/s | 103 ms | 107 ms |
+|             250 |               5 |  7653 Op/s | 108 ms | 112 ms |
+|             300 |               6 |  7644 Op/s | 103 ms | 107 ms |
+|             350 |               7 |  8943 Op/s |  92 ms |  95 ms |
+|             400 |               8 |  7753 Op/s | 106 ms | 109 ms |
+|             450 |               9 |  8401 Op/s |  96 ms | 101 ms |
+|             500 |              10 |  8017 Op/s | 107 ms | 111 ms |
+| **Summary:**    |                 |  7943 Op/s | 103 ms | 107 ms |
 
-- dataset: `data_010_mb`
-
-  ```
-  ========== elapsed time (insert) ==========
-  Inserted 1000 x 2 (2 Dactors) rows in 151321843 ns
-  Throughput: 6608 Op/s
-  Average latency: 9.6071328E7
-  Median latency: 9.1940799E7
-  Results written to insert-results.txt
-  ```
-
-- dataset: `data_025_mb`
-
-  ```
-  ========== elapsed time (insert) ==========
-  Inserted 1000 x 2 (2 Dactors) rows in 140196826 ns
-  Throughput: 7133 Op/s
-  Average latency: 1.15048826E8
-  Median latency: 1.1780474E8
-  Results written to insert-results.txt
-  ```
-
-- dataset: `data_050_mb`
-
-  ```
-  ========== elapsed time (insert) ==========
-  Inserted 1000 x 2 (2 Dactors) rows in 123986502 ns
-  Throughput: 8065 Op/s
-  Average latency: 8.9853722E7
-  Median latency: 8.496072E7
-  Results written to insert-results.txt
-  ```
-
-- dataset: `data_100_mb`
-
-  ```
-  ========== elapsed time (insert) ==========
-  Inserted 1000 x 2 (2 Dactors) rows in 135505551 ns
-  Throughput: 7380 Op/s
-  Average latency: 1.12828333E8
-  Median latency: 1.14831795E8
-  Results written to insert-results.txt
-  ```
-
-For the following experiments we used the dataset `data_050_mb` and changed the number of Dactors.
-
-- `StoreSection`s: 50, `GroupManager`s: 3
-
-  ```
-  ========== elapsed time (insert) ==========
-  Inserted 1000 x 2 (2 Dactors) rows in 120123281 ns
-  Throughput: 8324.780939008817 Op/s
-  Average latency: 9.979085E7 ns
-  Median latency: 1.01549892E8 ns
-  Results written to insert-results.txt
-  ```
-
-- `StoreSection`s: 100, `GroupManager`s: 5
-
-  ```
-  ========== elapsed time (insert) ==========
-  Inserted 1000 x 2 (2 Dactors) rows in 121623542 ns
-  Throughput: 8222.092397210401 Op/s
-  Average latency: 9.602113E7 ns
-  Median latency: 9.5228632E7 ns
-  Results written to insert-results.txt
-  ```
-
-- `StoreSection`s: 200, `GroupManager`s: 10
-
-
-  ```
-  ========== elapsed time (insert) ==========
-  Inserted 1000 x 2 (2 Dactors) rows in 121047379 ns
-  Throughput: 8261.228027085162 Op/s
-  Average latency: 9.6566464E7 ns
-  Median latency: 1.00438275E8 ns
-  Results written to insert-results.txt
-  ```
-
-- `StoreSection`s: 400, `GroupManager`s: 10
-
-  ```
-  ========== elapsed time (insert) ==========
-  Inserted 1000 x 2 (2 Dactors) rows in 121148480 ns
-  Throughput: 8254.333855447463 Op/s
-  Average latency: 1.02999358E8 ns
-  Median latency: 1.05697289E8 ns
-  Results written to insert-results.txt
-  ```
-
-  
+The throughput just measures the external queries.
+In reality the framework performs two inserts in two different actors for each external query received.
+This means the system has an internal throughput of 15&nbsp;886 inserted records per second.
