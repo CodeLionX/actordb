@@ -35,6 +35,9 @@ object ConcurrentFunctorTest {
   sealed trait StartMessageType extends RequestResponseProtocol.Message
   case object StartMessage extends RequestResponseProtocol.Request[StartMessageType]
 
+  sealed trait EndMessageType extends RequestResponseProtocol.Message
+  case class EndMessage(result: Relation) extends RequestResponseProtocol.Success[EndMessageType]
+
   class PartnerDactor(id: Int) extends Dactor(id) with ActorLogging {
     override protected val relations: Map[RelationDef, MutableRelation] = Map.empty
 
@@ -81,27 +84,55 @@ class ConcurrentFunctorTest extends TestKit(ActorSystem("concurrent-functor-test
                  (job: S => Request[_ <: Message], recipients: Seq[ActorSelection]): ConcurrentFunctorBuilder[S] =
           new ConcurrentFunctorBuilder[S](Seq((job, recipients)))
 
+        trait ResultCollector[E <: Success[_]] {
+          def collect(result: Success[_ <: Message], resultEmitter: E => Unit)
+        }
+
         class ConcurrentFunctorBuilder[S <: Request[_]: ClassTag]
                                       (jobs: Seq[(S => Request[_ <: Message], Seq[ActorSelection])]) {
           def and(job: S => Request[_ <: Message], recipients: Seq[ActorSelection]): ConcurrentFunctorBuilder[S] =
             new ConcurrentFunctorBuilder[S](jobs :+ (job, recipients))
 
           def collect[E <: Success[_]: ClassTag]
-                     (end: Success[_ <: Message] => E): ConcurrentFunctorDef[S, E] =
+                     (end: ResultCollector[E]): ConcurrentFunctorDef[S, E] =
             new ConcurrentFunctorDef[S, E](jobs, end)
         }
 
         class ConcurrentFunctorDef[S <: Request[_]: ClassTag, E <: Success[_]: ClassTag]
                                   (jobs: Seq[(S => Request[_ <: Message], Seq[ActorSelection])],
-                                   collectMapping: Success[Message] => E) {
-          def props: Props = Props(new ConcurrentFunctor[S, E](jobs, collectMapping))
+                                   resultCollector: ResultCollector[E]) {
+          def props: Props = Props(new ConcurrentFunctor[S, E](jobs, resultCollector))
         }
       }
 
       class ConcurrentFunctor[S <: Request[_]: ClassTag, E <: Success[_]: ClassTag]
                              (jobs: Seq[(S => Request[_ <: Message], Seq[ActorSelection])],
-                              collectMapping: Success[Message] => E) extends Actor {
-        override def receive: Receive = ???
+                              resultCollector: ConcurrentFunctor.ResultCollector[E]) extends Actor {
+        var backTo: ActorRef = Actor.noSender
+        var results: Seq[Success[Message]] = Seq.empty
+        var resultSize = 0
+
+        override def receive: Receive = {
+          case s: S =>
+            jobs.foreach{ case (f, actorSelections) =>
+              actorSelections foreach ( _ ! f(s) )
+            }
+            resultSize = jobs.map(_._2.size).sum
+            backTo = sender
+
+          case message: Success[_] =>
+            results :+= message
+
+            if(results.size == resultSize) {
+              val emitter: E => Unit = returnMessage => {
+                backTo ! returnMessage
+              }
+
+              results.foreach( res =>
+              resultCollector.collect(res, emitter)
+              )
+            }
+        }
       }
 
       def startConcurrentFunctor[S <: Request[_]](function: ConcurrentFunctor.ConcurrentFunctorDef[S, _], refFactory: ActorRefFactory)
@@ -118,11 +149,21 @@ class ConcurrentFunctorTest extends TestKit(ActorSystem("concurrent-functor-test
 
         val fut = ConcurrentFunctor[StartMessage.type]({ _: StartMessage.type => Thread.sleep(500); MessageA.Request("test message A")}, Seq(partnerDactor1, partnerDactor2))
           .and({ _: StartMessage.type => MessageB.Request()}, Seq(partnerDactor1, partnerDactor2))
-          .collect(identity)
+          .collect( new ConcurrentFunctor.ResultCollector[EndMessage] {
+
+            var counter = 0
+
+            def collect(result: Success[_ <: Message], resultEmitter: EndMessage => Unit): Unit = {
+              counter += 1
+              if(counter == 4){
+                resultEmitter(EndMessage(Relation.empty))
+              }
+            }
+          })
 
         val functorRef = startConcurrentFunctor(fut, system)(StartMessage)
         probe.watch(functorRef)
-        probe.expectMsg(MessageA.Success(Relation.empty))
+        probe.expectMsg(EndMessage(Relation.empty))
       }
 
       "handle one receiver correctly" in {
