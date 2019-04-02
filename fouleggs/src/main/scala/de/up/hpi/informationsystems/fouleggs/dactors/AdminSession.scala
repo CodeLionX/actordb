@@ -31,14 +31,15 @@ class AdminSession extends Actor with ActorLogging {
 
   def commonBehaviour: Receive = {
     case AdminSession.Up => sender() ! akka.actor.Status.Success
-    case AdminSession.AddCastToFilm.Request(personId, filmId, roleName) =>
-      addCastToFilm(personId, filmId, roleName)
+    case request: AdminSession.AddCastToFilm.Request =>
+      addCastToFilm(request)
     case SelectAllFromRelation.Success(rel) => log.info(rel.toString)
   }
 
-  def addCastToFilm(personId: Int, filmId: Int, roleName: String): Unit = {
-    log.info(s"Adding person $personId as $roleName to film $filmId")
-    val functor: ActorRef = context.actorOf(CastAndFilmographyFunctor.props(personId, filmId, roleName, self))
+  def addCastToFilm(request: AdminSession.AddCastToFilm.Request): Unit = {
+    log.info(s"Adding person ${request.personId} as ${request.roleName} to film ${request.filmId}")
+    val functor: ActorRef = context.actorOf(CastAndFilmographyFunctor.props(self))
+    functor ! request
     context.become(waitingForSuccess(functor) orElse commonBehaviour)
   }
 
@@ -56,33 +57,38 @@ class AdminSession extends Actor with ActorLogging {
 }
 
 object CastAndFilmographyFunctor {
-  def props(personId: Int, filmId: Int, roleName: String, backTo: ActorRef): Props =
-    Props(new CastAndFilmographyFunctor(personId, filmId, roleName, backTo))
+  def props(backTo: ActorRef): Props =
+    Props(new CastAndFilmographyFunctor(backTo))
 }
 
-class CastAndFilmographyFunctor(personId: Int, filmId: Int, roleName: String, backTo: ActorRef) extends Actor {
+class CastAndFilmographyFunctor(backTo: ActorRef) extends Actor {
 
-  val personSelection: ActorSelection = Dactor.dactorSelection(context, classOf[Person], personId)
-  val filmSelection: ActorSelection = Dactor.dactorSelection(context, classOf[Film], filmId)
-
-  private val addFilmToPersons = SequentialFunctor()
-    .start((_: AdminSession.AddCastToFilm.Request) => Film.GetFilmInfo.Request(), Seq(filmSelection))
-    .next(message => {
+  private def addFilmToPersons(film: ActorSelection, person: ActorSelection) = SequentialFunctor()
+    .start((_: AdminSession.AddCastToFilm.Request) => Film.GetFilmInfo.Request(), Seq(film))
+    .nextWithContext( (message, functorContext) => {
       message.result.records.toOption.flatMap(_.headOption) match {
         case Some(filmInfo: Record) =>
-          Person.AddFilmToFilmography.Request(filmId, filmInfo(Film.Info.title), filmInfo(Film.Info.release), roleName)
+          functorContext.log.info("mapping AddCastToFilm.Request to AddFilmToFilmography.Request")
+          Person.AddFilmToFilmography.Request(
+            functorContext.startMessage.filmId, filmInfo(Film.Info.title), filmInfo(Film.Info.release),
+            functorContext.startMessage.roleName
+          )
       }
-    }, Seq(personSelection))
+    }, Seq(person))
     .end(identity)
 
-  private val addCastToFilm = SequentialFunctor()
-    .start((_: AdminSession.AddCastToFilm.Request) => Person.GetPersonInfo.Request(), Seq(personSelection))
-    .next(message => {
+  private def addCastToFilm(person: ActorSelection, film: ActorSelection) = SequentialFunctor()
+    .start((_: AdminSession.AddCastToFilm.Request) => Person.GetPersonInfo.Request(), Seq(person))
+    .nextWithContext( (message, functorContext) => {
       message.result.records.toOption.flatMap(_.headOption) match {
         case Some(personInfo: Record) =>
-          Film.AddCast.Request(personId, personInfo(Person.Info.firstName), personInfo(Person.Info.lastName), roleName)
+          functorContext.log.info("mapping AddCastToFilm.Request to AddCast.Request")
+          Film.AddCast.Request(
+            functorContext.startMessage.personId, personInfo(Person.Info.firstName), personInfo(Person.Info.lastName),
+            functorContext.startMessage.roleName
+          )
       }
-    }, Seq(filmSelection))
+    }, Seq(film))
     .end(identity)
 
   private def fail(e: Throwable): Unit = {
@@ -90,10 +96,24 @@ class CastAndFilmographyFunctor(personId: Int, filmId: Int, roleName: String, ba
     context.stop(self)
   }
 
-  private val sub1 = Dactor.startSequentialFunctor(addFilmToPersons, context)(AddCastToFilm.Request(personId, filmId, roleName))
-  private val sub2 = Dactor.startSequentialFunctor(addCastToFilm, context)(AddCastToFilm.Request(personId, filmId, roleName))
+  override def receive: Receive = start()
 
-  override def receive: Receive = waitingForAck(Seq(sub1, sub2))
+  def start(): Receive = {
+    case request: AdminSession.AddCastToFilm.Request =>
+      val personSelection: ActorSelection = Dactor.dactorSelection(context, classOf[Person], request.personId)
+      val filmSelection: ActorSelection = Dactor.dactorSelection(context, classOf[Film], request.filmId)
+
+      val sub1 = Dactor.startSequentialFunctor(
+        addFilmToPersons(filmSelection, personSelection), context)(
+        AddCastToFilm.Request(request.personId, request.filmId, request.roleName)
+      )
+      val sub2 = Dactor.startSequentialFunctor(
+        addCastToFilm(personSelection, filmSelection), context)(
+        AddCastToFilm.Request(request.personId, request.filmId, request.roleName)
+      )
+
+      context.become(waitingForAck(Seq(sub1, sub2)))
+  }
 
   def waitingForAck(pending: Seq[ActorRef]): Receive = {
     case _: RequestResponseProtocol.Success[_] =>
