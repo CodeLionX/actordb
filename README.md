@@ -1,5 +1,9 @@
 # actordb [![Build Status](https://travis-ci.com/CodeLionX/actordb.svg?branch=master)](https://travis-ci.com/CodeLionX/actordb) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/abdd28a9ddd441e49bbb3e73a05d7779)](https://www.codacy.com/app/sebastian-schmidl/actordb?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=CodeLionX/actordb&amp;utm_campaign=Badge_Grade) [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/abdd28a9ddd441e49bbb3e73a05d7779)](https://www.codacy.com/app/CodeLionX/actordb?utm_source=github.com&utm_medium=referral&utm_content=CodeLionX/actordb&utm_campaign=Badge_Coverage)
-Actor Database System
+
+Actor Database System Framework built with Akka.
+To learn more about this project please consult our [paper (GI Digital Library)](https://dl.gi.de/handle/20.500.12116/21810)
+
+
 
 
 ## Contributing
